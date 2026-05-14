@@ -1,0 +1,43 @@
+import { Mail, Settings, Trophy } from 'lucide-react';
+import type { ResourceState } from '../../types/game';
+import GameHudCounter from '../game-ui/GameHudCounter';
+
+export function CoinCounter({ coins }: { coins: number }) {
+  return <GameHudCounter type="coins" value={coins} />;
+}
+
+export function GemCounter({ gems }: { gems: number }) {
+  return <GameHudCounter type="gems" value={gems} />;
+}
+
+export function HeartCounter({ hearts, maxHearts }: { hearts: number; maxHearts: number }) {
+  return <GameHudCounter type="hearts" value={`${hearts}/${maxHearts}`} />;
+}
+
+export function TopResources({ resources, compact = false, variant = 'default' }: { resources: ResourceState; compact?: boolean; variant?: 'default' | 'glossy' }) {
+  const iconButtonClass =
+    variant === 'glossy'
+      ? 'grid h-12 w-12 place-items-center rounded-2xl border-[3px] border-white/65 bg-gradient-to-b from-[#FFFFFF] via-[#EEF8FF] to-[#A8D8FF] text-[#214375] shadow-button'
+      : 'grid h-12 w-12 place-items-center rounded-2xl border border-white/25 bg-gradient-to-b from-[#16405F] to-[#071C33] text-white shadow-lg';
+
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <CoinCounter coins={resources.coins} />
+      {!compact && <GemCounter gems={resources.gems} />}
+      <HeartCounter hearts={resources.hearts} maxHearts={resources.maxHearts} />
+      {!compact && (
+        <>
+          <button className={iconButtonClass} aria-label="Mail">
+            <Mail size={22} />
+          </button>
+          <button className={iconButtonClass} aria-label="Trophy">
+            <Trophy size={22} />
+          </button>
+          <button className={iconButtonClass} aria-label="Settings">
+            <Settings size={22} />
+          </button>
+        </>
+      )}
+    </div>
+  );
+}

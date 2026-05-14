@@ -1,0 +1,560 @@
+@import url('https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Kantumruy+Pro:wght@400;500;600;700;800&family=Moul&family=Noto+Sans+Khmer:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #111827;
+  background: #ebf6ff;
+  font-family: 'Nunito', 'Noto Sans Khmer', 'Kantumruy Pro', system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+::selection {
+  color: #ffffff;
+  background: #1e78e6;
+}
+
+.khmer-display {
+  font-family: 'Moul', 'Noto Sans Khmer', 'Kantumruy Pro', serif;
+  line-height: 1.45;
+}
+
+.khmer-body {
+  font-family: 'Noto Sans Khmer', 'Kantumruy Pro', 'Battambang', sans-serif;
+  line-height: 1.65;
+}
+
+.text-stroke-soft {
+  text-shadow:
+    0 3px 0 rgba(0, 61, 112, 0.18),
+    0 5px 12px rgba(0, 48, 101, 0.22);
+}
+
+.hero-title-shadow {
+  text-shadow:
+    0 3px 0 rgba(255, 255, 255, 0.82),
+    0 7px 0 rgba(0, 66, 132, 0.12),
+    0 12px 22px rgba(0, 54, 114, 0.28);
+}
+
+.game-card {
+  border: 1px solid rgba(30, 120, 230, 0.22);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(241, 250, 255, 0.88));
+  box-shadow: 0 18px 38px rgba(21, 87, 153, 0.16);
+  backdrop-filter: blur(14px);
+}
+
+.glass-panel {
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 18px 38px rgba(13, 56, 112, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.dark-game-panel {
+  border: 1px solid rgba(73, 213, 255, 0.26);
+  background: linear-gradient(180deg, rgba(7, 45, 78, 0.88), rgba(5, 34, 50, 0.78));
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+}
+
+.temple-silhouette {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 34%;
+  pointer-events: none;
+  opacity: 0.48;
+  background:
+    linear-gradient(135deg, transparent 0 42%, rgba(50, 91, 96, 0.34) 42% 58%, transparent 58%) 6% 88% / 9rem 7rem no-repeat,
+    linear-gradient(135deg, transparent 0 42%, rgba(50, 91, 96, 0.26) 42% 58%, transparent 58%) 19% 88% / 7rem 5.4rem no-repeat,
+    linear-gradient(135deg, transparent 0 42%, rgba(50, 91, 96, 0.32) 42% 58%, transparent 58%) 79% 88% / 8rem 6rem no-repeat,
+    linear-gradient(135deg, transparent 0 42%, rgba(50, 91, 96, 0.22) 42% 58%, transparent 58%) 93% 88% / 6rem 4.8rem no-repeat,
+    linear-gradient(180deg, transparent 0 50%, rgba(23, 91, 101, 0.24) 50% 78%, transparent 78%);
+}
+
+.sky-clouds {
+  background:
+    radial-gradient(ellipse at 10% 22%, rgba(255, 255, 255, 0.9) 0 5%, transparent 11%),
+    radial-gradient(ellipse at 20% 19%, rgba(255, 255, 255, 0.75) 0 4%, transparent 10%),
+    radial-gradient(ellipse at 82% 14%, rgba(255, 255, 255, 0.9) 0 5%, transparent 12%),
+    radial-gradient(ellipse at 73% 19%, rgba(255, 255, 255, 0.72) 0 4%, transparent 10%),
+    linear-gradient(180deg, #27aef3 0%, #9ee9ff 46%, #ebf6ff 100%);
+}
+
+.landing-adventure-bg {
+  background:
+    radial-gradient(circle at 72% 26%, rgba(255, 255, 255, 0.95) 0 5%, transparent 13%),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.84) 0 6%, transparent 14%),
+    linear-gradient(180deg, #1fa8f0 0%, #79dcff 42%, #d8f8ff 72%, #ebf6ff 100%);
+}
+
+.landing-cloud-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.86;
+  background:
+    radial-gradient(ellipse at 13% 20%, rgba(255, 255, 255, 0.95) 0 4.2%, transparent 10%),
+    radial-gradient(ellipse at 21% 17%, rgba(255, 255, 255, 0.72) 0 4%, transparent 9%),
+    radial-gradient(ellipse at 39% 10%, rgba(255, 255, 255, 0.68) 0 3.6%, transparent 8%),
+    radial-gradient(ellipse at 77% 16%, rgba(255, 255, 255, 0.92) 0 4.8%, transparent 11%),
+    radial-gradient(ellipse at 88% 22%, rgba(255, 255, 255, 0.78) 0 4.2%, transparent 9%);
+}
+
+.landing-haze {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0) 0 54%, rgba(235, 246, 255, 0.72) 83%, #ebf6ff 100%),
+    radial-gradient(circle at 61% 54%, rgba(255, 255, 255, 0.56), transparent 22%),
+    radial-gradient(circle at 14% 79%, rgba(147, 232, 255, 0.32), transparent 20%);
+}
+
+.landing-temple-layer {
+  position: absolute;
+  inset-inline: -6%;
+  bottom: 0;
+  height: 42%;
+  pointer-events: none;
+  opacity: 0.5;
+  background:
+    linear-gradient(135deg, transparent 0 42%, rgba(65, 99, 99, 0.38) 42% 58%, transparent 58%) 2% 88% / 7rem 8rem no-repeat,
+    linear-gradient(135deg, transparent 0 42%, rgba(50, 88, 94, 0.34) 42% 58%, transparent 58%) 13% 90% / 10rem 11rem no-repeat,
+    linear-gradient(135deg, transparent 0 42%, rgba(42, 83, 96, 0.42) 42% 58%, transparent 58%) 76% 90% / 12rem 13rem no-repeat,
+    linear-gradient(135deg, transparent 0 42%, rgba(42, 83, 96, 0.28) 42% 58%, transparent 58%) 92% 92% / 8rem 9rem no-repeat,
+    linear-gradient(180deg, transparent 0 42%, rgba(45, 107, 103, 0.22) 42% 78%, transparent 78%);
+}
+
+.landing-floating-island {
+  position: absolute;
+  border-radius: 48% 52% 48% 52% / 58% 52% 48% 42%;
+  background:
+    radial-gradient(circle at 34% 19%, rgba(255,255,255,.35), transparent 16%),
+    linear-gradient(180deg, #79dd63 0 42%, #33b765 43% 57%, #8e633f 58% 76%, #4b311e 77% 100%);
+  box-shadow: 0 28px 42px rgba(30, 95, 107, .24);
+}
+
+.landing-floating-island::before {
+  content: "";
+  position: absolute;
+  left: 22%;
+  top: -26%;
+  width: 58%;
+  height: 54%;
+  background:
+    linear-gradient(135deg, transparent 0 42%, rgba(95, 83, 62, .42) 42% 58%, transparent 58%) center / 38% 100% no-repeat,
+    linear-gradient(180deg, #9c8963 0 52%, #725734 52% 100%);
+  clip-path: polygon(50% 0, 62% 24%, 62% 37%, 76% 37%, 76% 100%, 24% 100%, 24% 37%, 38% 37%, 38% 24%);
+  opacity: .86;
+}
+
+.landing-jungle-bank {
+  position: absolute;
+  inset-inline: 0;
+  bottom: -4rem;
+  height: 12rem;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 10% 40%, #57b85a 0 8%, transparent 14%),
+    radial-gradient(ellipse at 22% 48%, #2ca95e 0 10%, transparent 16%),
+    radial-gradient(ellipse at 76% 36%, #56c55e 0 10%, transparent 17%),
+    radial-gradient(ellipse at 90% 42%, #2c9a56 0 9%, transparent 16%),
+    linear-gradient(180deg, transparent 0 34%, rgba(30, 138, 90, .35) 35% 58%, rgba(36, 89, 65, .18) 59% 100%);
+}
+
+.island-shape {
+  border-radius: 49% 51% 44% 56% / 56% 42% 58% 44%;
+  background:
+    radial-gradient(circle at 42% 22%, rgba(255, 255, 255, 0.24), transparent 24%),
+    linear-gradient(180deg, #56cf67 0%, #2ebf64 48%, #966338 49%, #5e3d25 100%);
+}
+
+.map-water {
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255,255,255,.7) 0 3%, transparent 7%),
+    radial-gradient(circle at 77% 30%, rgba(255,255,255,.48) 0 4%, transparent 9%),
+    radial-gradient(circle at 50% 62%, rgba(18, 126, 193, .35), transparent 33%),
+    linear-gradient(145deg, #1da9ed 0%, #0b78c9 44%, #075ba9 100%);
+}
+
+.jungle-vignette {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 205, 71, 0.22), transparent 12%),
+    radial-gradient(circle at 50% 36%, rgba(0, 206, 255, 0.34), transparent 34%),
+    linear-gradient(180deg, rgba(3, 16, 29, 0.16), rgba(3, 17, 21, 0.72)),
+    linear-gradient(145deg, #073d55 0%, #052c31 52%, #04131f 100%);
+}
+
+.path-curve {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 42%;
+  height: 42%;
+  border-top: 28px solid rgba(195, 141, 77, 0.96);
+  border-radius: 48% 52% 0 0;
+  transform: rotate(-4deg);
+  box-shadow:
+    inset 0 6px 0 rgba(255, 228, 149, 0.38),
+    0 9px 0 rgba(92, 61, 34, 0.35);
+}
+
+.world-map-page {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.78) 0 3.5%, transparent 8%),
+    radial-gradient(circle at 78% 15%, rgba(255, 255, 255, 0.68) 0 4%, transparent 9%),
+    radial-gradient(circle at 52% 53%, rgba(109, 224, 255, 0.5), transparent 34%),
+    linear-gradient(180deg, #37b7f5 0%, #48c3f3 33%, #1082c8 100%);
+}
+
+.world-map-clouds {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.9;
+  background:
+    radial-gradient(ellipse at 12% 15%, rgba(255, 255, 255, 0.95) 0 4%, transparent 10%),
+    radial-gradient(ellipse at 20% 12%, rgba(255, 255, 255, 0.75) 0 4%, transparent 9%),
+    radial-gradient(ellipse at 79% 9%, rgba(255, 255, 255, 0.88) 0 4.5%, transparent 11%),
+    radial-gradient(ellipse at 88% 15%, rgba(255, 255, 255, 0.68) 0 4%, transparent 10%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 32%);
+}
+
+.world-map-sidebar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.world-map-menu-card {
+  display: flex;
+  min-width: 10.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  border: 3px solid rgba(116, 69, 28, 0.62);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fff4ce 0%, #f6d184 58%, #d79948 100%);
+  padding: 0.75rem;
+  box-shadow: inset 0 -5px 0 rgba(92, 55, 25, 0.18), 0 13px 22px rgba(33, 81, 107, 0.2);
+}
+
+.world-map-progress-card {
+  display: none;
+  margin-top: auto;
+  border: 3px solid rgba(116, 69, 28, 0.48);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fff8de, #e8bd68);
+  padding: 0.85rem;
+  box-shadow: inset 0 -5px 0 rgba(92, 55, 25, 0.16), 0 14px 24px rgba(33, 81, 107, 0.2);
+}
+
+.world-map-stage {
+  position: relative;
+  min-height: 760px;
+  overflow: hidden;
+  border: 5px solid rgba(255, 255, 255, 0.62);
+  border-radius: 34px;
+  background-color: #35b9ed;
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 22px 44px rgba(14, 72, 128, 0.32);
+}
+
+.world-map-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 25%),
+    radial-gradient(circle at 50% 43%, rgba(255, 255, 255, 0.34), transparent 30%),
+    radial-gradient(circle at 72% 76%, rgba(12, 81, 125, 0.2), transparent 23%);
+  z-index: 1;
+}
+
+.world-map-ocean-lines {
+  position: absolute;
+  inset: 0;
+  opacity: 0.52;
+  background:
+    repeating-radial-gradient(ellipse at 42% 48%, transparent 0 34px, rgba(255, 255, 255, 0.28) 36px 39px, transparent 42px 78px),
+    repeating-linear-gradient(165deg, rgba(255, 255, 255, 0.1) 0 2px, transparent 2px 34px);
+}
+
+.world-map-island {
+  position: absolute;
+  box-shadow: 0 24px 34px rgba(38, 92, 70, 0.24);
+}
+
+.world-map-island-main {
+  left: 10%;
+  top: 18%;
+  width: 72%;
+  height: 62%;
+  border-radius: 48% 52% 42% 58% / 50% 46% 54% 50%;
+  background:
+    radial-gradient(ellipse at 26% 65%, #2e9e56 0 7%, transparent 15%),
+    radial-gradient(ellipse at 64% 29%, #5bcb66 0 9%, transparent 17%),
+    radial-gradient(ellipse at 50% 47%, #99d665 0 12%, transparent 21%),
+    linear-gradient(180deg, #9bd56a 0 47%, #54b956 48% 62%, #bc8a4d 63% 75%, #81542e 76% 100%);
+}
+
+.world-map-island-main::after {
+  content: "";
+  position: absolute;
+  inset: 6% 8%;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse at 23% 55%, rgba(19, 111, 62, 0.32) 0 9%, transparent 15%),
+    radial-gradient(ellipse at 73% 39%, rgba(21, 129, 68, 0.28) 0 11%, transparent 17%),
+    linear-gradient(115deg, transparent 0 45%, rgba(255, 255, 255, 0.22) 46% 48%, transparent 49% 100%);
+}
+
+.world-map-island-north {
+  left: 45%;
+  top: 10%;
+  width: 21%;
+  height: 17%;
+  border-radius: 52% 48% 55% 45% / 45% 52% 48% 55%;
+  background: linear-gradient(180deg, #8bd969 0 58%, #8e6336 59% 100%);
+}
+
+.world-map-island-south {
+  left: 37%;
+  bottom: 7%;
+  width: 28%;
+  height: 18%;
+  border-radius: 50% 50% 44% 56% / 56% 47% 53% 44%;
+  background: linear-gradient(180deg, #71ce66 0 56%, #98633a 57% 100%);
+}
+
+.world-map-jungle {
+  position: absolute;
+  height: 160px;
+  width: 210px;
+  background:
+    radial-gradient(circle at 14% 65%, #267943 0 18%, transparent 19%),
+    radial-gradient(circle at 31% 48%, #3caa50 0 17%, transparent 18%),
+    radial-gradient(circle at 51% 62%, #277e45 0 21%, transparent 22%),
+    radial-gradient(circle at 73% 48%, #48b85b 0 18%, transparent 19%),
+    radial-gradient(circle at 88% 67%, #2c8c4c 0 18%, transparent 19%);
+  z-index: 3;
+}
+
+.world-map-jungle-left {
+  left: 8%;
+  top: 33%;
+}
+
+.world-map-jungle-right {
+  right: 12%;
+  top: 33%;
+}
+
+.world-map-temple {
+  position: absolute;
+  width: 128px;
+  height: 110px;
+  opacity: 0.72;
+  background:
+    linear-gradient(135deg, transparent 0 42%, #7f6f55 42% 58%, transparent 58%) center top / 82px 72px no-repeat,
+    linear-gradient(180deg, #9a8463 0 48%, #6d573e 49% 100%) center bottom / 118px 72px no-repeat;
+  clip-path: polygon(50% 0, 61% 24%, 61% 37%, 75% 37%, 75% 100%, 25% 100%, 25% 37%, 39% 37%, 39% 24%);
+  z-index: 4;
+}
+
+.world-map-temple-left {
+  left: 26%;
+  top: 27%;
+  transform: scale(0.9);
+}
+
+.world-map-temple-right {
+  right: 23%;
+  top: 18%;
+  transform: scale(1.08);
+}
+
+.world-map-bridge {
+  position: absolute;
+  left: 51%;
+  top: 66%;
+  width: 190px;
+  height: 40px;
+  border-top: 14px dashed rgba(137, 89, 45, 0.92);
+  transform: rotate(15deg);
+  z-index: 4;
+  filter: drop-shadow(0 6px 0 rgba(74, 50, 26, 0.24));
+}
+
+.world-map-path {
+  position: absolute;
+  inset: 11% 8% 8% 7%;
+  z-index: 10;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.world-map-path-shadow,
+.world-map-path-road,
+.world-map-path-highlight {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.world-map-path-shadow {
+  stroke: rgba(99, 61, 29, 0.5);
+  stroke-width: 40;
+  transform: translateY(12px);
+}
+
+.world-map-path-road {
+  stroke: #c99155;
+  stroke-width: 34;
+  stroke-dasharray: 1 18;
+}
+
+.world-map-path-highlight {
+  stroke: rgba(255, 229, 156, 0.92);
+  stroke-width: 10;
+  stroke-dasharray: 1 22;
+  transform: translateY(-7px);
+}
+
+.world-map-category {
+  position: absolute;
+  z-index: 18;
+  min-width: 130px;
+  transform: translate(-50%, -50%) rotate(-3deg);
+  border: 3px solid rgba(255, 255, 255, 0.82);
+  border-radius: 18px;
+  color: #fff;
+  padding: 0.5rem 0.85rem;
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.16);
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.14), 0 9px 15px rgba(51, 81, 71, 0.24);
+}
+
+.world-map-node {
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.16);
+}
+
+.world-map-node-gloss {
+  position: absolute;
+  left: 16%;
+  top: 10%;
+  width: 58%;
+  height: 34%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.world-map-mission-panel {
+  display: flex;
+  min-height: 760px;
+  flex-direction: column;
+  border: 4px solid rgba(130, 82, 34, 0.65);
+  border-radius: 32px;
+  background: linear-gradient(180deg, #fff8e6 0%, #fffdf7 72%, #f0d69a 100%);
+  padding: 1rem;
+  color: #4e3216;
+  box-shadow: inset 0 -7px 0 rgba(116, 69, 28, 0.14), 0 22px 38px rgba(20, 75, 118, 0.26);
+}
+
+.mission-preview {
+  position: relative;
+  height: 132px;
+  overflow: hidden;
+  border: 3px solid #9d7342;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.92) 0 6%, transparent 15%),
+    linear-gradient(180deg, #70d9ff 0%, #c9f3ff 48%, #73c86a 49%, #3fae58 100%);
+  box-shadow: inset 0 -5px 0 rgba(95, 64, 36, 0.18);
+}
+
+@media (min-width: 1280px) {
+  .world-map-sidebar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .world-map-menu-card {
+    min-width: 0;
+    min-height: 124px;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .world-map-progress-card {
+    display: block;
+  }
+}
+
+@media (max-width: 1023px) {
+  .world-map-stage,
+  .world-map-mission-panel {
+    min-height: 680px;
+  }
+
+  .world-map-category {
+    min-width: 112px;
+    padding: 0.4rem 0.6rem;
+  }
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(30, 120, 230, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
