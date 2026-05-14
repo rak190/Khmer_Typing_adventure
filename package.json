@@ -6,7 +6,7 @@
   "description": "A responsive Khmer-first typing adventure game built with React, TypeScript, Vite, Tailwind CSS, Framer Motion, Recharts, and Firebase-ready demo mode.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "deploy": "npm run build && gh-pages -d dist"
