@@ -35,7 +35,7 @@ export default function GameMapNode({ level, state = 'completed', color = 'green
       onClick={() => {
         if (!locked) onClick?.();
       }}
-      className={cn('absolute -translate-x-1/2 -translate-y-1/2 text-center', locked ? 'cursor-default' : '', className)}
+      className={cn('pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-center', locked ? 'cursor-default' : 'cursor-pointer', className)}
       style={style}
       aria-label={`Level ${level}${locked ? ' locked' : ''}`}
     >

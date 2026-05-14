@@ -104,7 +104,7 @@ export default function BattlePage() {
   return (
     <PageTransition className="min-h-screen overflow-hidden jungle-vignette text-white">
       <div className="relative min-h-screen px-4 py-4 lg:px-8">
-        <div className="absolute inset-0 opacity-50">
+        <div className="pointer-events-none absolute inset-0 opacity-50">
           <div className="absolute left-10 top-32 h-96 w-40 rotate-6 rounded-full bg-primary/25 blur-3xl" />
           <div className="absolute right-16 top-28 h-96 w-52 -rotate-12 rounded-full bg-adventure/25 blur-3xl" />
         </div>

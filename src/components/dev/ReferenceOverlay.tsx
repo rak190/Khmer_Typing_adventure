@@ -27,23 +27,23 @@ export default function ReferenceOverlay({ src, opacity = 0.35, zIndex = 9999 }:
   if (!overlayEnabled || !src) return null;
 
   return (
-    <>
+    <div
+      className="pointer-events-none absolute inset-0 h-full w-full select-none"
+      aria-hidden="true"
+      style={{ zIndex }}
+    >
       {visible && (
         <img
           src={src}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-          style={{ opacity, pointerEvents: 'none', zIndex }}
+          draggable={false}
+          className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
+          style={{ opacity }}
         />
       )}
-      <button
-        type="button"
-        onClick={() => setVisible((next) => !next)}
-        className="absolute right-4 top-4 rounded-full bg-black/70 px-4 py-2 text-xs font-black text-white"
-        style={{ zIndex: zIndex + 1 }}
-      >
-        {visible ? 'Hide ref' : 'Show ref'}
-      </button>
-    </>
+      <div className="absolute right-4 top-4 rounded-full bg-black/65 px-4 py-2 text-xs font-black text-white">
+        Ref {visible ? 'on' : 'off'} - Ctrl+Shift+O
+      </div>
+    </div>
   );
 }

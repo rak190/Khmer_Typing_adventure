@@ -43,7 +43,7 @@ export default function GameButton({
       whileHover={{ y: -3, scale: 1.02 }}
       whileTap={{ y: 2, scale: 0.98 }}
       className={cn(
-        'relative inline-flex items-center justify-center gap-2 overflow-hidden border-[3px] bg-gradient-to-b font-black shadow-[inset_0_-6px_0_rgba(0,0,0,.18),0_10px_18px_rgba(0,0,0,.2)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 disabled:cursor-not-allowed disabled:opacity-60 before:absolute before:inset-x-4 before:top-1.5 before:h-1/3 before:rounded-full before:bg-white/35 before:content-[""]',
+        'pointer-events-auto relative inline-flex cursor-pointer items-center justify-center gap-2 overflow-hidden border-[3px] bg-gradient-to-b font-black shadow-[inset_0_-6px_0_rgba(0,0,0,.18),0_10px_18px_rgba(0,0,0,.2)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 disabled:cursor-not-allowed disabled:opacity-60 before:pointer-events-none before:absolute before:inset-x-4 before:top-1.5 before:h-1/3 before:rounded-full before:bg-white/35 before:content-[""]',
         variants[variant],
         sizes[size],
         className,

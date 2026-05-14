@@ -48,17 +48,17 @@ export default function WorldMapPage() {
   return (
     <PageTransition>
       <GameScreen background={backgroundImages.worldMap} reference="/src/reference/world-map-reference.png">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_52%_48%,rgba(255,255,255,.08),transparent_34%),linear-gradient(180deg,rgba(0,70,130,.06),rgba(0,33,77,.18))]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_52%_48%,rgba(255,255,255,.08),transparent_34%),linear-gradient(180deg,rgba(0,70,130,.06),rgba(0,33,77,.18))]" />
 
         <button
-          className="absolute left-[34px] top-[32px] z-30 grid h-[70px] w-[70px] place-items-center rounded-[22px] border-[4px] border-[#743F1E] bg-gradient-to-b from-[#F6C079] to-[#B76224] text-white shadow-button"
+          className="pointer-events-auto absolute left-[34px] top-[32px] z-40 grid h-[70px] w-[70px] cursor-pointer place-items-center rounded-[22px] border-[4px] border-[#743F1E] bg-gradient-to-b from-[#F6C079] to-[#B76224] text-white shadow-button"
           onClick={() => navigate('/')}
           aria-label="Back"
         >
           <ArrowLeft size={36} />
         </button>
 
-        <aside className="absolute left-[34px] top-[122px] z-30 flex w-[184px] flex-col gap-[18px]">
+        <aside className="absolute left-[34px] top-[122px] z-40 flex w-[184px] flex-col gap-[18px]">
           <div className="rounded-[28px] border-[4px] border-[#6E421F] bg-gradient-to-b from-[#FFEAB0] via-[#F4C56E] to-[#D99032] px-3 py-5 text-center shadow-button">
             <div className="khmer-display text-[31px] leading-tight text-[#6A3217]">ផែនទី</div>
             <div className="text-[15px] font-black text-[#5C3417]">World Map</div>
@@ -83,11 +83,11 @@ export default function WorldMapPage() {
           </div>
         </aside>
 
-        <div className="absolute right-[430px] top-[28px] z-30">
+        <div className="absolute right-[430px] top-[28px] z-40">
           <TopResources resources={resources} variant="glossy" />
         </div>
 
-        <svg className="absolute left-[280px] top-[185px] z-10 h-[760px] w-[1130px] overflow-visible" viewBox="0 0 1130 760" aria-hidden="true">
+        <svg className="pointer-events-none absolute left-[280px] top-[185px] z-10 h-[760px] w-[1130px] overflow-visible" viewBox="0 0 1130 760" aria-hidden="true">
           <path
             d="M170 560 C245 500 280 390 430 365 C560 343 608 228 768 224 C934 220 1015 330 900 430 C810 510 668 485 598 585 C538 672 710 707 985 632"
             fill="none"
@@ -121,7 +121,7 @@ export default function WorldMapPage() {
         {categoryLabels.map((label) => (
           <div
             key={label.english}
-            className="absolute z-20 min-w-[170px] rounded-[20px] border-[4px] border-white/85 px-4 py-2 text-center text-white shadow-[inset_0_-5px_0_rgba(0,0,0,.14),0_9px_15px_rgba(51,81,71,.24)]"
+            className="pointer-events-none absolute z-20 min-w-[170px] rounded-[20px] border-[4px] border-white/85 px-4 py-2 text-center text-white shadow-[inset_0_-5px_0_rgba(0,0,0,.14),0_9px_15px_rgba(51,81,71,.24)]"
             style={{ left: label.x, top: label.y, backgroundColor: label.color, transform: `translate(-50%, -50%) rotate(${label.rotate}deg)` }}
           >
             <span className="khmer-body block text-[17px] font-black leading-tight">{label.khmer}</span>
@@ -140,7 +140,7 @@ export default function WorldMapPage() {
           />
         ))}
 
-        <div className="absolute right-[34px] top-[112px] z-30 h-[842px] w-[374px]">
+        <div className="absolute right-[34px] top-[112px] z-40 h-[842px] w-[374px]">
           <GameMissionPanel selectedLevel={selected.id} onStart={() => navigate('/lesson')} />
         </div>
 

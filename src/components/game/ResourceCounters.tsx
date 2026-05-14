@@ -17,8 +17,8 @@ export function HeartCounter({ hearts, maxHearts }: { hearts: number; maxHearts:
 export function TopResources({ resources, compact = false, variant = 'default' }: { resources: ResourceState; compact?: boolean; variant?: 'default' | 'glossy' }) {
   const iconButtonClass =
     variant === 'glossy'
-      ? 'grid h-12 w-12 place-items-center rounded-2xl border-[3px] border-white/65 bg-gradient-to-b from-[#FFFFFF] via-[#EEF8FF] to-[#A8D8FF] text-[#214375] shadow-button'
-      : 'grid h-12 w-12 place-items-center rounded-2xl border border-white/25 bg-gradient-to-b from-[#16405F] to-[#071C33] text-white shadow-lg';
+      ? 'pointer-events-auto grid h-12 w-12 cursor-pointer place-items-center rounded-2xl border-[3px] border-white/65 bg-gradient-to-b from-[#FFFFFF] via-[#EEF8FF] to-[#A8D8FF] text-[#214375] shadow-button'
+      : 'pointer-events-auto grid h-12 w-12 cursor-pointer place-items-center rounded-2xl border border-white/25 bg-gradient-to-b from-[#16405F] to-[#071C33] text-white shadow-lg';
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
