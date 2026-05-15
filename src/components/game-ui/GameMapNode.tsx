@@ -4,11 +4,12 @@ import { cn } from '../../lib/cn';
 import GameIcon from './GameIcon';
 
 type GameMapNodeProps = {
-  level: number;
+  level: number | string;
   state?: 'completed' | 'current' | 'locked';
   color?: 'green' | 'gold' | 'purple' | 'blue' | 'gray' | 'red';
   stars?: number;
   label?: string;
+  subtitle?: string;
   selected?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -24,38 +25,48 @@ const colors = {
   gray: 'from-[#D7DCE2] via-[#9BA3AE] to-[#606875] border-[#59616C]',
 };
 
-export default function GameMapNode({ level, state = 'completed', color = 'green', stars = 0, label, selected, className, style, onClick }: GameMapNodeProps) {
+export default function GameMapNode({ level, state = 'completed', color = 'green', stars = 0, label, subtitle, selected, className, style, onClick }: GameMapNodeProps) {
   const locked = state === 'locked';
 
   return (
-    <motion.button
+    <button
       type="button"
-      whileHover={!locked ? { y: -5, scale: 1.05 } : undefined}
-      whileTap={!locked ? { scale: 0.97 } : undefined}
       onClick={() => {
-        if (!locked) onClick?.();
+        onClick?.();
       }}
-      className={cn('pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-center', locked ? 'cursor-default' : 'cursor-pointer', className)}
+      className={cn('pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer text-center drop-shadow-[0_12px_13px_rgba(0,29,48,.35)]', className)}
       style={style}
       aria-label={`Level ${level}${locked ? ' locked' : ''}`}
     >
-      <div
-        className={cn(
-          'relative grid h-20 w-20 place-items-center rounded-full border-[5px] bg-gradient-to-b text-3xl font-black text-white shadow-button before:absolute before:left-[16%] before:top-[10%] before:h-[34%] before:w-[58%] before:rounded-full before:bg-white/38 before:content-[""]',
-          colors[locked ? 'gray' : color],
-          state === 'current' || selected ? 'ring-4 ring-white ring-offset-4 ring-offset-[#FFE16B] shadow-glow' : '',
-        )}
+      <motion.div
+        animate={selected && !locked ? { scale: [1, 1.04, 1], filter: ['brightness(1)', 'brightness(1.12)', 'brightness(1)'] } : undefined}
+        transition={selected && !locked ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        whileHover={!locked ? { y: -6, scale: 1.06 } : undefined}
+        whileTap={!locked ? { y: 2, scale: 0.96 } : undefined}
       >
-        {locked ? <GameIcon name="lock" size={30} className="relative z-10" /> : <span className="relative z-10">{level}</span>}
-      </div>
-      {!locked && (
-        <div className="mt-1 flex justify-center gap-0.5 rounded-full bg-white/85 px-1.5 py-0.5 shadow">
-          {[1, 2, 3].map((star) => (
-            <GameIcon key={star} name="star" size={16} className={star > stars ? 'grayscale opacity-35' : ''} />
-          ))}
+        <div
+          className={cn(
+            'relative grid h-[86px] w-[86px] place-items-center rounded-full border-[6px] bg-gradient-to-b text-[34px] font-black text-white shadow-[inset_0_-10px_0_rgba(0,0,0,.22),inset_0_4px_0_rgba(255,255,255,.34),0_12px_16px_rgba(0,36,58,.34)] before:absolute before:left-[16%] before:top-[8%] before:h-[35%] before:w-[60%] before:rounded-full before:bg-white/48 before:blur-[1px] before:content-[""] after:absolute after:inset-[8px] after:rounded-full after:border after:border-white/25 after:content-[""]',
+            colors[locked ? 'gray' : color],
+            state === 'current' || selected ? 'ring-[5px] ring-white ring-offset-[6px] ring-offset-[#FFE16B] shadow-[0_0_0_10px_rgba(255,230,89,.28),0_0_28px_rgba(167,101,255,.58),inset_0_-10px_0_rgba(0,0,0,.22),0_16px_24px_rgba(0,36,58,.42)]' : '',
+          )}
+        >
+          {locked ? <GameIcon name="lock" size={34} className="relative z-10 drop-shadow-[0_2px_2px_rgba(0,0,0,.35)]" /> : <span className="relative z-10 drop-shadow-[0_3px_2px_rgba(0,0,0,.3)]">{level}</span>}
         </div>
-      )}
-      {label && <div className="khmer-body mt-0.5 rounded-full bg-[#3F2515]/65 px-2 text-xs font-black text-white drop-shadow">{label}</div>}
-    </motion.button>
+        {state !== 'locked' && (
+          <div className="mx-auto mt-1 flex w-fit justify-center gap-0.5 rounded-full border border-white/85 bg-[#FFF7D6] px-1.5 py-0.5 shadow-[0_4px_6px_rgba(0,31,50,.2)]">
+            {[1, 2, 3].map((star) => (
+              <GameIcon key={star} name="star" size={16} className={star > stars ? 'grayscale opacity-35' : ''} />
+            ))}
+          </div>
+        )}
+        {(label || subtitle) && (
+          <div className="mx-auto mt-1 w-fit rounded-[12px] border border-white/35 bg-[#2C1B10]/82 px-2.5 py-1 text-white shadow-[0_4px_7px_rgba(0,0,0,.3)]">
+            {label && <div className="khmer-body text-[12px] font-black leading-tight">{label}</div>}
+            {subtitle && <div className="text-[10px] font-black leading-tight text-white/88">{subtitle}</div>}
+          </div>
+        )}
+      </motion.div>
+    </button>
   );
 }

@@ -19,6 +19,7 @@ export default function WorldMapNode({ stage, selected, className, stylePosition
       color={stage.color}
       stars={stage.stars}
       label={stage.khmer}
+      subtitle={stage.english}
       selected={selected}
       className={className}
       style={stylePosition ? { left: stylePosition.x, top: stylePosition.y } : undefined}

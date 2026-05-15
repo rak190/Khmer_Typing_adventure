@@ -13,6 +13,13 @@ import homeBackground from './backgrounds/home-background.png';
 import worldMapBackground from './backgrounds/world-map-background.png';
 import lessonBackground from './backgrounds/lesson-background.png';
 import battleBackground from './backgrounds/battle-background.png';
+import world1 from './map/world-1.png';
+import world2 from './map/world-2.png';
+import world3 from './map/world-3.png';
+import world4 from './map/world-4.png';
+import world5 from './map/world-5.png';
+import world6 from './map/world-6.png';
+import angkorFlat from './map/angkor-flat.png';
 
 export const imageAssets = {
   // PNGs are intentionally limited to complex art and detailed icons.
@@ -33,6 +40,15 @@ export const imageAssets = {
     worldMap: worldMapBackground,
     lesson: lessonBackground,
     battle: battleBackground,
+  },
+  map: {
+    world1,
+    world2,
+    world3,
+    world4,
+    world5,
+    world6,
+    angkorFlat,
   },
 } as const;
 
@@ -55,3 +71,4 @@ export const hudIconImages = {
 } as const;
 
 export const backgroundImages = imageAssets.backgrounds;
+export const mapImages = imageAssets.map;

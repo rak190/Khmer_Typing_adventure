@@ -13,7 +13,7 @@ type GameMissionPanelProps = {
 export default function GameMissionPanel({ selectedLevel = 6, onStart }: GameMissionPanelProps) {
   return (
     <aside className="flex min-h-[760px] flex-col rounded-[32px] border-[4px] border-[#825222]/65 bg-gradient-to-b from-[#FFF8E6] via-[#FFFDF7] to-[#F0D69A] p-4 text-[#4E3216] shadow-[inset_0_-7px_0_rgba(116,69,28,.14),0_22px_38px_rgba(20,75,118,.26)]">
-      <GamePanel title="បេសកកម្មបច្ចុប្បន្ន" subtitle="Current Mission" bodyClassName="p-4" className="border-[#D6B171] bg-white">
+      <GamePanel title="បេសកកម្មបច្ចុប្បន្ន" subtitle="Mission" bodyClassName="p-4" className="border-[#D6B171] bg-white">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="khmer-body text-2xl font-black text-[#693D1E]">កម្រិត {selectedLevel}</div>
@@ -39,17 +39,17 @@ export default function GameMissionPanel({ selectedLevel = 6, onStart }: GameMis
         <section className="mt-5">
           <div className="flex items-end justify-between">
             <div>
-              <div className="khmer-body text-lg font-black text-[#68421F]">គោលបំណង</div>
+              <div className="khmer-body text-lg font-black text-[#68421F]">គោលដៅ</div>
               <div className="font-black text-[#2F2A54]">Objective</div>
             </div>
             <div className="rounded-full bg-[#EAF7ED] px-3 py-1 text-sm font-black text-[#208345]">12/20</div>
           </div>
-          <p className="mt-1 text-sm font-extrabold text-[#6D604F]">Type 20 animal words correctly.</p>
+          <p className="mt-1 text-sm font-extrabold text-[#6D604F]">វាយពាក្យអំពីសត្វឱ្យត្រឹមត្រូវ ២០ ពាក្យ។</p>
           <GameProgressBar value={12} max={20} variant="green" showValue className="mt-3" />
         </section>
 
         <section className="mt-5 rounded-[22px] border-2 border-[#E4C88B] bg-[#FFF7DF] p-3">
-          <div className="mb-3 text-base font-black text-[#68421F]">Rewards</div>
+          <div className="mb-3 text-base font-black text-[#68421F]">រង្វាន់ Rewards</div>
           <div className="grid grid-cols-3 gap-2">
             <GameRewardCard icon="coin" value="200" label="coins" />
             <GameRewardCard icon="star" value="30" label="stars" />
@@ -61,8 +61,8 @@ export default function GameMissionPanel({ selectedLevel = 6, onStart }: GameMis
           <div className="grid grid-cols-[1fr_auto] items-center gap-3">
             <div>
               <div className="khmer-body font-black text-[#6B7280]">កម្រិត 7</div>
-              <div className="text-sm font-black text-[#7A8494]">Next level locked</div>
-              <div className="mt-1 text-xs font-bold text-[#8993A3]">Earn 3 more stars to unlock.</div>
+              <div className="text-sm font-black text-[#7A8494]">Level បន្ទាប់ជាប់សោ</div>
+              <div className="mt-1 text-xs font-bold text-[#8993A3]">រកផ្កាយបន្ថែម 3 ដើម្បីបើក។</div>
             </div>
             <div className="grid h-12 w-12 place-items-center rounded-2xl border-2 border-[#C7CDD8] bg-white shadow-inner">
               <GameIcon name="lock" size={28} />
@@ -72,7 +72,7 @@ export default function GameMissionPanel({ selectedLevel = 6, onStart }: GameMis
       </GamePanel>
 
       <GameButton size="xl" variant="green" className="mt-4 w-full" onClick={onStart}>
-        Start Level {selectedLevel}
+        ចាប់ផ្តើម Level {selectedLevel}
       </GameButton>
     </aside>
   );

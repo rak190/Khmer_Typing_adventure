@@ -76,9 +76,9 @@ export default function LessonPage() {
           </Link>
           <Logo compact className="scale-[0.8] origin-left sm:scale-90" />
           <div className="ml-auto grid gap-3 md:grid-cols-3">
-            <StatPill icon={<Target size={20} />} label="Score" value={score} tone="blue" />
+            <StatPill icon={<Target size={20} />} label="ពិន្ទុ" value={score} tone="blue" />
             <StatPill icon={<Flame size={20} />} label="Streak" value={streak} tone="blue" />
-            <StatPill icon={<Target size={20} />} label="Accuracy" value={`${accuracy}%`} tone="blue" />
+            <StatPill icon={<Target size={20} />} label="ត្រឹមត្រូវ" value={`${accuracy}%`} tone="blue" />
           </div>
           <div className="flex items-center gap-3 rounded-3xl bg-gradient-to-r from-[#0E68C8] to-[#0753A3] p-3 text-white shadow-game">
             <LevelBadge level={resources.level} />
@@ -96,7 +96,7 @@ export default function LessonPage() {
           <main className="min-w-0">
             <div className="mb-6 flex flex-wrap items-center justify-center gap-4">
               <div className="khmer-body rounded-full bg-gradient-to-b from-primary to-[#16944B] px-8 py-3 text-xl font-black text-white shadow-button">
-                Lesson 2 - Consonants
+                មេរៀន ២ - ព្យញ្ជនៈ
               </div>
               <div className="flex items-center gap-3 rounded-full bg-white/60 px-6 py-3 shadow-inner backdrop-blur">
                 <span className="text-xl font-black">{progress} / 15</span>
@@ -147,9 +147,9 @@ export default function LessonPage() {
                 <div className="relative mb-5 rounded-3xl border-2 border-[#2670B5] bg-gradient-to-b from-[#0E4C86] to-[#08355F] p-5 text-white shadow-game">
                   <div className="absolute -left-4 top-1/2 h-8 w-8 -translate-y-1/2 rotate-45 border-b-2 border-l-2 border-[#2670B5] bg-[#0B416F]" />
                   <div className="text-2xl font-black">
-                    Great job! Type the <span className="text-[#7DFF68]">highlighted</span> letter.
+                    ល្អណាស់! វាយអក្សរដែលបាន <span className="text-[#7DFF68]">បន្លិច</span>។
                   </div>
-                  <div className="khmer-body mt-2 text-2xl font-bold">ល្អណាស់! វាយអក្សរដែលបានបន្លិចនេះ។</div>
+                  <div className="khmer-body mt-2 text-2xl font-bold">សូមមើលអក្សរពណ៌បៃតង ហើយវាយឱ្យត្រឹមត្រូវ។</div>
                   <button className="absolute -right-6 top-1/2 grid h-14 w-14 -translate-y-1/2 place-items-center rounded-full bg-adventure text-white shadow-button" aria-label="Play sound">
                     <Volume2 size={28} />
                   </button>
@@ -170,22 +170,22 @@ export default function LessonPage() {
           <aside className="space-y-4">
             <section className="game-card rounded-3xl p-5">
               <h3 className="mb-3 flex items-center gap-2 text-xl font-black text-adventure">
-                <Target className="text-coral" /> Lesson Objective
+                <Target className="text-coral" /> គោលដៅមេរៀន
               </h3>
-              <p className="font-bold text-slate-700">Type all consonants correctly</p>
+              <p className="font-bold text-slate-700">វាយព្យញ្ជនៈទាំងអស់ឱ្យត្រឹមត្រូវ</p>
               <ProgressBar value={progress} max={15} color="green" showValue className="mt-4" />
             </section>
             <section className="game-card rounded-3xl p-5">
-              <h3 className="mb-3 flex items-center gap-2 text-xl font-black text-adventure"><Lightbulb className="text-gold" /> Hints</h3>
-              <p className="font-bold text-slate-700">This letter sounds like “k”</p>
+              <h3 className="mb-3 flex items-center gap-2 text-xl font-black text-adventure"><Lightbulb className="text-gold" /> ជំនួយ</h3>
+              <p className="font-bold text-slate-700">អក្សរនេះមានសំឡេងដូច “k”</p>
               <div className="khmer-body mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-center text-4xl font-black">
                 {currentLetter} = k
               </div>
             </section>
             <section className="game-card rounded-3xl p-5">
-              <h3 className="mb-3 flex items-center gap-2 text-xl font-black text-adventure"><Hand className="text-primary" /> Finger Guide</h3>
+              <h3 className="mb-3 flex items-center gap-2 text-xl font-black text-adventure"><Hand className="text-primary" /> ម្រាមដៃជំនួយ</h3>
               <div className="grid grid-cols-2 gap-4 text-center">
-                {['Left Hand', 'Right Hand'].map((hand) => (
+                {['ដៃឆ្វេង', 'ដៃស្តាំ'].map((hand) => (
                   <div key={hand}>
                     <div className="rounded-full bg-mint px-3 py-1 text-sm font-black text-primary">{hand}</div>
                     <div className="relative mx-auto mt-3 h-28 w-24">
@@ -203,20 +203,20 @@ export default function LessonPage() {
               </div>
             </section>
             <section className="game-card rounded-3xl p-5">
-              <h3 className="mb-3 flex items-center gap-2 text-xl font-black text-adventure"><Trophy className="text-gold" /> Rewards Progress</h3>
-              <p className="font-bold text-slate-700">Collect stars to earn rewards!</p>
+              <h3 className="mb-3 flex items-center gap-2 text-xl font-black text-adventure"><Trophy className="text-gold" /> វឌ្ឍនភាពរង្វាន់</h3>
+              <p className="font-bold text-slate-700">ប្រមូលផ្កាយ ដើម្បីទទួលរង្វាន់!</p>
               <div className="mt-4 flex items-center gap-2 text-4xl">
                 <GameIcon name="star" size={34} />
                 <ProgressBar value={2} max={3} color="green" className="flex-1" />
                 <GameIcon name="star" size={34} className="grayscale opacity-45" />
               </div>
-              <div className="mt-2 font-black">Stars this lesson: 2 / 3</div>
+              <div className="mt-2 font-black">ផ្កាយក្នុងមេរៀននេះ: 2 / 3</div>
             </section>
           </aside>
         </div>
 
         <div className="relative z-20 mt-4">
-          <GameButton variant="blue" icon={<Volume2 />}>Sound</GameButton>
+          <GameButton variant="blue" icon={<Volume2 />}>សំឡេង</GameButton>
         </div>
       </div>
     </PageTransition>
