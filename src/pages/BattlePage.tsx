@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HelpCircle, Settings, Swords, Volume2 } from 'lucide-react';
 import CharacterPlaceholder from '../components/characters/CharacterPlaceholder';
@@ -12,7 +12,7 @@ import StatPill from '../components/game/StatPill';
 import PageTransition from '../components/layout/PageTransition';
 import GameIcon from '../components/game-ui/GameIcon';
 import { getCurriculumLevel, getCurriculumWorld, lessonCurriculum } from '../data/lessonCurriculum';
-import { getKhmerKeyboardValue, powerUps, quests, resources } from '../data/mockData';
+import { getKhmerKeyboardValue, powerUps, quests, resources, saveLessonProgressToFirebase, saveMockLessonProgress } from '../data/mockData';
 import type { KeyboardKeyData } from '../types/game';
 
 function BattleResourceIcon({ name }: { name: 'coin' | 'gem' }) {
@@ -20,6 +20,7 @@ function BattleResourceIcon({ name }: { name: 'coin' | 'gem' }) {
 }
 
 export default function BattlePage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedWorldId = Number(searchParams.get('world') ?? 1);
   const world = getCurriculumWorld(Number.isFinite(requestedWorldId) ? requestedWorldId : 1) ?? lessonCurriculum[0];
@@ -34,12 +35,14 @@ export default function BattlePage() {
   const [timer, setTimer] = useState(74);
   const [damage, setDamage] = useState<number | null>(15);
   const [attack, setAttack] = useState(false);
+  const progressSavedRef = useRef(false);
   const currentWord = battleItems[wordIndex % battleItems.length] ?? 'សាលា';
   const currentUnits = useMemo(() => Array.from(currentWord), [currentWord]);
   const typedUnits = useMemo(() => Array.from(typed), [typed]);
   const activeKey = currentUnits[typedUnits.length] ?? '';
   const wordTextSize = currentWord.length > 42 ? 'text-2xl' : currentWord.length > 24 ? 'text-3xl' : currentWord.length > 12 ? 'text-4xl' : 'text-7xl';
   const correctPrefix = useMemo(() => currentWord.startsWith(typed), [currentWord, typed]);
+  const bossDefeated = bossHp <= 0;
 
   const completeCorrectWord = useCallback(() => {
     const nextDamage = 25 + combo;
@@ -54,8 +57,28 @@ export default function BattlePage() {
     window.setTimeout(() => setDamage(null), 800);
   }, [combo]);
 
+  useEffect(() => {
+    if (!bossDefeated || progressSavedRef.current) return;
+
+    const progressRecord = {
+      worldId: world.id,
+      lessonId: 'boss' as const,
+      score,
+      accuracy: 100,
+      wpm: 0,
+      stars: 3,
+      xpEarned: 180,
+      coinsEarned: 80,
+      bestStreak: combo,
+    };
+
+    saveMockLessonProgress(progressRecord);
+    void saveLessonProgressToFirebase(progressRecord);
+    progressSavedRef.current = true;
+  }, [bossDefeated, combo, score, world.id]);
+
   const submitWord = useCallback(() => {
-    if (!typed) return;
+    if (!typed || bossDefeated) return;
 
     if (typed === currentWord) {
       completeCorrectWord();
@@ -63,10 +86,12 @@ export default function BattlePage() {
       setCombo(0);
       setTyped('');
     }
-  }, [completeCorrectWord, currentWord, typed]);
+  }, [bossDefeated, completeCorrectWord, currentWord, typed]);
 
   const handlePress = useCallback(
     (keyData: KeyboardKeyData) => {
+      if (bossDefeated) return;
+
       const appendValue = (value: string) => {
         setTyped((next) => {
           const candidate = (next + value).slice(0, currentWord.length);
@@ -91,7 +116,7 @@ export default function BattlePage() {
       }
       appendValue(keyData.value);
     },
-    [completeCorrectWord, currentWord, submitWord],
+    [bossDefeated, completeCorrectWord, currentWord, submitWord],
   );
 
   useEffect(() => {
@@ -103,6 +128,8 @@ export default function BattlePage() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (bossDefeated) return;
+
       if (event.key === 'Enter') {
         event.preventDefault();
         submitWord();
@@ -123,7 +150,7 @@ export default function BattlePage() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [completeCorrectWord, currentWord, submitWord]);
+  }, [bossDefeated, completeCorrectWord, currentWord, submitWord]);
 
   return (
     <PageTransition className="min-h-screen overflow-hidden jungle-vignette text-white">
@@ -279,6 +306,28 @@ export default function BattlePage() {
             </div>
           </aside>
         </div>
+
+        {bossDefeated && (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-[#061B2F]/72 px-4 backdrop-blur-sm">
+            <div className="w-full max-w-[520px] rounded-[30px] border-[4px] border-[#F4C85C] bg-gradient-to-b from-[#FFF8DC] to-[#E8BD68] p-7 text-center text-[#4D2D10] shadow-[0_28px_60px_rgba(0,0,0,.45)]">
+              <div className="text-[34px] font-black text-[#0D5C49]">Boss Complete!</div>
+              <div className="khmer-body mt-2 text-[24px] font-bold">បើក World បន្ទាប់</div>
+              <div className="mt-5 grid grid-cols-3 gap-3">
+                <div className="rounded-2xl bg-white/55 p-3 font-black"><GameIcon name="star" size={34} />3</div>
+                <div className="rounded-2xl bg-white/55 p-3 font-black"><GameIcon name="coin" size={34} />80</div>
+                <div className="rounded-2xl bg-white/55 p-3 font-black">XP 180</div>
+              </div>
+              <div className="mt-6 flex justify-center gap-3">
+                <button type="button" className="rounded-2xl bg-[#20A74A] px-6 py-3 text-lg font-black text-white shadow-button" onClick={() => navigate('/map')}>
+                  Continue to Map
+                </button>
+                <button type="button" className="rounded-2xl bg-[#245D74] px-6 py-3 text-lg font-black text-white shadow-button" onClick={() => window.location.reload()}>
+                  Try Again
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </PageTransition>
   );

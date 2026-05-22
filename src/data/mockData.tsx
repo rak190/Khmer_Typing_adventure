@@ -29,17 +29,116 @@ export type LessonProgressRecord = {
   bestStreak: number;
 };
 
+const LESSON_PROGRESS_STORAGE_KEY = 'khmer-typing-lesson-progress';
+
+export const LESSON_PROGRESS_EVENT = 'khmer-lesson-progress-change';
+
 export const mockLessonProgress: LessonProgressRecord[] = [];
 
+function getProgressId(progress: Pick<LessonProgressRecord, 'worldId' | 'lessonId'>) {
+  return `${progress.worldId}:${progress.lessonId}`;
+}
+
+function mergeProgressRecord(current: LessonProgressRecord, next: LessonProgressRecord): LessonProgressRecord {
+  return {
+    ...current,
+    ...next,
+    score: Math.max(current.score, next.score),
+    accuracy: Math.max(current.accuracy, next.accuracy),
+    wpm: Math.max(current.wpm, next.wpm),
+    stars: Math.max(current.stars, next.stars),
+    xpEarned: Math.max(current.xpEarned, next.xpEarned),
+    coinsEarned: Math.max(current.coinsEarned, next.coinsEarned),
+    bestStreak: Math.max(current.bestStreak, next.bestStreak),
+  };
+}
+
+function normalizeStoredProgress(value: unknown): LessonProgressRecord[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item): LessonProgressRecord[] => {
+    if (!item || typeof item !== 'object') return [];
+    const progress = item as Partial<LessonProgressRecord>;
+    if (typeof progress.worldId !== 'number' || (typeof progress.lessonId !== 'number' && progress.lessonId !== 'boss')) return [];
+
+    return [{
+      worldId: progress.worldId,
+      lessonId: progress.lessonId,
+      score: Number(progress.score) || 0,
+      accuracy: Number(progress.accuracy) || 0,
+      wpm: Number(progress.wpm) || 0,
+      stars: Number(progress.stars) || 0,
+      xpEarned: Number(progress.xpEarned) || 0,
+      coinsEarned: Number(progress.coinsEarned) || 0,
+      bestStreak: Number(progress.bestStreak) || 0,
+    }];
+  });
+}
+
+function readProgressFromStorage() {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const saved = window.localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY);
+    return saved ? normalizeStoredProgress(JSON.parse(saved)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeProgressToStorage(progress: LessonProgressRecord[]) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(LESSON_PROGRESS_STORAGE_KEY, JSON.stringify(progress));
+    window.dispatchEvent(new Event(LESSON_PROGRESS_EVENT));
+  } catch {
+    // Local progress is a convenience layer; the lesson still completes if storage is unavailable.
+  }
+}
+
+function mergeProgressRecords(records: LessonProgressRecord[]) {
+  const progressById = new Map<string, LessonProgressRecord>();
+
+  records.forEach((record) => {
+    const id = getProgressId(record);
+    const current = progressById.get(id);
+    progressById.set(id, current ? mergeProgressRecord(current, record) : record);
+  });
+
+  return Array.from(progressById.values()).sort((a, b) => {
+    if (a.worldId !== b.worldId) return a.worldId - b.worldId;
+    if (a.lessonId === 'boss') return 1;
+    if (b.lessonId === 'boss') return -1;
+    return a.lessonId - b.lessonId;
+  });
+}
+
+function syncMockLessonProgress(records: LessonProgressRecord[]) {
+  mockLessonProgress.splice(0, mockLessonProgress.length, ...records);
+}
+
+export function getLessonProgressRecords() {
+  const records = mergeProgressRecords([...mockLessonProgress, ...readProgressFromStorage()]);
+  syncMockLessonProgress(records);
+  return records;
+}
+
 export function saveMockLessonProgress(progress: LessonProgressRecord) {
-  const existingIndex = mockLessonProgress.findIndex((item) => item.worldId === progress.worldId && item.lessonId === progress.lessonId);
+  const records = getLessonProgressRecords();
+  const existingIndex = records.findIndex((item) => item.worldId === progress.worldId && item.lessonId === progress.lessonId);
+  const savedProgress = existingIndex >= 0 ? mergeProgressRecord(records[existingIndex], progress) : progress;
+
   if (existingIndex >= 0) {
-    mockLessonProgress[existingIndex] = progress;
-    return progress;
+    records[existingIndex] = savedProgress;
+  } else {
+    records.push(savedProgress);
   }
 
-  mockLessonProgress.push(progress);
-  return progress;
+  const mergedRecords = mergeProgressRecords(records);
+  syncMockLessonProgress(mergedRecords);
+  writeProgressToStorage(mergedRecords);
+  return savedProgress;
 }
 
 export async function saveLessonProgressToFirebase(progress: LessonProgressRecord) {

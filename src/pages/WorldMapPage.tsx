@@ -1,4 +1,4 @@
-﻿import { useState, type ReactNode } from 'react';
+﻿import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Settings, Trophy } from 'lucide-react';
 import GameButton from '../components/game-ui/GameButton';
@@ -9,17 +9,18 @@ import PageTransition from '../components/layout/PageTransition';
 import GameMapNode from '../components/game-ui/GameMapNode';
 import { backgroundImages, imageAssets } from '../assets/assetManifest';
 import {
-  adventureWorlds,
+  buildAdventureWorlds,
   getLessonState,
   getWorldProgress,
   getWorldStars,
   isWorldComplete,
   isWorldUnlocked,
   mapNodeLayout,
+  type AdventureNodeId,
   type AdventureLesson,
   type AdventureWorld,
 } from '../data/adventureWorlds';
-import { resources } from '../data/mockData';
+import { LESSON_PROGRESS_EVENT, resources } from '../data/mockData';
 
 const sideActions = [
   { khmer: 'រង្វាន់', title: 'Treasure', icon: 'treasure' as const },
@@ -263,14 +264,36 @@ function RewardsPanel({ world }: { world: AdventureWorld }) {
 
 export default function WorldMapPage() {
   const navigate = useNavigate();
-  const [activeWorld, setActiveWorld] = useState<AdventureWorld>(adventureWorlds[0]);
+  const [worlds, setWorlds] = useState<AdventureWorld[]>(() => buildAdventureWorlds());
+  const [activeWorldId, setActiveWorldId] = useState(1);
+  const activeWorld = worlds.find((world) => world.id === activeWorldId) ?? worlds[0];
   const firstCurrentLesson = activeWorld.lessons.find((lesson) => getLessonState(activeWorld, lesson) === 'current') ?? activeWorld.lessons[0];
-  const [selected, setSelected] = useState<AdventureLesson>(firstCurrentLesson);
+  const [selectedId, setSelectedId] = useState<AdventureNodeId>(firstCurrentLesson.id);
+  const selected = activeWorld.lessons.find((lesson) => lesson.id === selectedId) ?? firstCurrentLesson;
   const selectedState = getLessonState(activeWorld, selected);
 
+  useEffect(() => {
+    const refreshWorlds = () => setWorlds(buildAdventureWorlds());
+
+    window.addEventListener('storage', refreshWorlds);
+    window.addEventListener(LESSON_PROGRESS_EVENT, refreshWorlds);
+
+    return () => {
+      window.removeEventListener('storage', refreshWorlds);
+      window.removeEventListener(LESSON_PROGRESS_EVENT, refreshWorlds);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeWorld.lessons.some((lesson) => lesson.id === selectedId)) {
+      setSelectedId(firstCurrentLesson.id);
+    }
+  }, [activeWorld, firstCurrentLesson.id, selectedId]);
+
   const selectWorld = (world: AdventureWorld) => {
-    setActiveWorld(world);
-    setSelected(world.lessons.find((lesson) => getLessonState(world, lesson) === 'current') ?? world.lessons[0]);
+    const nextLesson = world.lessons.find((lesson) => getLessonState(world, lesson) === 'current') ?? world.lessons[0];
+    setActiveWorldId(world.id);
+    setSelectedId(nextLesson.id);
   };
 
   const startSelectedLesson = () => {
@@ -330,7 +353,7 @@ export default function WorldMapPage() {
           <RoundHudButton icon={<Settings size={31} />} label="Settings" />
         </div>
 
-        <WorldSelector worlds={adventureWorlds} activeWorld={activeWorld} onSelect={selectWorld} />
+        <WorldSelector worlds={worlds} activeWorld={activeWorld} onSelect={selectWorld} />
 
         {mapNodeLayout.map((node) => {
           const lesson = activeWorld.lessons.find((item) => item.id === node.id);
@@ -349,7 +372,7 @@ export default function WorldMapPage() {
               className="z-20 scale-[.82]"
               style={{ left: node.x, top: node.y }}
               onClick={() => {
-                setSelected(lesson);
+                setSelectedId(lesson.id);
               }}
             />
           );

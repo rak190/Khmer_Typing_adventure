@@ -1,5 +1,6 @@
 import { mapImages } from '../assets/assetManifest';
 import { lessonCurriculum } from './lessonCurriculum';
+import { getLessonProgressRecords, type LessonProgressRecord } from './mockData';
 
 export type AdventureNodeId = number | 'boss';
 export type AdventureNodeState = 'completed' | 'current' | 'unlocked' | 'locked';
@@ -76,48 +77,72 @@ const worldImages: Record<number, string> = {
 
 const nodeColors: AdventureNodeColor[] = ['green', 'green', 'green', 'gold', 'gold', 'purple', 'purple', 'blue', 'red'];
 
-export const adventureWorlds: AdventureWorld[] = lessonCurriculum.map((world, worldIndex) => {
-  const normalCompleted = worldIndex === 0 ? 5 : 0;
-  const bossCompleted = false;
+function findProgressRecord(progressRecords: LessonProgressRecord[], worldId: number, lessonId: AdventureNodeId) {
+  return progressRecords.find((record) => record.worldId === worldId && record.lessonId === lessonId);
+}
 
-  return {
-    id: world.id,
-    title: world.title,
-    titleKh: world.titleKh,
-    subtitle: world.subtitle,
-    theme: world.theme,
-    mainLessonKh: world.mainLessonKh,
-    mainLessonEn: world.mainLessonEn,
-    skillFocus: world.skillFocus,
-    unicodeFocus: world.unicodeFocus,
-    image: worldImages[world.id],
-    normalCompleted,
-    bossCompleted,
-    lessons: world.levels.map((level, lessonIndex) => {
-      const target = level.stages.reduce((total, stage) => total + stage.targetCount, 0);
-      const completed = lessonIndex < normalCompleted;
-      const current = lessonIndex === normalCompleted;
+function isLessonComplete(progressRecords: LessonProgressRecord[], worldId: number, lessonId: AdventureNodeId) {
+  return Boolean(findProgressRecord(progressRecords, worldId, lessonId));
+}
 
-      return {
-        id: level.id,
-        sequence: lessonIndex + 1,
-        labelKh: level.labelKh,
-        labelEn: level.labelEn,
-        category: level.category,
-        objective: level.objective,
-        unicodeRule: level.unicodeRule,
-        successCriteria: level.successCriteria,
-        focusKeys: level.focusKeys,
-        stageCount: level.stages.length,
-        stagePreview: level.stages.map((stage) => stage.titleKh),
-        progress: completed ? target : current ? Math.ceil(target * 0.45) : 0,
-        target,
-        stars: completed ? (lessonIndex === 3 ? 2 : 3) : current ? 2 : 0,
-        color: nodeColors[lessonIndex],
-      };
-    }),
-  };
-});
+function getSequentialCompletedCount(worldId: number, levels: typeof lessonCurriculum[number]['levels'], progressRecords: LessonProgressRecord[]) {
+  let completed = 0;
+
+  for (const level of levels) {
+    if (level.id === 'boss') continue;
+    if (!isLessonComplete(progressRecords, worldId, level.id)) break;
+    completed += 1;
+  }
+
+  return completed;
+}
+
+export function buildAdventureWorlds(progressRecords: LessonProgressRecord[] = getLessonProgressRecords()): AdventureWorld[] {
+  return lessonCurriculum.map((world) => {
+    const normalCompleted = getSequentialCompletedCount(world.id, world.levels, progressRecords);
+    const bossCompleted = isLessonComplete(progressRecords, world.id, 'boss');
+
+    return {
+      id: world.id,
+      title: world.title,
+      titleKh: world.titleKh,
+      subtitle: world.subtitle,
+      theme: world.theme,
+      mainLessonKh: world.mainLessonKh,
+      mainLessonEn: world.mainLessonEn,
+      skillFocus: world.skillFocus,
+      unicodeFocus: world.unicodeFocus,
+      image: worldImages[world.id],
+      normalCompleted,
+      bossCompleted,
+      lessons: world.levels.map((level, lessonIndex) => {
+        const target = level.stages.reduce((total, stage) => total + stage.targetCount, 0);
+        const progressRecord = findProgressRecord(progressRecords, world.id, level.id);
+        const completed = level.id === 'boss' ? bossCompleted : lessonIndex < normalCompleted;
+
+        return {
+          id: level.id,
+          sequence: lessonIndex + 1,
+          labelKh: level.labelKh,
+          labelEn: level.labelEn,
+          category: level.category,
+          objective: level.objective,
+          unicodeRule: level.unicodeRule,
+          successCriteria: level.successCriteria,
+          focusKeys: level.focusKeys,
+          stageCount: level.stages.length,
+          stagePreview: level.stages.map((stage) => stage.titleKh),
+          progress: completed ? target : 0,
+          target,
+          stars: completed ? progressRecord?.stars ?? 3 : 0,
+          color: nodeColors[lessonIndex],
+        };
+      }),
+    };
+  });
+}
+
+export const adventureWorlds: AdventureWorld[] = buildAdventureWorlds();
 
 export function isWorldComplete(world: AdventureWorld) {
   return world.normalCompleted >= 8 && world.bossCompleted;
