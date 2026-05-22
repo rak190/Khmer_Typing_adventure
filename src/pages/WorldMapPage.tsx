@@ -1,18 +1,15 @@
-import { useState, type ReactNode } from 'react';
+﻿import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Settings, Trophy } from 'lucide-react';
 import GameButton from '../components/game-ui/GameButton';
 import GameIcon, { type GameIconName } from '../components/game-ui/GameIcon';
 import GameProgressBar from '../components/game-ui/GameProgressBar';
-import GameRewardCard from '../components/game-ui/GameRewardCard';
 import GameScreen from '../components/layout/GameScreen';
-import LizardMascot from '../components/characters/LizardMascot';
 import PageTransition from '../components/layout/PageTransition';
 import GameMapNode from '../components/game-ui/GameMapNode';
 import { backgroundImages, imageAssets } from '../assets/assetManifest';
 import {
   adventureWorlds,
-  categoryBanners,
   getLessonState,
   getWorldProgress,
   getWorldStars,
@@ -31,13 +28,7 @@ const sideActions = [
   { khmer: 'ណែនាំ', title: 'Guide', icon: 'guide' as const },
 ];
 
-const bannerTones = {
-  green: 'from-[#74DE58] via-[#39AE44] to-[#167337] border-[#E9FFD7]',
-  gold: 'from-[#FFE36D] via-[#F6A91C] to-[#C46F0C] border-[#FFF1B4]',
-  purple: 'from-[#D7A7FF] via-[#8D5BEE] to-[#5433B7] border-[#F0D8FF]',
-  blue: 'from-[#77D6FF] via-[#2389E8] to-[#075BB8] border-[#D2F4FF]',
-  red: 'from-[#FF8A7D] via-[#EA3F35] to-[#A81922] border-[#FFD2C8]',
-};
+const templeJungleCardImage = 'https://cdn.pixabay.com/photo/2016/01/30/22/31/cambodia-1170693_1280.jpg';
 
 type HudPillProps = {
   icon: GameIconName;
@@ -48,23 +39,23 @@ type HudPillProps = {
 
 function HudPill({ icon, value, label, plus }: HudPillProps) {
   return (
-    <button type="button" className="pointer-events-auto flex h-[62px] min-w-[170px] cursor-pointer items-center gap-3 rounded-[24px] border-[3px] border-[#75CCFF]/50 bg-gradient-to-b from-[#174B75] via-[#0D3559] to-[#071F38] px-4 text-white shadow-[inset_0_-6px_0_rgba(0,0,0,.25),inset_0_2px_0_rgba(255,255,255,.16),0_12px_20px_rgba(0,24,54,.34)]">
-      <span className="grid h-10 w-10 place-items-center rounded-full bg-white/14 shadow-inner">
-        <GameIcon name={icon} size={32} />
+    <button type="button" className="pointer-events-auto flex h-[66px] min-w-[168px] cursor-pointer items-center gap-3 rounded-[22px] border-[3px] border-[#F7B94F] bg-gradient-to-b from-[#245D74] via-[#123E57] to-[#3B2412] px-3 text-white shadow-[inset_0_3px_0_rgba(255,242,181,.28),inset_0_-8px_0_rgba(49,24,7,.5),0_6px_0_rgba(82,50,22,.55),0_18px_24px_rgba(0,23,45,.42)]">
+      <span className="grid h-10 w-10 place-items-center rounded-full border-2 border-[#F9D77B]/70 bg-gradient-to-b from-[#2AA69B] to-[#0D5A6B] shadow-[inset_0_2px_0_rgba(255,255,255,.3),inset_0_-4px_0_rgba(0,0,0,.24)]">
+        <GameIcon name={icon} size={27} />
       </span>
       <span className="min-w-0 text-left leading-tight">
-        {label && <span className="block text-[11px] font-black uppercase text-white/72">{label}</span>}
-        <span className="block text-[24px] font-black drop-shadow-[0_2px_2px_rgba(0,0,0,.34)]">{typeof value === 'number' ? value.toLocaleString() : value}</span>
+        {label && <span className="block text-[10px] font-bold uppercase text-white/72">{label}</span>}
+        <span className="block text-[24px] font-bold drop-shadow-[0_2px_2px_rgba(0,0,0,.34)]">{typeof value === 'number' ? value.toLocaleString() : value}</span>
       </span>
-      {plus && <span className="ml-auto grid h-9 w-9 place-items-center rounded-full border-2 border-white/70 bg-gradient-to-b from-[#A9FF62] to-[#21A64B] text-[25px] font-black shadow-button">+</span>}
+      {plus && <span className="ml-auto grid h-9 w-9 place-items-center rounded-full border-2 border-[#FFF0A9] bg-gradient-to-b from-[#B9FF62] via-[#4EC94C] to-[#16733B] text-[24px] font-bold shadow-[inset_0_2px_0_rgba(255,255,255,.45),inset_0_-4px_0_rgba(0,0,0,.22),0_4px_0_rgba(65,45,11,.45)]">+</span>}
     </button>
   );
 }
 
 function RoundHudButton({ icon, badge, label }: { icon: ReactNode; badge?: string; label: string }) {
   return (
-    <button type="button" aria-label={label} className="pointer-events-auto relative grid h-[64px] w-[64px] cursor-pointer place-items-center rounded-[23px] border-[3px] border-[#77D1FF]/65 bg-gradient-to-b from-[#0C629A] via-[#0A416E] to-[#062540] text-white shadow-[inset_0_-6px_0_rgba(0,0,0,.26),0_12px_18px_rgba(0,24,54,.3)]">
-      {badge && <span className="absolute -right-2 -top-3 grid h-9 w-9 place-items-center rounded-full border-2 border-white bg-[#F34E35] text-lg font-black shadow-[0_4px_8px_rgba(0,0,0,.28)]">{badge}</span>}
+    <button type="button" aria-label={label} className="pointer-events-auto relative grid h-[60px] w-[60px] cursor-pointer place-items-center rounded-[22px] border-[3px] border-[#F7B94F] bg-gradient-to-b from-[#217A92] via-[#0E4962] to-[#35200F] text-white shadow-[inset_0_3px_0_rgba(255,244,188,.28),inset_0_-8px_0_rgba(40,19,7,.46),0_5px_0_rgba(88,56,22,.55),0_14px_18px_rgba(0,24,54,.38)]">
+      {badge && <span className="absolute -right-2 -top-3 grid h-8 w-8 place-items-center rounded-full border-2 border-white bg-[#F34E35] text-base font-bold shadow-[0_4px_8px_rgba(0,0,0,.28)]">{badge}</span>}
       {icon}
     </button>
   );
@@ -72,25 +63,17 @@ function RoundHudButton({ icon, badge, label }: { icon: ReactNode; badge?: strin
 
 function SideMenuCard({ khmer, title, icon, badge }: (typeof sideActions)[number]) {
   return (
-    <button type="button" className="pointer-events-auto relative flex h-[112px] w-[112px] cursor-pointer flex-col items-center justify-center rounded-[24px] border-[3px] border-[#75E5DB] bg-gradient-to-b from-[#11A8A5] via-[#087A91] to-[#06456F] px-2 text-center text-white shadow-[0_14px_24px_rgba(0,24,56,.44),inset_0_-7px_0_rgba(0,20,54,.32),inset_0_2px_0_rgba(255,255,255,.28)] transition hover:-translate-y-1">
-      {badge && <span className="absolute -right-3 top-2 grid h-8 w-8 place-items-center rounded-full border-2 border-white bg-[#F13C2E] text-base font-black shadow-[0_4px_8px_rgba(0,0,0,.25)]">{badge}</span>}
-      <GameIcon name={icon} size={46} className="drop-shadow-[0_3px_3px_rgba(0,0,0,.35)]" />
-      <span className="khmer-body mt-1 text-[13px] font-black leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,.45)]">{khmer}</span>
-      <span className="text-[11px] font-black leading-tight text-white/92 drop-shadow-[0_2px_2px_rgba(0,0,0,.45)]">{title}</span>
+    <button type="button" className="pointer-events-auto relative flex h-[124px] w-[108px] cursor-pointer flex-col items-center justify-center rounded-[21px] border-[2px] border-[#8FEFFF] bg-gradient-to-b from-[#1FA9A6] via-[#0E8D95] to-[#086373] px-2 pt-3 pb-2 text-center text-white shadow-[inset_0_2px_0_rgba(255,255,255,.28),inset_0_-7px_0_rgba(0,57,73,.42),0_0_0_1px_rgba(11,104,177,.82),0_3px_0_rgba(5,80,95,.72),0_10px_18px_rgba(0,24,56,.34)] transition hover:-translate-y-1">
+      <span className="pointer-events-none absolute inset-[3px] rounded-[16px] border-[2px] border-[#126DB7]/80" />
+      {badge && <span className="absolute -right-3 top-[22px] grid h-8 w-8 place-items-center rounded-full border-[2px] border-white bg-[#F0443E] text-base font-bold leading-none shadow-[0_3px_7px_rgba(0,0,0,.26)]">{badge}</span>}
+      <span className="relative grid h-[50px] w-[50px] place-items-center text-white">
+        <GameIcon name={icon} size={46} className="drop-shadow-[0_2px_1px_rgba(0,73,88,.48)]" />
+      </span>
+      <span className="relative mt-1 block min-w-0 leading-none">
+        <span className="khmer-body block text-[13px] font-bold leading-[1.15] drop-shadow-[0_2px_1px_rgba(0,58,68,.7)]">{khmer}</span>
+        <span className="mt-0.5 block text-[11px] font-bold leading-[1.05] text-white drop-shadow-[0_2px_1px_rgba(0,58,68,.72)]">{title}</span>
+      </span>
     </button>
-  );
-}
-
-function CategoryBanner({ title, subtitle, x, y, tone }: (typeof categoryBanners)[number]) {
-  return (
-    <div
-      className={`pointer-events-none absolute z-20 min-w-[166px] rounded-[18px] border-[3px] bg-gradient-to-b px-4 py-2 text-center text-white shadow-[inset_0_-6px_0_rgba(0,0,0,.2),inset_0_2px_0_rgba(255,255,255,.3),0_13px_18px_rgba(0,32,58,.36)] ${bannerTones[tone]}`}
-      style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}
-    >
-      <span className="block text-[20px] font-black leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,.32)]">{title}</span>
-      <span className="block text-[13px] font-black leading-tight text-white/92">{subtitle}</span>
-      <span className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-x-[12px] border-t-[14px] border-x-transparent border-t-current opacity-75" />
-    </div>
   );
 }
 
@@ -104,7 +87,7 @@ function WorldSelector({
   onSelect: (world: AdventureWorld) => void;
 }) {
   return (
-    <div className="absolute left-[500px] top-[112px] z-40 flex items-center gap-2 rounded-[24px] border-[3px] border-[#74D6FF]/55 bg-gradient-to-b from-[#103D68] via-[#0C3155] to-[#061D36] p-2 shadow-[0_14px_22px_rgba(0,24,54,.34),inset_0_2px_0_rgba(255,255,255,.14)]">
+    <div className="absolute left-[915px] top-[94px] z-40 flex -translate-x-1/2 items-center gap-5">
       {worlds.map((world) => {
         const unlocked = isWorldUnlocked(world.id, worlds);
         const complete = isWorldComplete(world);
@@ -114,18 +97,23 @@ function WorldSelector({
           <button
             key={world.id}
             type="button"
-            className={`pointer-events-auto relative grid h-[64px] w-[64px] cursor-pointer place-items-center overflow-hidden rounded-[19px] border-[3px] text-[22px] font-black text-white shadow-[inset_0_-5px_0_rgba(0,0,0,.25),0_8px_12px_rgba(0,24,54,.28)] transition ${
-              active ? 'border-[#FFE86A] bg-gradient-to-b from-[#43D85A] to-[#177A37]' : unlocked ? 'border-[#83D8FF] bg-gradient-to-b from-[#1989D2] to-[#0A3E74] hover:-translate-y-1' : 'border-[#6E7888] bg-gradient-to-b from-[#6E7888] to-[#3D4654] opacity-80'
+            className={`pointer-events-auto relative grid h-[142px] w-[132px] cursor-pointer place-items-center text-[18px] font-bold text-white transition ${
+              active ? 'scale-110 drop-shadow-[0_0_24px_rgba(255,239,111,.95)]' : unlocked ? 'drop-shadow-[0_18px_16px_rgba(0,28,50,.42)] hover:-translate-y-1 hover:scale-105' : 'cursor-not-allowed drop-shadow-[0_20px_15px_rgba(0,0,0,.65)]'
             }`}
             onClick={() => {
               if (unlocked) onSelect(world);
             }}
             aria-label={`${world.title}${unlocked ? '' : ' locked'}`}
           >
-            <img src={world.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-45" />
-            <span className="relative z-10 drop-shadow-[0_2px_2px_rgba(0,0,0,.5)]">{world.id}</span>
-            {!unlocked && <GameIcon name="lock" size={22} className="absolute right-1 top-1 z-10" />}
-            {complete && <GameIcon name="star" size={22} className="absolute -right-0.5 -top-0.5 z-10" />}
+            <span className="absolute bottom-4 left-1/2 h-8 w-[108px] -translate-x-1/2 rounded-full bg-black/38 blur-[10px]" />
+            {active && <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,246,143,.6),rgba(255,199,52,.24)_34%,transparent_68%)] blur-[12px]" />}
+            <img src={world.image} alt="" className={`relative z-10 h-[124px] w-[128px] object-contain ${active ? 'saturate-150 brightness-125 drop-shadow-[0_0_20px_rgba(255,234,85,.95)] drop-shadow-[0_13px_12px_rgba(0,32,48,.42)]' : unlocked && complete ? 'grayscale-[.28] saturate-[.7] brightness-95 opacity-90 drop-shadow-[0_13px_12px_rgba(0,32,48,.4)]' : unlocked ? 'saturate-125 brightness-110 drop-shadow-[0_13px_12px_rgba(0,32,48,.42)]' : 'opacity-52 grayscale brightness-[.42] contrast-125 drop-shadow-[0_13px_12px_rgba(0,0,0,.68)]'}`} />
+            {!unlocked && <span className="absolute inset-x-2 top-4 z-10 h-[110px] rounded-full bg-black/36 blur-[1px]" />}
+            {!unlocked && <GameIcon name="lock" size={40} className="absolute z-20 text-[#E8E2D0] drop-shadow-[0_3px_4px_rgba(0,0,0,.85)]" />}
+            <span className={`absolute left-1/2 top-[80px] z-20 -translate-x-1/2 text-[27px] font-bold drop-shadow-[0_3px_2px_rgba(0,0,0,.7)] ${unlocked ? '' : 'opacity-38'}`}>{world.id}</span>
+            <div className="absolute bottom-0 left-1/2 z-20 flex -translate-x-1/2 gap-0.5 rounded-full bg-black/28 px-1.5 py-0.5">
+              {[1, 2, 3].map((star) => <GameIcon key={star} name="star" size={15} className={complete || active ? '' : 'grayscale opacity-35'} />)}
+            </div>
           </button>
         );
       })}
@@ -137,63 +125,84 @@ function MissionPanel({ selected, world, state }: { selected: AdventureLesson; w
   const isBoss = selected.id === 'boss';
   const title = isBoss ? 'បេសកកម្ម Boss' : `កម្រិត ${selected.id}`;
   const progress = selected.id === 'boss' && state !== 'completed' ? 0 : selected.progress;
+  const stateLabel = state === 'completed' ? 'Complete' : state === 'locked' ? 'Locked' : state === 'current' ? 'Current' : 'Ready';
 
   return (
-    <aside className="absolute right-[28px] top-[118px] z-40 h-[704px] w-[320px] rounded-[30px] border-[5px] border-[#8B5426] bg-gradient-to-b from-[#FFF3C8] via-[#FFFDF4] to-[#E5C586] p-4 text-[#4E3216] shadow-[inset_0_-8px_0_rgba(116,69,28,.16),inset_0_2px_0_rgba(255,255,255,.55),0_24px_40px_rgba(0,29,60,.34)]">
-      <div className="text-center">
-        <div className="khmer-body text-[28px] font-black leading-tight text-[#604018]">បេសកកម្ម</div>
-        <div className="text-[18px] font-black text-[#5A3A17]">បេសកកម្មបច្ចុប្បន្ន</div>
+    <aside className="absolute right-[22px] top-[252px] z-40 w-[340px] text-white">
+      <div className="relative min-h-[548px] overflow-hidden rounded-[30px] border-[4px] border-[#F1C45C] bg-gradient-to-b from-[#124E67] via-[#0B7277] to-[#173D37] p-4 shadow-[inset_0_4px_0_rgba(255,255,255,.2),inset_0_-12px_0_rgba(3,47,42,.32),0_8px_0_rgba(98,62,22,.55),0_24px_34px_rgba(0,29,60,.4)]">
+        <div className="pointer-events-none absolute inset-x-4 top-4 h-12 rounded-full bg-white/10" />
+        <div className="relative flex items-center justify-between gap-3 px-2 pb-3">
+          <div className="min-w-0">
+            <div className="text-[18px] font-bold uppercase leading-tight drop-shadow-[0_2px_1px_rgba(0,55,62,.7)]">Current Mission</div>
+            <div className="khmer-body -mt-0.5 truncate text-[12px] font-normal text-[#D7FFF5]">{world.titleKh}</div>
+          </div>
+          <div className="shrink-0 rounded-full border border-[#BFFFE6]/50 bg-[#083F4A]/62 px-3 py-1 text-[11px] font-bold uppercase text-[#CBFFE3] shadow-inner">{stateLabel}</div>
+        </div>
+
+        <section
+          className="relative overflow-hidden rounded-[22px] border-[3px] border-[#75E3FF]/70 bg-[#2FB6D7] shadow-[inset_0_3px_0_rgba(255,255,255,.35),0_9px_14px_rgba(0,37,62,.24)]"
+          style={{
+            backgroundImage: `linear-gradient(180deg, rgba(22, 159, 193, .12), rgba(12, 96, 83, .22)), url(${backgroundImages.lesson})`,
+            backgroundPosition: 'center center',
+            backgroundSize: '100% 100%',
+          }}
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,.55)_0_5%,transparent_16%),linear-gradient(180deg,rgba(26,177,221,.12)_0%,rgba(8,90,82,.34)_100%)]" />
+          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#0D7151]/78 to-transparent" />
+          <img src={world.image} alt="" className="absolute bottom-2 right-2 h-[136px] w-[148px] object-contain drop-shadow-[0_10px_10px_rgba(0,52,42,.35)]" />
+          <div className="relative min-h-[178px] px-4 py-3">
+            <div className="inline-flex items-center gap-1 rounded-full border border-white/55 bg-black/22 px-2.5 py-1 text-[12px] font-bold text-white shadow-[0_2px_6px_rgba(0,0,0,.12)]">
+              {[1, 2, 3].map((star) => <GameIcon key={star} name="star" size={15} />)}
+            </div>
+            <div className="mt-8 max-w-[180px]">
+              <div className="khmer-body text-[24px] font-bold leading-tight text-white drop-shadow-[0_3px_2px_rgba(0,52,70,.55)]">{title}</div>
+              <div className="mt-1 text-[13px] font-bold leading-tight text-white/92 drop-shadow-[0_2px_1px_rgba(0,52,70,.45)]">{selected.labelEn}</div>
+            </div>
+          </div>
+          <div className="relative flex h-[34px] items-center justify-center bg-gradient-to-r from-[#6737C8] via-[#7646E8] to-[#3C2DA6] px-3 text-center text-[14px] font-bold text-white">
+            <span className="truncate">{world.title}</span>
+          </div>
+        </section>
+
+        <section className="relative mt-4 rounded-[20px] border-[2px] border-[#EBC06A] bg-gradient-to-b from-[#FFF8DB] to-[#E9C67B] p-4 text-[#4E3216] shadow-[inset_0_2px_0_rgba(255,255,255,.6),inset_0_-5px_0_rgba(116,69,28,.12)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="khmer-body text-[16px] font-bold leading-tight">គោលដៅ Objective</div>
+              <div className="khmer-body mt-1 line-clamp-3 text-[13px] font-normal leading-snug text-[#4E4234]">{selected.objective}</div>
+            </div>
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-[16px] border border-[#F6D080]/70 bg-white/55 shadow-inner">
+              <GameIcon name={isBoss ? 'swords' : 'book'} size={30} className={isBoss ? 'text-[#D83636]' : 'text-[#24639B]'} />
+            </div>
+          </div>
+          <div className="mt-4 flex items-center gap-2">
+            <GameProgressBar value={progress} max={selected.target} variant={isBoss ? 'gold' : 'green'} className="flex-1" />
+            <div className="w-14 text-right text-[14px] font-bold text-[#4A2D12]">{progress}/{selected.target}</div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {selected.focusKeys.slice(0, 10).map((key) => (
+              <span key={key} className="khmer-body grid h-[26px] min-w-[26px] place-items-center rounded-full border border-[#C99A55] bg-white/80 px-2 text-[13px] font-normal leading-none text-[#5A3518] shadow-[inset_0_1px_0_rgba(255,255,255,.72)]">
+                {key}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="relative mt-4 rounded-[20px] border-[2px] border-[#F7D080]/70 bg-[#FFF7D2] p-3 text-[#563414] shadow-[inset_0_2px_0_rgba(255,255,255,.7),inset_0_-5px_0_rgba(126,79,26,.12)]">
+          <div className="khmer-body mb-2 text-[14px] font-bold">រង្វាន់ Rewards</div>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { icon: 'coin' as const, value: '200' },
+              { icon: 'star' as const, value: '30' },
+              { icon: 'gem' as const, value: '2' },
+            ].map((reward) => (
+              <div key={reward.icon} className="grid h-[64px] place-items-center rounded-[16px] border border-[#E5B35F]/45 bg-white/45 py-1 text-center shadow-inner">
+                <GameIcon name={reward.icon} size={30} />
+                <span className="text-[13px] font-bold">{reward.value}</span>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
-
-      <section className="mt-3 overflow-hidden rounded-[20px] border-[3px] border-[#2B348F] bg-white shadow-[0_12px_18px_rgba(77,53,26,.18)]">
-        <div className="flex items-center justify-between bg-gradient-to-r from-[#3547BE] via-[#5F4BE3] to-[#7E53EE] px-4 py-3 text-white shadow-[inset_0_-5px_0_rgba(0,0,0,.16)]">
-          <div>
-            <div className="text-[22px] font-black leading-tight">{title}</div>
-            <div className="text-[14px] font-bold">{selected.labelEn}</div>
-          </div>
-          <div className="flex gap-1">
-            {[1, 2, 3].map((star) => <GameIcon key={star} name="star" size={26} />)}
-          </div>
-        </div>
-        <div className="relative h-[132px] bg-[radial-gradient(circle_at_28%_18%,rgba(255,255,255,.88)_0_6%,transparent_15%),linear-gradient(180deg,#72D5FF_0%,#C9F3FF_52%,#74C96E_53%,#42A95A_100%)]">
-          <div className="absolute left-7 top-5 h-12 w-16 rounded-full bg-white/65 blur-sm" />
-          <div className="absolute bottom-0 left-0 right-0 h-14 bg-gradient-to-t from-[#43AD59] to-transparent" />
-        </div>
-        <div className="bg-gradient-to-r from-[#7F54F0] to-[#4F30C5] px-4 py-2 text-center text-white">
-          <div className="text-[18px] font-black">{world.title}</div>
-        </div>
-      </section>
-
-      <section className="mt-3 rounded-[18px] border-2 border-[#D0A763] bg-[#FFF8E3] p-3 shadow-inner">
-        <div className="text-[16px] font-black text-[#68421F]">គោលដៅ Objective</div>
-        <div className="mt-1 text-[13px] font-extrabold text-[#5C5041]">{selected.objective}</div>
-        <div className="mt-3 flex items-center gap-3">
-          <GameProgressBar value={progress} max={selected.target} variant={isBoss ? 'gold' : 'green'} className="flex-1" />
-          <div className="text-[16px] font-black">{progress}/{selected.target}</div>
-        </div>
-      </section>
-
-      <section className="mt-3 rounded-[18px] border-2 border-[#D0A763] bg-[#FFF8E3] p-3 shadow-inner">
-        <div className="mb-3 text-[16px] font-black text-[#68421F]">រង្វាន់ Rewards</div>
-        <div className="grid grid-cols-3 gap-2">
-          <GameRewardCard icon="coin" value="200" label="" />
-          <GameRewardCard icon="star" value="30" label="" />
-          <GameRewardCard icon="gem" value="2" label="" />
-        </div>
-      </section>
-
-      <section className="mt-3 rounded-[18px] border-2 border-[#C7CDD8] bg-gradient-to-b from-[#F6F7FA] to-[#E7E9EE] p-3">
-        <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-          <div>
-            <div className="text-[13px] font-black text-[#6B7280]">ទ្វារពិភពលោក World Gate</div>
-            <div className="text-[16px] font-black text-[#4D5563]">{world.normalCompleted}/8 មេរៀន</div>
-            <div className="mt-1 text-[12px] font-bold text-[#7B8492]">បញ្ចប់ 8 Level + Boss ដើម្បីបើកពិភពបន្ទាប់</div>
-          </div>
-          <div className="grid h-14 w-14 place-items-center rounded-2xl border-2 border-[#C7CDD8] bg-white shadow-inner">
-            <GameIcon name="lock" size={32} />
-          </div>
-        </div>
-      </section>
     </aside>
   );
 }
@@ -203,15 +212,24 @@ function WorldProgressPanel({ world }: { world: AdventureWorld }) {
   const stars = getWorldStars(world);
 
   return (
-    <div className="absolute bottom-[28px] left-[260px] z-30 h-[142px] w-[400px] rounded-[28px] border-[5px] border-[#8B5426] bg-gradient-to-b from-[#FFF3C8] via-[#F5D180] to-[#CD8738] p-4 shadow-[0_18px_28px_rgba(0,30,62,.42),inset_0_2px_0_rgba(255,255,255,.45)]">
-      <div className="pointer-events-none absolute -left-3 top-3 h-[116px] w-[52px] rounded-[24px] border-2 border-[#B98A53] bg-gradient-to-b from-[#FFF8DA] to-[#D2A35E] shadow-inner" />
-      <div className="relative text-center text-[20px] font-black leading-tight text-[#4A2A10] drop-shadow-[0_1px_0_rgba(255,235,170,.9)]">វឌ្ឍនភាព World {world.id}</div>
-      <div className="relative mt-4 grid grid-cols-[auto_1fr_auto] items-center gap-3">
-        <GameIcon name="star" size={50} />
-        <GameProgressBar value={progress.cleared} max={progress.total} variant="green" showValue />
-        <div className="relative grid h-[62px] w-[62px] place-items-center rounded-[18px] bg-[#6F3E16]/28 shadow-inner">
-          <GameIcon name="treasure" size={50} />
-          <span className="absolute -bottom-2 -right-2 grid h-8 min-w-8 place-items-center rounded-full border-2 border-white bg-[#2FAF41] px-2 text-xs font-black text-white">{stars}</span>
+    <div className="absolute bottom-[28px] left-[456px] z-30 h-[142px] w-[386px] overflow-hidden rounded-[26px] border-[4px] border-[#8A5B2A] bg-gradient-to-b from-[#FFF5CF] via-[#E6B55D] to-[#8C5325] p-4 shadow-[inset_0_4px_0_rgba(255,255,255,.42),inset_0_-10px_0_rgba(72,37,13,.28),0_7px_0_rgba(93,55,20,.52),0_20px_26px_rgba(0,30,62,.4)]">
+      <div className="pointer-events-none absolute inset-x-3 top-3 h-[46px] rounded-[22px] bg-white/14" />
+      <div className="relative grid h-full grid-cols-[62px_1fr_54px] items-center gap-3">
+        <div className="grid h-[62px] w-[62px] place-items-center rounded-[20px] border-2 border-[#F7CE72] bg-gradient-to-b from-[#FFF8DA] via-[#E4B352] to-[#9B6024] shadow-[inset_0_3px_0_rgba(255,255,255,.55),inset_0_-6px_0_rgba(86,45,15,.22),0_5px_0_rgba(93,53,19,.34)]">
+          <GameIcon name="star" size={43} />
+        </div>
+
+        <div className="min-w-0 self-center">
+          <div className="flex items-center justify-between gap-3">
+            <div className="khmer-body truncate text-[16px] font-bold leading-tight text-[#4A2A10] drop-shadow-[0_1px_0_rgba(255,235,170,.9)]">វឌ្ឍនភាព World {world.id}</div>
+            <div className="shrink-0 rounded-full border border-[#C7832F]/45 bg-[#FFF7D6] px-2.5 py-0.5 text-[12px] font-bold text-[#4A2A10] shadow-inner">{progress.cleared}/{progress.total}</div>
+          </div>
+          <GameProgressBar value={progress.cleared} max={progress.total} variant="green" className="mt-2.5" />
+        </div>
+
+        <div className="relative grid h-[54px] w-[54px] place-items-center rounded-[17px] border border-[#F6D080]/40 bg-gradient-to-b from-[#8F5F2B]/40 to-[#4A2C13]/35 shadow-[inset_0_2px_0_rgba(255,255,255,.2),inset_0_-5px_0_rgba(0,0,0,.16)]">
+          <GameIcon name="treasure" size={41} />
+          <span className="absolute -right-1 -top-2 grid h-7 min-w-7 place-items-center rounded-full border-2 border-white bg-[#2FAF41] px-2 text-[11px] font-bold text-white">{stars}</span>
         </div>
       </div>
     </div>
@@ -220,13 +238,23 @@ function WorldProgressPanel({ world }: { world: AdventureWorld }) {
 
 function RewardsPanel({ world }: { world: AdventureWorld }) {
   return (
-    <div className="absolute bottom-[28px] left-[700px] z-30 flex h-[142px] w-[460px] items-center gap-5 rounded-[28px] border-[4px] border-[#FFC35B] bg-gradient-to-r from-[#123A8B] via-[#1B277B] to-[#34115F] p-4 text-white shadow-[0_18px_28px_rgba(0,30,62,.44),inset_0_2px_0_rgba(255,255,255,.2)]">
-      <GameIcon name="treasure" size={90} />
-      <div className="flex-1">
-        <div className="text-[19px] font-black leading-tight">{world.title}</div>
-        <div className="text-[12px] font-bold text-white/82">{world.id < 6 ? `បញ្ចប់ 8 មេរៀន និង Boss ដើម្បីបើក World ${world.id + 1}។` : 'ឈ្នះ Boss ចុងក្រោយ ដើម្បីបញ្ចប់ Adventure។'}</div>
-        <GameButton variant="gold" size="lg" className="mt-3 h-[48px] min-w-[198px] rounded-[22px] text-[17px]">
-          រង្វាន់
+    <div
+      className="absolute bottom-[28px] left-[1006px] z-30 flex h-[142px] w-[386px] items-center gap-3.5 overflow-hidden rounded-[26px] border-[4px] border-[#E0A543] bg-[#17165D] p-4 text-white shadow-[inset_0_4px_0_rgba(255,245,187,.22),inset_0_-10px_0_rgba(25,11,58,.36),0_7px_0_rgba(80,48,20,.5),0_20px_26px_rgba(0,30,62,.42)]"
+      style={{
+        backgroundImage: `linear-gradient(90deg, rgba(18, 29, 108, .96) 0%, rgba(27, 39, 123, .88) 48%, rgba(44, 16, 96, .86) 100%), url(${templeJungleCardImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center 54%',
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_50%,rgba(255,255,255,.16),transparent_34%),linear-gradient(180deg,rgba(255,255,255,.08),transparent_42%)]" />
+      <div className="relative grid h-[64px] w-[64px] shrink-0 place-items-center rounded-[20px] border border-[#FFE0A0]/35 bg-gradient-to-b from-white/18 to-black/18 shadow-[inset_0_3px_0_rgba(255,255,255,.22),inset_0_-5px_0_rgba(0,0,0,.2),0_5px_0_rgba(24,12,50,.3)]">
+        <GameIcon name="treasure" size={52} />
+      </div>
+      <div className="relative min-w-0 flex-1">
+        <div className="truncate text-[16px] font-bold leading-tight">{world.title}</div>
+        <div className="line-clamp-2 text-[11px] font-bold leading-snug text-white/86">{world.id < 6 ? `បញ្ចប់ 8 មេរៀន និង Boss ដើម្បីបើក World ${world.id + 1}។` : 'ឈ្នះ Boss ចុងក្រោយ ដើម្បីបញ្ចប់ Adventure។'}</div>
+        <GameButton variant="gold" size="lg" className="mt-2 h-[36px] min-w-[148px] rounded-[18px] text-[13px]">
+          View Rewards
         </GameButton>
       </div>
     </div>
@@ -247,16 +275,17 @@ export default function WorldMapPage() {
 
   const startSelectedLesson = () => {
     if (selectedState === 'locked') return;
-    navigate(selected.id === 'boss' ? '/battle' : '/lesson');
+    const query = `world=${activeWorld.id}&level=${selected.id}`;
+    navigate(selected.id === 'boss' ? `/battle?${query}` : `/lesson?${query}`);
   };
 
   return (
     <PageTransition>
-      <GameScreen background={backgroundImages.worldMap} reference="/src/reference/world-map-reference.png" className="font-sans text-[#1E2F58]">
+      <GameScreen background={backgroundImages.worldMap} reference="/src/reference/world-map-reference.png" fit="stretch" className="font-sans text-[#1E2F58]" style={{ backgroundSize: '100% 100%' }}>
         <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_46%_42%,rgba(255,255,255,.08),transparent_36%),linear-gradient(180deg,rgba(0,92,160,.02),rgba(0,39,76,.12))]" />
         <svg className="pointer-events-none absolute inset-0 z-10 opacity-50" viewBox="0 0 1920 1080" aria-hidden="true">
           <path
-            d="M425 470 C500 432 545 430 600 405 S712 328 770 300 C825 335 864 394 910 430 C970 450 1025 456 1085 465 C1158 502 1190 560 1235 600 C1285 570 1335 530 1385 500 C1432 532 1474 580 1510 625"
+            d="M462 736 C444 686 438 620 448 558 C470 500 496 414 532 358 C628 394 732 430 846 456 C924 464 1012 472 1084 486 C1088 574 1110 650 1146 711 C1246 706 1366 704 1466 700 C1510 620 1556 548 1584 545 C1534 492 1486 440 1460 392 C1488 316 1530 246 1570 190"
             fill="none"
             stroke="rgba(255,255,255,.62)"
             strokeLinecap="round"
@@ -264,7 +293,7 @@ export default function WorldMapPage() {
             strokeWidth="5"
           />
           <path
-            d="M1235 600 C1128 660 1004 700 875 730 M1085 735 C1170 666 1300 530 1435 255"
+            d="M462 736 C570 650 720 546 846 456 M1146 711 C1264 612 1370 502 1460 392"
             fill="none"
             stroke="rgba(255,235,142,.46)"
             strokeLinecap="round"
@@ -274,46 +303,34 @@ export default function WorldMapPage() {
         </svg>
 
         <button
-          className="pointer-events-auto absolute left-[28px] top-[30px] z-40 grid h-[76px] w-[76px] cursor-pointer place-items-center rounded-[22px] border-[4px] border-[#7C451F] bg-gradient-to-b from-[#FFE0A2] to-[#B96B28] text-white shadow-button"
+          className="pointer-events-auto absolute left-[62px] top-[26px] z-40 grid h-[58px] w-[58px] cursor-pointer place-items-center rounded-[20px] border-[3px] border-[#7C451F] bg-gradient-to-b from-[#FFE7A8] via-[#D99230] to-[#7A3E18] text-white shadow-[inset_0_3px_0_rgba(255,255,255,.45),inset_0_-7px_0_rgba(75,35,10,.35),0_5px_0_rgba(93,52,17,.55),0_12px_18px_rgba(0,29,60,.35)]"
           onClick={() => navigate('/')}
           aria-label="Back"
         >
-          <ArrowLeft size={42} />
+          <ArrowLeft size={34} />
         </button>
 
-        <div className="pointer-events-none absolute left-[160px] top-[22px] z-40 h-[202px] w-[310px]">
+        <div className="pointer-events-none absolute left-[132px] top-[12px] z-40 h-[178px] w-[292px]">
           <img src={imageAssets.logo} alt="Khmer Typing Adventure" className="h-full w-full object-contain drop-shadow-[0_12px_16px_rgba(0,25,73,.32)]" />
         </div>
 
-        <div className="pointer-events-none absolute left-[30px] top-[184px] z-30 w-[226px]">
-          <LizardMascot className="w-[226px] max-w-none drop-shadow-[0_18px_18px_rgba(0,37,58,.32)]" withTiles={false} animated={false} />
-        </div>
-
-        <div className="absolute left-[35px] top-[438px] z-30 flex w-[112px] flex-col gap-3">
+        <div className="absolute left-[72px] top-[338px] z-30 flex w-[108px] flex-col items-center gap-10">
           {sideActions.map((item) => <SideMenuCard key={item.title} {...item} />)}
         </div>
 
-        <div className="absolute left-[650px] top-[30px] z-40 flex items-center gap-5">
+        <div className="absolute left-1/2 top-[24px] z-40 flex -translate-x-1/2 items-center gap-8">
           <HudPill icon="heart" value={`${resources.hearts}/${resources.maxHearts}`} label="Full" />
           <HudPill icon="coin" value={resources.coins} plus />
           <HudPill icon="gem" value={resources.gems} plus />
         </div>
 
-        <div className="absolute right-[34px] top-[30px] z-40 flex items-center gap-4">
+        <div className="absolute right-[62px] top-[24px] z-40 flex items-center gap-3">
           <RoundHudButton icon={<Mail size={31} />} badge="3" label="Mail" />
           <RoundHudButton icon={<Trophy size={31} />} label="Trophy" />
           <RoundHudButton icon={<Settings size={31} />} label="Settings" />
         </div>
 
         <WorldSelector worlds={adventureWorlds} activeWorld={activeWorld} onSelect={selectWorld} />
-
-        <div className="pointer-events-none absolute left-[500px] top-[198px] z-30 w-[360px] rounded-[24px] border-[3px] border-[#FFE8A4]/80 bg-gradient-to-b from-[#FFF1BC] via-[#F3C46E] to-[#B97828] px-5 py-3 text-[#4A2A10] shadow-[0_14px_20px_rgba(0,24,54,.28),inset_0_2px_0_rgba(255,255,255,.45)]">
-          <div className="khmer-body text-[22px] font-black leading-tight">{activeWorld.titleKh}</div>
-          <div className="text-[22px] font-black leading-tight">ពិភព {activeWorld.id}: {activeWorld.title}</div>
-          <div className="text-[12px] font-extrabold">{activeWorld.subtitle}</div>
-        </div>
-
-        {categoryBanners.map((label) => <CategoryBanner key={label.key} {...label} />)}
 
         {mapNodeLayout.map((node) => {
           const lesson = activeWorld.lessons.find((item) => item.id === node.id);
@@ -328,9 +345,8 @@ export default function WorldMapPage() {
               color={state === 'locked' && node.id !== 'boss' ? 'gray' : lesson.color}
               stars={lesson.stars}
               label={lesson.labelKh}
-              subtitle={lesson.labelEn}
               selected={node.id === selected.id}
-              className="z-20 scale-[.9]"
+              className="z-20 scale-[.82]"
               style={{ left: node.x, top: node.y }}
               onClick={() => {
                 setSelected(lesson);
@@ -343,12 +359,23 @@ export default function WorldMapPage() {
         <WorldProgressPanel world={activeWorld} />
         <RewardsPanel world={activeWorld} />
 
-        <div className="absolute bottom-[30px] right-[28px] z-40">
-          <GameButton variant={selected.id === 'boss' ? 'red' : 'green'} size="xl" rightIcon={<ArrowLeft className="rotate-180" size={38} />} className="h-[94px] min-w-[324px] rounded-[32px] border-[5px] text-[27px] shadow-[inset_0_-10px_0_rgba(0,0,0,.22),0_18px_28px_rgba(0,45,37,.36)] disabled:cursor-not-allowed disabled:grayscale" onClick={startSelectedLesson} disabled={selectedState === 'locked'}>
-            {selectedState === 'locked' ? 'ជាប់សោ' : selected.id === 'boss' ? 'ចាប់ផ្តើម Boss' : `ចាប់ផ្តើម Level ${selected.id}`}
-          </GameButton>
+        <div className="absolute bottom-[46px] right-[48px] z-40">
+          <button
+            type="button"
+            className="pointer-events-auto relative h-[82px] w-[320px] cursor-pointer overflow-hidden rounded-[32px] border-[4px] border-[#0C8B39] bg-gradient-to-b from-[#7CFF61] via-[#33D94F] to-[#15A947] px-7 text-[26px] font-bold text-white shadow-[inset_0_-11px_0_rgba(0,91,50,.34),0_6px_0_rgba(0,103,60,.72),0_16px_22px_rgba(0,43,74,.36)] transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:grayscale"
+            onClick={startSelectedLesson}
+            disabled={selectedState === 'locked'}
+          >
+            <span className="pointer-events-none absolute left-[14px] right-[14px] top-[7px] h-[27px] rounded-full bg-white/42" />
+            <span className="relative flex items-center justify-center gap-3 drop-shadow-[0_2px_1px_rgba(0,101,45,.55)]">
+              <span className="khmer-body text-[25px] font-bold leading-none">{selectedState === 'locked' ? 'ជាប់សោ' : selected.id === 'boss' ? 'ចាប់ផ្តើម Boss' : 'ចាប់ផ្តើម'}</span>
+              <span className="text-[25px] leading-none">{selectedState === 'locked' ? 'Locked' : selected.id === 'boss' ? '' : `Level ${selected.id}`}</span>
+              {selectedState !== 'locked' && <ArrowLeft className="rotate-180" size={34} strokeWidth={3.2} />}
+            </span>
+          </button>
         </div>
       </GameScreen>
     </PageTransition>
   );
 }
+

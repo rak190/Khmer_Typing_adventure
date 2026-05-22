@@ -1,4 +1,5 @@
 import { mapImages } from '../assets/assetManifest';
+import { lessonCurriculum } from './lessonCurriculum';
 
 export type AdventureNodeId = number | 'boss';
 export type AdventureNodeState = 'completed' | 'current' | 'unlocked' | 'locked';
@@ -11,6 +12,11 @@ export type AdventureLesson = {
   labelEn: string;
   category: string;
   objective: string;
+  unicodeRule: string;
+  successCriteria: string;
+  focusKeys: string[];
+  stageCount: number;
+  stagePreview: string[];
   progress: number;
   target: number;
   stars: number;
@@ -23,6 +29,10 @@ export type AdventureWorld = {
   titleKh: string;
   subtitle: string;
   theme: string;
+  mainLessonKh: string;
+  mainLessonEn: string;
+  skillFocus: string;
+  unicodeFocus: string;
   image: string;
   normalCompleted: number;
   bossCompleted: boolean;
@@ -36,15 +46,15 @@ export type MapNodeLayout = {
 };
 
 export const mapNodeLayout: MapNodeLayout[] = [
-  { id: 1, x: 425, y: 470 },
-  { id: 2, x: 600, y: 405 },
-  { id: 3, x: 770, y: 300 },
-  { id: 4, x: 910, y: 430 },
-  { id: 5, x: 1085, y: 465 },
-  { id: 6, x: 1235, y: 600 },
-  { id: 7, x: 1385, y: 500 },
-  { id: 8, x: 1510, y: 625 },
-  { id: 'boss', x: 1435, y: 255 },
+  { id: 1, x: 465, y: 755 },
+  { id: 2, x: 440, y: 565 },
+  { id: 3, x: 540, y: 370 },
+  { id: 4, x: 858, y: 460 },
+  { id: 5, x: 1073, y: 493 },
+  { id: 6, x: 1140, y: 740 },
+  { id: 7, x: 1460, y: 703 },
+  { id: 8, x: 1465, y: 385 },
+  { id: 'boss', x: 1565, y: 190 },
 ];
 
 export const categoryBanners = [
@@ -55,144 +65,57 @@ export const categoryBanners = [
   { key: 'boss', x: 1420, y: 220, tone: 'red', title: 'ប្រយុទ្ធ Boss', subtitle: 'Boss Challenge' },
 ] as const;
 
-const worldLessonSets = [
-  {
-    title: 'Temple Jungle',
-    titleKh: 'ព្រៃប្រាសាទ',
-    subtitle: 'រៀនព្យញ្ជនៈ ស្រៈ និងពាក្យដំបូង',
-    theme: 'Beginner Island',
-    image: mapImages.world1,
-    lessons: [
-      ['ព្យញ្ជនៈ', 'Consonant Keys', 'ព្យញ្ជនៈ', 'វាយព្យញ្ជនៈឱ្យត្រឹមត្រូវ ២០ តួ'],
-      ['មេរៀន ២', 'Home Row', 'ព្យញ្ជនៈ', 'ដាក់ម្រាមដៃលើ Home Row ហើយវាយអក្សរ'],
-      ['មេរៀន ៣', 'Vowel Marks', 'ស្រៈ', 'វាយស្រៈឱ្យត្រឹមត្រូវ ២០ ដង'],
-      ['មេរៀន ៤', 'Vowel Combos', 'ស្រៈ', 'ផ្គូផ្គងព្យញ្ជនៈជាមួយស្រៈ'],
-      ['មេរៀន ៥', 'Simple Words', 'ពាក្យ', 'វាយពាក្យខ្មែរខ្លីៗឱ្យត្រឹមត្រូវ'],
-      ['ពាក្យ', 'Animal Words', 'ពាក្យ', 'វាយពាក្យអំពីសត្វឱ្យត្រឹមត្រូវ ២០ ពាក្យ'],
-      ['អានវគ្គ', 'Reading Flow', 'ប្រយោគ', 'វាយឃ្លាខ្លីៗដោយរលូន'],
-      ['ប្រយោគ', 'First Sentences', 'ប្រយោគ', 'វាយប្រយោគខ្លីៗ ៨ ប្រយោគ'],
-      ['ប្រយុទ្ធ', 'Jungle Boss', 'Boss Battle', 'ឈ្នះ Boss ប្រាសាទព្រៃ'],
-    ],
-  },
-  {
-    title: 'River Ruins',
-    titleKh: 'ប្រាសាទទន្លេ',
-    subtitle: 'ហ្វឹកហាត់ស្រៈ ការបន្សំ និងល្បឿន',
-    theme: 'Water Temple',
-    image: mapImages.world2,
-    lessons: [
-      ['ស្រៈ', 'Vowel Review', 'ស្រៈ', 'រំលឹកទីតាំងស្រៈទាំងអស់'],
-      ['សំឡេង', 'Sound Pairs', 'ស្រៈ', 'វាយគូសំឡេងឱ្យត្រូវគ្នា'],
-      ['ពាក្យទឹក', 'River Words', 'ពាក្យ', 'វាយពាក្យអំពីទឹក និងធម្មជាតិ'],
-      ['បន្សំ', 'Letter Blends', 'ពាក្យ', 'វាយព្យាង្គខ្មែរដែលបានបន្សំ'],
-      ['ល្បឿន', 'Speed Words', 'ពាក្យ', 'រក្សាចង្វាក់វាយអក្សរឱ្យស្មើ'],
-      ['កំណាត់', 'Short Phrases', 'ប្រយោគ', 'វាយឃ្លាខ្លីៗឱ្យត្រឹមត្រូវ'],
-      ['អាន', 'Reading Lines', 'ប្រយោគ', 'វាយបន្ទាត់អានជាប់គ្នា'],
-      ['ស្ទាត់', 'Accuracy Trial', 'ប្រយោគ', 'បញ្ចប់ដោយភាពត្រឹមត្រូវខ្ពស់'],
-      ['ប្រយុទ្ធ', 'River Boss', 'Boss Battle', 'ឈ្នះការប្រកួតវាយអក្សរទន្លេ'],
-    ],
-  },
-  {
-    title: 'Sky Pagoda',
-    titleKh: 'ចេតិយមេឃ',
-    subtitle: 'ហ្វឹកហាត់ចង្វាក់ និងឃ្លាវែងៗ',
-    theme: 'Sky Island',
-    image: mapImages.world3,
-    lessons: [
-      ['ក្តារចុច', 'Keyboard Reach', 'ព្យញ្ជនៈ', 'ហ្វឹកហាត់ការឈានម្រាមដៃទៅគ្រាប់ចុចពិបាក'],
-      ['ជួរលើ', 'Top Row', 'ព្យញ្ជនៈ', 'គ្រប់គ្រងអក្សរនៅជួរលើ'],
-      ['ជួរក្រោម', 'Bottom Row', 'ព្យញ្ជនៈ', 'គ្រប់គ្រងអក្សរនៅជួរក្រោម'],
-      ['សញ្ញា', 'Marks and Signs', 'ស្រៈ', 'វាយសញ្ញាខ្មែរដែលប្រើញឹកញាប់'],
-      ['ពាក្យលឿន', 'Quick Words', 'ពាក្យ', 'វាយពាក្យមុនពេល Timer អស់'],
-      ['ចង្វាក់', 'Typing Rhythm', 'ពាក្យ', 'រក្សាចង្វាក់វាយអក្សរឱ្យរលូន'],
-      ['ឃ្លា', 'Phrase Builder', 'ប្រយោគ', 'បង្កើតឃ្លាឱ្យបានពេញលេញ'],
-      ['ប្រយោគវែង', 'Long Sentences', 'ប្រយោគ', 'វាយប្រយោគវែងៗឱ្យត្រឹមត្រូវ'],
-      ['ប្រយុទ្ធ', 'Sky Boss', 'Boss Battle', 'បញ្ចប់ការប្រកួតនៅលើមេឃ'],
-    ],
-  },
-  {
-    title: 'Golden Library',
-    titleKh: 'បណ្ណាល័យមាស',
-    subtitle: 'ពាក្យថ្មី និងប្រយោគក្នុងថ្នាក់រៀន',
-    theme: 'Scholar Temple',
-    image: mapImages.world4,
-    lessons: [
-      ['សាលា', 'School Words', 'ពាក្យ', 'វាយពាក្យអំពីថ្នាក់រៀន'],
-      ['គ្រួសារ', 'Family Words', 'ពាក្យ', 'វាយពាក្យអំពីគ្រួសារ'],
-      ['អាហារ', 'Food Words', 'ពាក្យ', 'វាយពាក្យអំពីអាហារ'],
-      ['ពណ៌', 'Color Words', 'ពាក្យ', 'វាយពាក្យអំពីពណ៌'],
-      ['លេខ', 'Numbers', 'ពាក្យ', 'វាយពាក្យលេខជាភាសាខ្មែរ'],
-      ['សំណួរ', 'Question Lines', 'ប្រយោគ', 'វាយប្រយោគសំណួរ'],
-      ['ចម្លើយ', 'Answer Lines', 'ប្រយោគ', 'វាយប្រយោគចម្លើយ'],
-      ['មេរៀនសាលា', 'Classroom Mission', 'ប្រយោគ', 'វាយសេចក្តីណែនាំក្នុងថ្នាក់រៀន'],
-      ['ប្រយុទ្ធ', 'Library Boss', 'Boss Battle', 'ឈ្នះការសាកល្បងអ្នកប្រាជ្ញ'],
-    ],
-  },
-  {
-    title: 'Shadow Volcano',
-    titleKh: 'ភ្នំភ្លើងងងឹត',
-    subtitle: 'ហ្វឹកហាត់ភាពត្រឹមត្រូវក្រោមសម្ពាធ',
-    theme: 'Danger Island',
-    image: mapImages.world5,
-    lessons: [
-      ['ពាក្យលំបាក', 'Hard Words', 'ពាក្យ', 'វាយពាក្យលំបាកឱ្យត្រឹមត្រូវ'],
-      ['កុំច្រឡំ', 'Tricky Pairs', 'ពាក្យ', 'ជៀសវាងការច្រឡំគូគ្រាប់ចុច'],
-      ['ល្បឿនខ្ពស់', 'High Speed', 'ពាក្យ', 'វាយអក្សរដោយល្បឿនលឿនជាងមុន'],
-      ['ត្រឹមត្រូវ', 'Accuracy Drill', 'ពាក្យ', 'រក្សាកំហុសឱ្យតិចបំផុត'],
-      ['ពេលវេលា', 'Timed Words', 'ពាក្យ', 'ឈ្នះ Timer ពាក្យ'],
-      ['ប្រយោគលឿន', 'Fast Sentences', 'ប្រយោគ', 'វាយប្រយោគលឿនៗ'],
-      ['កំហុសតិច', 'Low Mistake Run', 'ប្រយោគ', 'បញ្ចប់ដោយមានកំហុសតិច'],
-      ['សាកល្បងធំ', 'Final Trial', 'ប្រយោគ', 'បញ្ចប់ការសាកល្បង Typing ចម្រុះ'],
-      ['ប្រយុទ្ធ', 'Volcano Boss', 'Boss Battle', 'ឈ្នះ Boss ភ្នំភ្លើង'],
-    ],
-  },
-  {
-    title: 'Royal Angkor',
-    titleKh: 'អង្គររាជ្យ',
-    subtitle: 'វគ្គជំនាញចុងក្រោយសម្រាប់ Typing',
-    theme: 'Final Kingdom',
-    image: mapImages.world6,
-    lessons: [
-      ['រំលឹក', 'Grand Review', 'ចម្រុះ', 'រំលឹកក្រុមគ្រាប់ចុចទាំងអស់'],
-      ['អក្សរទាំងអស់', 'All Letters', 'ចម្រុះ', 'វាយអក្សរទាំងអស់ដែលបានរៀន'],
-      ['ពាក្យចម្រុះ', 'Mixed Words', 'ពាក្យ', 'វាយពាក្យចម្រុះ'],
-      ['ប្រយោគចម្រុះ', 'Mixed Sentences', 'ប្រយោគ', 'វាយប្រយោគចម្រុះ'],
-      ['អានលឿន', 'Fast Reading', 'ប្រយោគ', 'អាន ហើយវាយឱ្យលឿន'],
-      ['កំណត់ត្រា', 'Record Run', 'ចម្រុះ', 'បង្កើតពិន្ទុខ្ពស់ថ្មី'],
-      ['ជំនាញ', 'Master Skill', 'ចម្រុះ', 'បញ្ចប់មេរៀនជំនាញ'],
-      ['វគ្គចុងក្រោយ', 'Final Lesson', 'ចម្រុះ', 'បញ្ចប់មេរៀន Typing ចុងក្រោយ'],
-      ['ប្រយុទ្ធ', 'Angkor Champion', 'Boss Battle', 'ឈ្នះ Boss ចុងក្រោយ'],
-    ],
-  },
-] as const;
+const worldImages: Record<number, string> = {
+  1: mapImages.world1,
+  2: mapImages.world2,
+  3: mapImages.world3,
+  4: mapImages.world4,
+  5: mapImages.world5,
+  6: mapImages.world6,
+};
 
 const nodeColors: AdventureNodeColor[] = ['green', 'green', 'green', 'gold', 'gold', 'purple', 'purple', 'blue', 'red'];
 
-export const adventureWorlds: AdventureWorld[] = worldLessonSets.map((world, worldIndex) => {
+export const adventureWorlds: AdventureWorld[] = lessonCurriculum.map((world, worldIndex) => {
   const normalCompleted = worldIndex === 0 ? 5 : 0;
   const bossCompleted = false;
 
   return {
-    id: worldIndex + 1,
+    id: world.id,
     title: world.title,
     titleKh: world.titleKh,
     subtitle: world.subtitle,
     theme: world.theme,
-    image: world.image,
+    mainLessonKh: world.mainLessonKh,
+    mainLessonEn: world.mainLessonEn,
+    skillFocus: world.skillFocus,
+    unicodeFocus: world.unicodeFocus,
+    image: worldImages[world.id],
     normalCompleted,
     bossCompleted,
-    lessons: world.lessons.map(([labelKh, labelEn, category, objective], lessonIndex) => ({
-      id: lessonIndex === 8 ? 'boss' : lessonIndex + 1,
-      sequence: lessonIndex + 1,
-      labelKh,
-      labelEn,
-      category,
-      objective,
-      progress: lessonIndex < normalCompleted ? 20 : lessonIndex === normalCompleted ? 12 : 0,
-      target: lessonIndex === 8 ? 1 : 20,
-      stars: lessonIndex < normalCompleted ? (lessonIndex === 3 ? 2 : 3) : lessonIndex === normalCompleted ? 2 : 0,
-      color: nodeColors[lessonIndex],
-    })),
+    lessons: world.levels.map((level, lessonIndex) => {
+      const target = level.stages.reduce((total, stage) => total + stage.targetCount, 0);
+      const completed = lessonIndex < normalCompleted;
+      const current = lessonIndex === normalCompleted;
+
+      return {
+        id: level.id,
+        sequence: lessonIndex + 1,
+        labelKh: level.labelKh,
+        labelEn: level.labelEn,
+        category: level.category,
+        objective: level.objective,
+        unicodeRule: level.unicodeRule,
+        successCriteria: level.successCriteria,
+        focusKeys: level.focusKeys,
+        stageCount: level.stages.length,
+        stagePreview: level.stages.map((stage) => stage.titleKh),
+        progress: completed ? target : current ? Math.ceil(target * 0.45) : 0,
+        target,
+        stars: completed ? (lessonIndex === 3 ? 2 : 3) : current ? 2 : 0,
+        color: nodeColors[lessonIndex],
+      };
+    }),
   };
 });
 

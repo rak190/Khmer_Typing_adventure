@@ -13,6 +13,8 @@ import homeBackground from './backgrounds/home-background.png';
 import worldMapBackground from './backgrounds/world-map-background.png';
 import lessonBackground from './backgrounds/lesson-background.png';
 import battleBackground from './backgrounds/battle-background.png';
+import leftHandTyping from './hands/left-hand-typing.png';
+import rightHandTyping from './hands/right-hand-typing.png';
 import world1 from './map/world-1.png';
 import world2 from './map/world-2.png';
 import world3 from './map/world-3.png';
@@ -41,6 +43,10 @@ export const imageAssets = {
     lesson: lessonBackground,
     battle: battleBackground,
   },
+  hands: {
+    leftTyping: leftHandTyping,
+    rightTyping: rightHandTyping,
+  },
   map: {
     world1,
     world2,
@@ -49,6 +55,13 @@ export const imageAssets = {
     world5,
     world6,
     angkorFlat,
+  },
+} as const;
+
+export const assets = {
+  hands: {
+    leftTyping: leftHandTyping,
+    rightTyping: rightHandTyping,
   },
 } as const;
 
@@ -71,4 +84,5 @@ export const hudIconImages = {
 } as const;
 
 export const backgroundImages = imageAssets.backgrounds;
+export const handImages = imageAssets.hands;
 export const mapImages = imageAssets.map;

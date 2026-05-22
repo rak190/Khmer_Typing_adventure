@@ -5,7 +5,6 @@ import GameButton from '../components/game-ui/GameButton';
 import GameCard from '../components/game-ui/GameCard';
 import GameHudCounter from '../components/game-ui/GameHudCounter';
 import GameKeyboardKey from '../components/game-ui/GameKeyboardKey';
-import GameLevelBadge from '../components/game-ui/GameLevelBadge';
 import GameMapNode from '../components/game-ui/GameMapNode';
 import GameMissionPanel from '../components/game-ui/GameMissionPanel';
 import GameModal from '../components/game-ui/GameModal';

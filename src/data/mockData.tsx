@@ -17,6 +17,36 @@ import {
 } from 'lucide-react';
 import type { Achievement, KeyboardKeyData, LessonStage, PowerUp, Quest, ResourceState, Student } from '../types/game';
 
+export type LessonProgressRecord = {
+  worldId: number;
+  lessonId: number | 'boss';
+  score: number;
+  accuracy: number;
+  wpm: number;
+  stars: number;
+  xpEarned: number;
+  coinsEarned: number;
+  bestStreak: number;
+};
+
+export const mockLessonProgress: LessonProgressRecord[] = [];
+
+export function saveMockLessonProgress(progress: LessonProgressRecord) {
+  const existingIndex = mockLessonProgress.findIndex((item) => item.worldId === progress.worldId && item.lessonId === progress.lessonId);
+  if (existingIndex >= 0) {
+    mockLessonProgress[existingIndex] = progress;
+    return progress;
+  }
+
+  mockLessonProgress.push(progress);
+  return progress;
+}
+
+export async function saveLessonProgressToFirebase(progress: LessonProgressRecord) {
+  // Firebase persistence will be connected here after auth/user progress schema is ready.
+  return progress;
+}
+
 export const resources: ResourceState = {
   coins: 1250,
   gems: 125,
@@ -99,57 +129,89 @@ export const battleWords = ['សាលា', 'កូន', 'ទឹក', 'ផ្ក
 
 export const keyboardRows: KeyboardKeyData[][] = [
   [
-    { label: 'ឥ', value: 'ឥ' },
-    { label: 'ឦ', value: 'ឦ' },
-    { label: 'ក', value: 'ក' },
-    { label: 'ខ', value: 'ខ' },
-    { label: 'គ', value: 'គ' },
-    { label: 'ឃ', value: 'ឃ' },
-    { label: 'ង', value: 'ង' },
-    { label: 'ច', value: 'ច' },
-    { label: 'ឆ', value: 'ឆ' },
-    { label: 'ជ', value: 'ជ' },
-    { label: 'ញ', value: 'ញ' },
-    { label: '⌫', value: '', action: 'backspace' },
+    { label: '«', value: '«', shift: '»', altgr: '\u200d', code: 'Backquote' },
+    { label: '១', value: '១', shift: '!', code: 'Digit1' },
+    { label: '២', value: '២', shift: '@', code: 'Digit2' },
+    { label: '៣', value: '៣', shift: '"', code: 'Digit3' },
+    { label: '៤', value: '៤', shift: '$', code: 'Digit4' },
+    { label: '៥', value: '៥', shift: '%', code: 'Digit5' },
+    { label: '៦', value: '៦', shift: '^', code: 'Digit6' },
+    { label: '៧', value: '៧', shift: '&', code: 'Digit7' },
+    { label: '៨', value: '៨', shift: '*', code: 'Digit8' },
+    { label: '៩', value: '៩', shift: '(', code: 'Digit9' },
+    { label: '០', value: '០', shift: ')', code: 'Digit0' },
+    { label: 'ឥ', value: 'ឥ', shift: '៌', code: 'Minus' },
+    { label: 'ឲ', value: 'ឲ', shift: '=', code: 'Equal' },
+    { label: '⌫', value: '', action: 'backspace', wide: true, code: 'Backspace' },
   ],
   [
-    { label: 'ដ', value: 'ដ' },
-    { label: 'ឋ', value: 'ឋ' },
-    { label: 'ឌ', value: 'ឌ' },
-    { label: 'ឍ', value: 'ឍ' },
-    { label: 'ណ', value: 'ណ' },
-    { label: 'ត', value: 'ត' },
-    { label: 'ថ', value: 'ថ' },
-    { label: 'ទ', value: 'ទ' },
-    { label: 'ធ', value: 'ធ' },
-    { label: 'ន', value: 'ន' },
-    { label: 'ប', value: 'ប' },
+    { label: 'Tab', value: '', action: 'tab', wide: true, code: 'Tab' },
+    { label: 'ឆ', value: 'ឆ', shift: 'ឈ', code: 'KeyQ' },
+    { label: 'ឹ', value: 'ឹ', shift: 'ឺ', code: 'KeyW' },
+    { label: 'េ', value: 'េ', shift: 'ែ', altgr: 'ឯ', code: 'KeyE' },
+    { label: 'រ', value: 'រ', shift: 'ឬ', altgr: 'ឫ', code: 'KeyR' },
+    { label: 'ត', value: 'ត', shift: 'ទ', code: 'KeyT' },
+    { label: 'យ', value: 'យ', shift: 'ួ', code: 'KeyY' },
+    { label: 'ុ', value: 'ុ', shift: 'ូ', code: 'KeyU' },
+    { label: 'ិ', value: 'ិ', shift: 'ី', altgr: 'ឦ', code: 'KeyI' },
+    { label: 'ោ', value: 'ោ', shift: 'ៅ', altgr: 'ឱ', code: 'KeyO' },
+    { label: 'ផ', value: 'ផ', shift: 'ភ', altgr: 'ឰ', code: 'KeyP' },
+    { label: 'ៀ', value: 'ៀ', shift: 'ឿ', altgr: 'ឩ', code: 'BracketLeft' },
+    { label: 'ឪ', value: 'ឪ', shift: 'ឧ', altgr: 'ឳ', code: 'BracketRight' },
+    { label: 'ឮ', value: 'ឮ', shift: 'ឭ', altgr: '\\', wide: true, code: 'Backslash' },
   ],
   [
-    { label: 'ផ', value: 'ផ' },
-    { label: 'ព', value: 'ព' },
-    { label: 'ភ', value: 'ភ' },
-    { label: 'ម', value: 'ម' },
-    { label: 'យ', value: 'យ' },
-    { label: 'រ', value: 'រ' },
-    { label: 'ល', value: 'ល' },
-    { label: 'វ', value: 'វ' },
-    { label: 'ស', value: 'ស' },
-    { label: 'ហ', value: 'ហ' },
-    { label: 'Enter', value: '', action: 'enter', wide: true },
+    { label: 'Caps', value: '', action: 'caps', wide: true, code: 'CapsLock' },
+    { label: 'ា', value: 'ា', shift: 'ាំ', code: 'KeyA' },
+    { label: 'ស', value: 'ស', shift: 'ៃ', code: 'KeyS' },
+    { label: 'ដ', value: 'ដ', shift: 'ឌ', code: 'KeyD' },
+    { label: 'ថ', value: 'ថ', shift: 'ធ', code: 'KeyF' },
+    { label: 'ង', value: 'ង', shift: 'អ', code: 'KeyG' },
+    { label: 'ហ', value: 'ហ', shift: 'ះ', code: 'KeyH' },
+    { label: '្', value: '្', shift: 'ញ', code: 'KeyJ' },
+    { label: 'ក', value: 'ក', shift: 'គ', code: 'KeyK' },
+    { label: 'ល', value: 'ល', shift: 'ឡ', code: 'KeyL' },
+    { label: 'ើ', value: 'ើ', shift: 'ោះ', altgr: '៖', code: 'Semicolon' },
+    { label: '់', value: '់', shift: '៉', altgr: 'ៈ', code: 'Quote' },
+    { label: 'Enter', value: '', action: 'enter', wide: true, code: 'Enter' },
   ],
   [
-    { label: 'ា', value: 'ា' },
-    { label: 'ិ', value: 'ិ' },
-    { label: 'ី', value: 'ី' },
-    { label: 'ឹ', value: 'ឹ' },
-    { label: 'ុ', value: 'ុ' },
-    { label: 'ូ', value: 'ូ' },
-    { label: 'ំ', value: 'ំ' },
-    { label: 'ះ', value: 'ះ' },
+    { label: 'Shift', value: '', action: 'shift', wide: true, code: 'ShiftLeft' },
+    { label: 'ឋ', value: 'ឋ', shift: 'ឍ', code: 'KeyZ' },
+    { label: 'ខ', value: 'ខ', shift: 'ឃ', code: 'KeyX' },
+    { label: 'ច', value: 'ច', shift: 'ជ', code: 'KeyC' },
+    { label: 'វ', value: 'វ', shift: 'េះ', code: 'KeyV' },
+    { label: 'ប', value: 'ប', shift: 'ព', code: 'KeyB' },
+    { label: 'ន', value: 'ន', shift: 'ណ', code: 'KeyN' },
+    { label: 'ម', value: 'ម', shift: 'ំ', code: 'KeyM' },
+    { label: 'ុំ', value: 'ុំ', shift: 'ុះ', altgr: ',', code: 'Comma' },
+    { label: '។', value: '។', shift: '៕', altgr: '.', code: 'Period' },
+    { label: '៊', value: '៊', shift: '?', altgr: '/', code: 'Slash' },
+    { label: 'Shift', value: '', action: 'shift', wide: true, code: 'ShiftRight' },
+  ],
+  [
+    { label: 'Ctrl', value: '', action: 'control', wide: true, code: 'ControlLeft' },
+    { label: 'Win', value: '', action: 'meta', code: 'MetaLeft' },
+    { label: 'Alt', value: '', action: 'altgr', code: 'AltLeft' },
     { label: 'Space Khmer', value: ' ', action: 'space', wide: true },
+    { label: 'AltGr', value: '', action: 'altgr', wide: true, code: 'AltRight' },
+    { label: 'Menu', value: '', action: 'menu', code: 'ContextMenu' },
+    { label: 'Ctrl', value: '', action: 'control', wide: true, code: 'ControlRight' },
   ],
 ];
+
+export function getKhmerKeyboardValue(event: KeyboardEvent) {
+  if (event.code === 'Space') return ' ';
+
+  const key = keyboardRows.flat().find((item) => item.code === event.code);
+  if (!key) return event.key.length === 1 ? event.key : null;
+  if (key.action && key.action !== 'space') return null;
+
+  const usingAltGr = event.getModifierState?.('AltGraph') || (event.ctrlKey && event.altKey);
+  if (usingAltGr) return key.altgr || key.value || null;
+  if (event.shiftKey || event.getModifierState?.('CapsLock')) return key.shift || key.value || null;
+  return key.value || null;
+}
 
 export const powerUps: PowerUp[] = [
   { id: 'shield', name: 'Shield', description: 'Block damage', icon: <Shield size={30} />, tone: 'blue' },

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HelpCircle, Settings, Swords, Volume2 } from 'lucide-react';
 import CharacterPlaceholder from '../components/characters/CharacterPlaceholder';
@@ -11,7 +11,8 @@ import RewardChest from '../components/game/RewardChest';
 import StatPill from '../components/game/StatPill';
 import PageTransition from '../components/layout/PageTransition';
 import GameIcon from '../components/game-ui/GameIcon';
-import { battleWords, powerUps, quests, resources } from '../data/mockData';
+import { getCurriculumLevel, getCurriculumWorld, lessonCurriculum } from '../data/lessonCurriculum';
+import { getKhmerKeyboardValue, powerUps, quests, resources } from '../data/mockData';
 import type { KeyboardKeyData } from '../types/game';
 
 function BattleResourceIcon({ name }: { name: 'coin' | 'gem' }) {
@@ -19,6 +20,11 @@ function BattleResourceIcon({ name }: { name: 'coin' | 'gem' }) {
 }
 
 export default function BattlePage() {
+  const [searchParams] = useSearchParams();
+  const requestedWorldId = Number(searchParams.get('world') ?? 1);
+  const world = getCurriculumWorld(Number.isFinite(requestedWorldId) ? requestedWorldId : 1) ?? lessonCurriculum[0];
+  const bossLesson = getCurriculumLevel(world.id, 'boss') ?? lessonCurriculum[0].levels[8];
+  const battleItems = useMemo(() => bossLesson.stages.flatMap((stage) => stage.items), [bossLesson]);
   const [wordIndex, setWordIndex] = useState(0);
   const [typed, setTyped] = useState('');
   const [bossHp, setBossHp] = useState(360);
@@ -28,7 +34,11 @@ export default function BattlePage() {
   const [timer, setTimer] = useState(74);
   const [damage, setDamage] = useState<number | null>(15);
   const [attack, setAttack] = useState(false);
-  const currentWord = battleWords[wordIndex % battleWords.length];
+  const currentWord = battleItems[wordIndex % battleItems.length] ?? 'សាលា';
+  const currentUnits = useMemo(() => Array.from(currentWord), [currentWord]);
+  const typedUnits = useMemo(() => Array.from(typed), [typed]);
+  const activeKey = currentUnits[typedUnits.length] ?? '';
+  const wordTextSize = currentWord.length > 42 ? 'text-2xl' : currentWord.length > 24 ? 'text-3xl' : currentWord.length > 12 ? 'text-4xl' : 'text-7xl';
   const correctPrefix = useMemo(() => currentWord.startsWith(typed), [currentWord, typed]);
 
   const completeCorrectWord = useCallback(() => {
@@ -57,6 +67,16 @@ export default function BattlePage() {
 
   const handlePress = useCallback(
     (keyData: KeyboardKeyData) => {
+      const appendValue = (value: string) => {
+        setTyped((next) => {
+          const candidate = (next + value).slice(0, currentWord.length);
+          if (candidate.length >= currentWord.length && candidate === currentWord) {
+            window.setTimeout(completeCorrectWord, 20);
+          }
+          return candidate;
+        });
+      };
+
       if (keyData.action === 'backspace') {
         setTyped((next) => next.slice(0, -1));
         return;
@@ -66,16 +86,10 @@ export default function BattlePage() {
         return;
       }
       if (keyData.action === 'space') {
-        setTyped((next) => `${next} `);
+        appendValue(' ');
         return;
       }
-      setTyped((next) => {
-        const candidate = next + keyData.value;
-        if (candidate.length >= currentWord.length && candidate === currentWord) {
-          window.setTimeout(completeCorrectWord, 20);
-        }
-        return candidate.slice(0, currentWord.length);
-      });
+      appendValue(keyData.value);
     },
     [completeCorrectWord, currentWord, submitWord],
   );
@@ -90,16 +104,26 @@ export default function BattlePage() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Enter') {
+        event.preventDefault();
         submitWord();
       } else if (event.key === 'Backspace') {
+        event.preventDefault();
         setTyped((next) => next.slice(0, -1));
       } else if (event.key.length === 1) {
-        setTyped((next) => (next + event.key).slice(0, currentWord.length));
+        const mappedKey = getKhmerKeyboardValue(event);
+        if (!mappedKey) return;
+        setTyped((next) => {
+          const candidate = (next + mappedKey).slice(0, currentWord.length);
+          if (candidate.length >= currentWord.length && candidate === currentWord) {
+            window.setTimeout(completeCorrectWord, 20);
+          }
+          return candidate;
+        });
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [currentWord.length, submitWord]);
+  }, [completeCorrectWord, currentWord, submitWord]);
 
   return (
     <PageTransition className="min-h-screen overflow-hidden jungle-vignette text-white">
@@ -114,7 +138,7 @@ export default function BattlePage() {
           </Link>
           <div className="mx-auto flex items-center gap-3 rounded-3xl bg-black/25 px-8 py-3 shadow-inner">
             <Swords className="text-gold" size={34} />
-            <h1 className="text-3xl font-black tracking-wide">MINI-GAME BATTLE</h1>
+            <h1 className="text-3xl font-black tracking-wide">{world.title} BOSS</h1>
           </div>
           <div className="flex items-center gap-2">
             <StatPill icon={<BattleResourceIcon name="coin" />} value={resources.coins} tone="dark" />
@@ -177,7 +201,7 @@ export default function BattlePage() {
                 <div className="rounded-2xl border-2 border-gold bg-[#D38721]/90 px-6 py-2 text-2xl font-black shadow-button">AWESOME!</div>
               </div>
               <div className="min-w-52">
-                <div className="mb-1 text-2xl font-black">Stone Guardian</div>
+                <div className="mb-1 text-2xl font-black">{bossLesson.labelEn}</div>
                 <ProgressBar value={bossHp} max={600} color="red" showValue />
               </div>
             </div>
@@ -191,7 +215,7 @@ export default function BattlePage() {
                 <button className="absolute right-4 top-4 z-10 grid h-12 w-12 place-items-center rounded-full bg-adventure text-white shadow-button" aria-label="Play word sound">
                   <Volume2 size={26} />
                 </button>
-                <div className="khmer-body rounded-3xl border-4 border-gold bg-[#FFF8E7] px-6 py-10 text-center text-7xl font-black text-ink shadow-[0_0_28px_rgba(255,193,7,.8)]">
+                <div className={`khmer-body rounded-3xl border-4 border-gold bg-[#FFF8E7] px-6 py-10 text-center font-black leading-tight text-ink shadow-[0_0_28px_rgba(255,193,7,.8)] ${wordTextSize}`}>
                   {currentWord}
                 </div>
                 <div className={`mt-3 rounded-2xl border-2 px-4 py-3 text-center text-3xl font-black ${correctPrefix ? 'border-primary bg-primary/20 text-white' : 'border-coral bg-coral/20 text-coral'}`}>
@@ -217,7 +241,7 @@ export default function BattlePage() {
                 <ProgressBar value={timer} max={100} color={timer < 25 ? 'red' : 'green'} className="flex-1" />
                 <div className="rounded-full bg-adventure px-4 py-2 text-xl font-black">{Math.ceil(timer / 6)}s</div>
               </div>
-              <KhmerKeyboard onKeyPress={handlePress} activeKey={currentWord[typed.length]} compact />
+              <KhmerKeyboard onKeyPress={handlePress} activeKey={activeKey} compact />
             </div>
 
             <div className="relative z-10 mt-4 flex items-center gap-5">

@@ -60,6 +60,9 @@ export type PowerUp = {
 export type KeyboardKeyData = {
   label: string;
   value: string;
+  shift?: string;
+  altgr?: string;
+  code?: string;
   wide?: boolean;
-  action?: 'backspace' | 'enter' | 'space';
+  action?: 'backspace' | 'enter' | 'space' | 'shift' | 'altgr' | 'control' | 'meta' | 'menu' | 'tab' | 'caps';
 };

@@ -7,7 +7,7 @@
 :root {
   color: #111827;
   background: #ebf6ff;
-  font-family: 'Nunito', 'Noto Sans Khmer', 'Kantumruy Pro', system-ui, sans-serif;
+  font-family: 'Nunito', 'Kantumruy Pro', 'Noto Sans Khmer', system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -47,12 +47,12 @@ button {
 }
 
 .khmer-display {
-  font-family: 'Moul', 'Noto Sans Khmer', 'Kantumruy Pro', serif;
+  font-family: 'Moul', 'Kantumruy Pro', 'Noto Sans Khmer', serif;
   line-height: 1.45;
 }
 
 .khmer-body {
-  font-family: 'Noto Sans Khmer', 'Kantumruy Pro', 'Battambang', sans-serif;
+  font-family: 'Kantumruy Pro', 'Noto Sans Khmer', 'Battambang', sans-serif;
   line-height: 1.65;
 }
 
