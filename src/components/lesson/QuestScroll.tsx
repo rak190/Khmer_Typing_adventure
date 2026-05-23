@@ -24,12 +24,12 @@ function visibleKey(key: string) {
 }
 
 export default function QuestScroll({ objective, progress, total, nextKey, keyHint, stages, stars, xp, coins }: QuestScrollProps) {
-  const percent = Math.min(100, Math.round((progress / Math.max(1, total)) * 100));
+  const brickTotal = Math.max(1, total);
 
   return (
-    <aside data-testid="quest-scroll" className="pointer-events-none absolute right-[44px] top-[132px] z-30 h-[872px] w-[372px] rounded-[32px] border-[5px] border-[#8B5A2B] bg-gradient-to-b from-[#FFF5D1] via-[#FFFDF4] to-[#E6BD72] px-7 py-7 text-[#4C2D14] shadow-[inset_0_4px_0_rgba(255,255,255,.58),inset_0_-10px_0_rgba(119,74,29,.14),0_18px_28px_rgba(0,48,86,.28)]">
-      <div className="absolute left-5 right-5 top-3 h-3 rounded-full bg-[#7A4A22]/18" />
-      <div className="absolute bottom-3 left-5 right-5 h-3 rounded-full bg-[#7A4A22]/18" />
+    <aside data-testid="quest-scroll" className="lesson-scroll-board pointer-events-none absolute right-[44px] top-[132px] z-30 h-[872px] w-[372px] px-7 py-7 text-[#4C2D14]">
+      <div className="lesson-scroll-roller absolute left-5 right-5 top-3 h-3" />
+      <div className="lesson-scroll-roller absolute bottom-3 left-5 right-5 h-3" />
 
       <div className="flex items-center gap-3 text-[#24395F]">
         <span className="grid h-11 w-11 place-items-center rounded-full border-2 border-[#B68A45] bg-[#FFF4C4] text-[#7B4C20]">
@@ -51,8 +51,17 @@ export default function QuestScroll({ objective, progress, total, nextKey, keyHi
           <div className="khmer-body text-[13px] font-black tracking-wide text-[#754617]">Progress</div>
           <div className="text-[17px] font-black text-[#24395F]">{progress} / {total}</div>
         </div>
-        <div className="h-[18px] overflow-hidden rounded-full border-2 border-[#8A5B2B] bg-[#6B451F]/20 shadow-inner">
-          <div className="h-full rounded-full bg-gradient-to-r from-[#92F767] via-[#40D257] to-[#159E44]" style={{ width: `${percent}%` }} />
+        <div className="lesson-mini-brick-track grid grid-cols-10 gap-1.5 p-2">
+          {Array.from({ length: brickTotal }, (_, index) => (
+            <span
+              key={index}
+              className={cn(
+                'lesson-mini-brick h-[13px]',
+                index < progress ? 'lesson-mini-brick--filled' : 'lesson-mini-brick--empty',
+                index === progress && progress < total && 'lesson-mini-brick--next',
+              )}
+            />
+          ))}
         </div>
 
         <div className="mt-4 space-y-2.5">
@@ -84,8 +93,8 @@ export default function QuestScroll({ objective, progress, total, nextKey, keyHi
 
       <div className="mt-5 border-t-2 border-[#B58749]/35 pt-4">
         <div className="khmer-body text-[13px] font-black tracking-wide text-[#754617]">Next Key</div>
-        <div className="mt-2 flex min-h-[78px] items-center justify-between rounded-[20px] border-2 border-[#92703E] bg-[#FFF8E2] px-4 py-3 shadow-inner">
-          <span className="khmer-display text-[50px] leading-none text-[#151A2A]">{visibleKey(nextKey)}</span>
+        <div className="lesson-next-key-socket mt-2 flex min-h-[78px] items-center justify-between px-4 py-3">
+          <span className="khmer-display lesson-next-key-glyph text-[50px] leading-none">{visibleKey(nextKey)}</span>
           <span className="max-w-[160px] text-right text-[16px] font-black leading-tight text-[#34507A]">{keyHint}</span>
         </div>
       </div>

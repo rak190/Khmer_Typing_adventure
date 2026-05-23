@@ -2,16 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameScreen from '../layout/GameScreen';
 import PageTransition from '../layout/PageTransition';
-import { backgroundImages, imageAssets } from '../../assets/assetManifest';
-import { getKhmerKeyboardValue, keyboardRows, saveLessonProgressToFirebase, saveMockLessonProgress } from '../../data/mockData';
+import { backgroundImages } from '../../assets/assetManifest';
+import { saveLessonProgressToFirebase, saveMockLessonProgress } from '../../data/mockData';
+import { findKhmerKeyByCharacter, findKhmerKeyByCode, targetableKhmerKeys, type KhmerKeyboardKey } from '../../data/keyboardMap';
 import type { CurriculumLevel, CurriculumWorld } from '../../data/lessonCurriculum';
-import type { KeyboardKeyData } from '../../types/game';
 import LessonHud from './LessonHud';
-import AdventureMissionPanel from './AdventureMissionPanel';
 import TypingTargetCard from './TypingTargetCard';
 import KhmerKeyboard from './KhmerKeyboard';
 import QuestScroll, { type QuestStageState } from './QuestScroll';
 import LessonCompleteModal from './LessonCompleteModal';
+import type { FingerId } from './TypingHands';
 
 const TOTAL_BRIDGE_PROGRESS = 30;
 const STAGE_LABELS = ['រៀនគ្រាប់ចុច', 'សាងសង់ស្ពាន', 'វគ្គប្រកួត'];
@@ -21,39 +21,26 @@ type LessonWorldScreenProps = {
   lesson: CurriculumLevel;
 };
 
-type KeyMeta = {
-  key: KeyboardKeyData;
-  rowIndex: number;
-  keyIndex: number;
-  layer: 'base' | 'shift' | 'altgr';
-};
-
 type Feedback = {
-  key: string;
+  code: string;
   state: 'correct' | 'wrong';
   message: string;
 };
-
-const flatKeyboard = keyboardRows.flatMap((row, rowIndex) => row.map((key, keyIndex) => ({ key, rowIndex, keyIndex })));
-
-function visibleKey(key: string) {
-  return key === ' ' ? 'Spacebar' : key;
-}
 
 function cleanKeyCandidates(lesson: CurriculumLevel) {
   const values = [
     ...lesson.focusKeys.flatMap((item) => Array.from(item)),
     ...lesson.stages.flatMap((stage) => stage.items.flatMap((item) => Array.from(item))),
   ];
-  const unique: string[] = [];
+  const unique: KhmerKeyboardKey[] = [];
 
   for (const value of values) {
-    if (!value || value === '\u200d' || value === '\u200c' || value === '\n' || value === '\r' || value === '\t') continue;
-    if (value === ' ') continue;
-    if (!unique.includes(value)) unique.push(value);
+    if (!value || value === '\u200d' || value === '\u200c' || value === '\n' || value === '\r' || value === '\t' || value === ' ') continue;
+    const key = findKhmerKeyByCharacter(value);
+    if (key && !unique.some((item) => item.code === key.code)) unique.push(key);
   }
 
-  return unique.length > 0 ? unique : ['ក'];
+  return unique.length > 0 ? unique : [targetableKhmerKeys.find((key) => key.code === 'KeyK') ?? targetableKhmerKeys[0]];
 }
 
 function buildTargetSequence(lesson: CurriculumLevel) {
@@ -61,60 +48,39 @@ function buildTargetSequence(lesson: CurriculumLevel) {
   return Array.from({ length: TOTAL_BRIDGE_PROGRESS }, (_, index) => candidates[index % candidates.length]);
 }
 
-function getKeyMeta(target: string): KeyMeta | undefined {
-  for (const item of flatKeyboard) {
-    if (item.key.value === target) return { ...item, layer: 'base' };
-    if (item.key.shift === target) return { ...item, layer: 'shift' };
-    if (item.key.altgr === target) return { ...item, layer: 'altgr' };
-  }
-  return undefined;
+function getHandHint(target: KhmerKeyboardKey) {
+  const handLabel = target.hand === 'left' ? 'ដៃឆ្វេង' : target.hand === 'right' ? 'ដៃស្តាំ' : 'មេដៃ';
+  const fingerLabel = {
+    pinky: 'កូនដៃ',
+    ring: 'ម្រាមនាង',
+    middle: 'ម្រាមកណ្តាល',
+    index: 'ម្រាមចង្អុល',
+    thumb: 'មេដៃ',
+  }[target.finger];
+
+  return `${handLabel} - ${fingerLabel}`;
 }
 
-function physicalKeyName(code?: string) {
-  if (!code) return 'គ្រាប់ចុចលើអេក្រង់';
-  if (code.startsWith('Key')) return `${code.replace('Key', '')} key`;
-  if (code.startsWith('Digit')) return `${code.replace('Digit', '')} key`;
-  if (code === 'Space') return 'Spacebar';
-  return code.replace(/([a-z])([A-Z])/g, '$1 $2');
+function getKeyHint(target: KhmerKeyboardKey) {
+  return `${target.latin} key`;
 }
 
-function getHandHint(meta?: KeyMeta) {
-  if (!meta) return 'ប្រើគ្រាប់ចុចដែលភ្លឺ';
-  const code = meta.key.code;
-  if (!code || meta.key.action === 'space') return 'ប្រើមេដៃស្តាំ';
+function getFingerHint(target: KhmerKeyboardKey) {
+  const handLabel = target.hand === 'left' ? 'Left' : target.hand === 'right' ? 'Right' : 'Either';
+  const fingerLabel = {
+    pinky: 'Pinky',
+    ring: 'Ring',
+    middle: 'Middle',
+    index: 'Index',
+    thumb: 'Thumb',
+  }[target.finger];
 
-  const leftPinky = ['Backquote', 'Digit1', 'Tab', 'KeyQ', 'CapsLock', 'KeyA', 'ShiftLeft', 'KeyZ'];
-  const leftRing = ['Digit2', 'KeyW', 'KeyS', 'KeyX'];
-  const leftMiddle = ['Digit3', 'KeyE', 'KeyD', 'KeyC'];
-  const leftIndex = ['Digit4', 'Digit5', 'KeyR', 'KeyT', 'KeyF', 'KeyG', 'KeyV', 'KeyB'];
-  const rightIndex = ['Digit6', 'Digit7', 'KeyY', 'KeyU', 'KeyH', 'KeyJ', 'KeyN', 'KeyM'];
-  const rightMiddle = ['Digit8', 'KeyI', 'KeyK', 'Comma'];
-  const rightRing = ['Digit9', 'KeyO', 'KeyL', 'Period'];
-
-  if (leftPinky.includes(code)) return 'ប្រើកូនដៃឆ្វេង';
-  if (leftRing.includes(code)) return 'ប្រើម្រាមនាងឆ្វេង';
-  if (leftMiddle.includes(code)) return 'ប្រើម្រាមកណ្តាលឆ្វេង';
-  if (leftIndex.includes(code)) return 'ប្រើម្រាមចង្អុលឆ្វេង';
-  if (rightIndex.includes(code)) return 'ប្រើម្រាមចង្អុលស្តាំ';
-  if (rightMiddle.includes(code)) return 'ប្រើម្រាមកណ្តាលស្តាំ';
-  if (rightRing.includes(code)) return 'ប្រើម្រាមនាងស្តាំ';
-  return 'ប្រើកូនដៃស្តាំ';
+  return `Use ${handLabel} ${fingerLabel} Finger`;
 }
 
-function getActiveHand(meta?: KeyMeta): 'left' | 'right' | 'both' {
-  if (!meta) return 'both';
-  if (meta.key.action === 'space') return 'both';
-  const code = meta.key.code;
-  const leftCodes = ['Backquote', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Tab', 'KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'CapsLock', 'KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'ShiftLeft', 'KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'ControlLeft', 'MetaLeft', 'AltLeft'];
-  return code && leftCodes.includes(code) ? 'left' : 'right';
-}
-
-function getKeyHint(meta?: KeyMeta) {
-  if (!meta) return 'រកគ្រាប់ចុច';
-  const keyName = physicalKeyName(meta.key.code);
-  if (meta.layer === 'shift') return `Shift + ${keyName}`;
-  if (meta.layer === 'altgr') return `AltGr + ${keyName}`;
-  return keyName;
+function getActiveFinger(target: KhmerKeyboardKey): FingerId {
+  if (target.hand === 'thumb') return 'right-thumb';
+  return `${target.hand}-${target.finger}` as FingerId;
 }
 
 function getQuestStages(progress: number, finished: boolean): QuestStageState[] {
@@ -142,16 +108,15 @@ export default function LessonWorldScreen({ world, lesson }: LessonWorldScreenPr
   const feedbackTimeoutRef = useRef<number | undefined>(undefined);
   const progressSavedRef = useRef(false);
 
-  const activeTarget = targetSequence[Math.min(progress, TOTAL_BRIDGE_PROGRESS - 1)] ?? targetSequence[0] ?? '';
-  const keyMeta = getKeyMeta(activeTarget);
+  const activeTarget = targetSequence[Math.min(progress, TOTAL_BRIDGE_PROGRESS - 1)] ?? targetSequence[0];
   const totalAttempts = correctCount + wrongCount;
   const accuracy = totalAttempts === 0 ? 100 : Math.round((correctCount / totalAttempts) * 100);
   const starsEarned = accuracy >= 95 ? 3 : accuracy >= 85 ? 2 : 1;
   const coinsEarned = 20 + starsEarned * 10 + Math.floor(score / 900);
   const questStages = getQuestStages(progress, finished);
-  const keyHint = getKeyHint(keyMeta);
-  const handHint = getHandHint(keyMeta);
-  const activeHand = getActiveHand(keyMeta);
+  const keyHint = getKeyHint(activeTarget);
+  const handHint = getFingerHint(activeTarget);
+  const activeFinger = getActiveFinger(activeTarget);
 
   function showFeedback(nextFeedback: Feedback) {
     window.clearTimeout(feedbackTimeoutRef.current);
@@ -173,11 +138,12 @@ export default function LessonWorldScreen({ world, lesson }: LessonWorldScreenPr
     progressSavedRef.current = false;
   }
 
-  function handleAttempt(value: string) {
-    if (finished || !value) return;
+  function handleAttempt(code: string) {
+    if (finished || !code) return;
+    const pressedKey = findKhmerKeyByCode(code);
 
-    if (value === activeTarget) {
-      showFeedback({ key: value, state: 'correct', message: 'បានដាក់ក្តារស្ពាន!' });
+    if (code === activeTarget.code) {
+      showFeedback({ code, state: 'correct', message: 'បានដាក់ក្តារស្ពាន!' });
       setCorrectCount((next) => next + 1);
       setScore((next) => next + 50 + Math.min(streak * 2, 40));
       setXpEarned((next) => next + 4);
@@ -195,9 +161,11 @@ export default function LessonWorldScreen({ world, lesson }: LessonWorldScreenPr
       return;
     }
 
-    setWrongCount((next) => next + 1);
-    setStreak(0);
-    showFeedback({ key: value, state: 'wrong', message: 'ព្យាយាមម្តងទៀត' });
+    if (!pressedKey?.disabled) {
+      setWrongCount((next) => next + 1);
+      setStreak(0);
+      showFeedback({ code, state: 'wrong', message: 'ព្យាយាមម្តងទៀត' });
+    }
   }
 
   const handleAttemptRef = useRef(handleAttempt);
@@ -213,11 +181,11 @@ export default function LessonWorldScreen({ world, lesson }: LessonWorldScreenPr
       if (event.code === 'Space' || event.code === 'Backspace' || event.code === 'Tab') event.preventDefault();
       if (event.repeat) return;
 
-      const mappedKey = getKhmerKeyboardValue(event);
-      if (!mappedKey) return;
+      const mappedKey = findKhmerKeyByCode(event.code);
+      if (!mappedKey || mappedKey.disabled) return;
 
       event.preventDefault();
-      handleAttemptRef.current(mappedKey);
+      handleAttemptRef.current(mappedKey.code);
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -254,22 +222,28 @@ export default function LessonWorldScreen({ world, lesson }: LessonWorldScreenPr
 
         <LessonHud score={score} streak={streak} accuracy={accuracy} xpEarned={xpEarned} />
 
-        <AdventureMissionPanel progress={progress} total={TOTAL_BRIDGE_PROGRESS} mascotSrc={imageAssets.lizardMascot} />
-
         <TypingTargetCard
-          target={activeTarget}
+          target={activeTarget.khmer}
+          keyHint={keyHint}
           handHint={handHint}
           feedbackState={feedback?.state}
           feedbackMessage={feedback?.message}
         />
 
-        <KhmerKeyboard activeKey={activeTarget} feedbackKey={feedback?.key} feedbackState={feedback?.state} activeHand={activeHand} onKeyPress={handleAttempt} />
+        <KhmerKeyboard
+          activeCode={activeTarget.code}
+          feedbackCode={feedback?.code}
+          feedbackState={feedback?.state}
+          activeHand={activeTarget.hand}
+          activeFinger={activeFinger}
+          onKeyPress={handleAttempt}
+        />
 
         <QuestScroll
           objective="បំភ្លឺក្តារស្ពាន 30 Keys ដើម្បីបើកទ្វារ។"
           progress={progress}
           total={TOTAL_BRIDGE_PROGRESS}
-          nextKey={activeTarget}
+          nextKey={activeTarget.khmer}
           keyHint={keyHint}
           stages={questStages}
           stars={starsEarned}

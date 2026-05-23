@@ -31,7 +31,7 @@ export default function LessonHud({ score, streak, accuracy, xpEarned }: LessonH
         className="pointer-events-none absolute left-[106px] top-[0px] h-[98px] w-[216px] object-contain drop-shadow-[0_10px_12px_rgba(0,31,72,.3)]"
       />
 
-      <section className="absolute left-[390px] top-[20px] grid h-[68px] w-[552px] grid-cols-3 overflow-hidden rounded-[23px] border-[3px] border-[#67C8FF] bg-gradient-to-b from-[#1787E8] via-[#0C65C7] to-[#064A99] text-white shadow-[inset_0_2px_0_rgba(255,255,255,.28),0_12px_22px_rgba(0,53,121,.28)]">
+      <section className={`absolute left-[390px] top-[20px] grid h-[68px] w-[552px] grid-cols-3 overflow-hidden rounded-[23px] border-[3px] border-[#67C8FF] bg-gradient-to-b from-[#1787E8] via-[#0C65C7] to-[#064A99] text-white shadow-[inset_0_2px_0_rgba(255,255,255,.28),0_12px_22px_rgba(0,53,121,.28)] ${streak >= 10 ? 'lesson-streak-hot' : ''}`}>
         {[
           { label: 'ពិន្ទុ', value: score.toLocaleString(), icon: <Trophy size={30} className="text-[#FFD94C]" /> },
           { label: 'ជាប់គ្នា', value: streak.toString(), icon: <Flame size={31} className="text-[#FFB629]" fill="currentColor" /> },
