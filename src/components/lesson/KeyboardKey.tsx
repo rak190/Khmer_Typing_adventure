@@ -36,15 +36,15 @@ export default function KeyboardKey({ keyData, state = 'normal', onPress }: Keyb
   const isActionKey = Boolean(keyData.action && keyData.action !== 'space');
   const disabled = (state === 'disabled' || keyData.disabled) && state !== 'shift-target';
   const displayLabel = {
-    backspace: 'Back',
-    enter: 'Enter',
-    shift: 'Shift',
+    backspace: '⌫',
+    enter: '↵',
+    shift: '⇧',
     caps: 'Caps',
     tab: 'Tab',
     control: 'Ctrl',
     altgr: keyData.code === 'AltLeft' ? 'Alt' : 'AltGr',
-    meta: 'Win',
-    menu: 'Menu',
+    meta: '⊞',
+    menu: '☰',
     space: 'Space',
   }[keyData.action ?? ''] ?? keyData.khmer;
   const shiftLabel = !isActionKey && keyData.shiftKhmer && keyData.shiftKhmer !== keyData.khmer ? keyData.shiftKhmer : '';
@@ -59,7 +59,7 @@ export default function KeyboardKey({ keyData, state = 'normal', onPress }: Keyb
       whileHover={disabled ? undefined : { y: -2 }}
       whileTap={disabled ? undefined : { y: 5, scale: 0.97 }}
       className={cn(
-        'pointer-events-auto khmer-body lesson-stone-key relative grid h-[52px] place-items-center px-2 text-[28px] font-black leading-none transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#42D9FF]/80',
+        'pointer-events-auto khmer-body lesson-stone-key relative grid h-[50px] place-items-center px-2 text-[28px] font-black leading-none transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#42D9FF]/80',
         keyData.wide || keyData.action === 'space' ? 'text-[17px]' : '',
         'w-full min-w-0',
         handZoneClass(keyData),
