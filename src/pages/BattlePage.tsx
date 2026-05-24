@@ -155,10 +155,7 @@ export default function BattlePage() {
   return (
     <PageTransition className="min-h-screen overflow-hidden jungle-vignette text-white">
       <div className="relative min-h-screen px-4 py-4 lg:px-8">
-        <div className="pointer-events-none absolute inset-0 opacity-50">
-          <div className="absolute left-10 top-32 h-96 w-40 rotate-6 rounded-full bg-primary/25 blur-3xl" />
-          <div className="absolute right-16 top-28 h-96 w-52 -rotate-12 rounded-full bg-adventure/25 blur-3xl" />
-        </div>
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,.04),transparent_34%,rgba(0,0,0,.12))]" />
         <header className="relative z-20 flex flex-wrap items-center gap-4">
           <Link to="/" className="shrink-0">
             <Logo compact={false} className="scale-75 origin-left lg:scale-90" />

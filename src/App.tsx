@@ -35,7 +35,7 @@ export default function App() {
   if (!sessionReady) {
     return (
       <div className="grid min-h-screen place-items-center bg-sky text-center">
-        <div className="rounded-3xl bg-white/80 px-8 py-6 text-2xl font-black text-adventure shadow-game">Checking Adventure Pass...</div>
+        <div className="rounded-[18px] border border-white/60 bg-white/86 px-8 py-6 text-2xl font-black text-adventure shadow-game">Checking Adventure Pass...</div>
       </div>
     );
   }
@@ -45,7 +45,7 @@ export default function App() {
       <Suspense
         fallback={
           <div className="grid min-h-screen place-items-center bg-sky text-center">
-            <div className="rounded-3xl bg-white/80 px-8 py-6 text-2xl font-black text-adventure shadow-game">Loading Adventure...</div>
+            <div className="rounded-[18px] border border-white/60 bg-white/86 px-8 py-6 text-2xl font-black text-adventure shadow-game">Loading Adventure...</div>
           </div>
         }
       >

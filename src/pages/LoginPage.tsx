@@ -177,7 +177,7 @@ export default function LoginPage() {
 
             <div className="mt-4 flex items-center gap-2 rounded-[18px] border-2 border-[#C99A55] bg-[#FFF8E4] px-4 py-3 text-xs font-black text-[#6B4A24]">
               <Shield size={22} className="text-[#159447]" />
-              {firebaseEnabled ? 'Firebase បានភ្ជាប់រួច។ Vercel ត្រូវការ VITE_FIREBASE_* environment variables។' : 'មិនទាន់មាន Firebase env values ទេ ដូច្នេះម៉ាស៊ីននេះប្រើ Demo mode។'}
+              {firebaseEnabled ? 'Progress saving is ready for classroom practice.' : 'Guest mode is available. Your progress is saved on this device.'}
             </div>
           </div>
         </section>

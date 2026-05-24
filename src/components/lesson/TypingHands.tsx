@@ -46,8 +46,8 @@ export default function TypingHands({ activeHand, activeFinger }: TypingHandsPro
         animate={leftActive ? { y: [0, -2, 0] } : { y: 0 }}
         transition={{ duration: 0.8, repeat: leftActive ? Infinity : 0, ease: 'easeInOut' }}
         className={cn(
-          'pointer-events-none absolute bottom-[-166px] left-[170px] h-[172px] w-[306px] -rotate-[4deg] object-contain',
-          leftActive ? `opacity-[.35] ${glow}` : 'opacity-[.15] drop-shadow-[0_12px_12px_rgba(35,18,8,.12)]',
+          'pointer-events-none absolute bottom-[-184px] left-[170px] h-[172px] w-[306px] -rotate-[4deg] object-contain',
+          leftActive ? `opacity-[.28] ${glow}` : 'opacity-[.11] drop-shadow-[0_12px_12px_rgba(35,18,8,.12)]',
         )}
       />
       <motion.img
@@ -57,8 +57,8 @@ export default function TypingHands({ activeHand, activeFinger }: TypingHandsPro
         animate={rightActive ? { y: [0, -2, 0] } : { y: 0 }}
         transition={{ duration: 0.8, repeat: rightActive ? Infinity : 0, ease: 'easeInOut' }}
         className={cn(
-          'pointer-events-none absolute bottom-[-166px] right-[154px] h-[172px] w-[306px] rotate-[4deg] object-contain',
-          rightActive ? `opacity-[.35] ${glow}` : 'opacity-[.15] drop-shadow-[0_12px_12px_rgba(35,18,8,.12)]',
+          'pointer-events-none absolute bottom-[-184px] right-[154px] h-[172px] w-[306px] rotate-[4deg] object-contain',
+          rightActive ? `opacity-[.28] ${glow}` : 'opacity-[.11] drop-shadow-[0_12px_12px_rgba(35,18,8,.12)]',
         )}
       />
       <div className="lesson-finger-strip">

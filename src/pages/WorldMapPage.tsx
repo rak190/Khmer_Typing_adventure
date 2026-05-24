@@ -171,6 +171,11 @@ function MissionPanel({ selected, world, state }: { selected: AdventureLesson; w
             <div className="min-w-0">
               <div className="khmer-body text-[16px] font-bold leading-tight">គោលដៅ Objective</div>
               <div className="khmer-body mt-1 line-clamp-3 text-[13px] font-normal leading-snug text-[#4E4234]">{selected.objective}</div>
+              {state === 'locked' && (
+                <div className="mt-2 rounded-[12px] border border-[#C99A55]/55 bg-white/68 px-3 py-2 text-[12px] font-bold leading-snug text-[#70420A]">
+                  Locked until the earlier lesson is passed.
+                </div>
+              )}
             </div>
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-[16px] border border-[#F6D080]/70 bg-white/55 shadow-inner">
               <GameIcon name={isBoss ? 'swords' : 'book'} size={30} className={isBoss ? 'text-[#D83636]' : 'text-[#24639B]'} />

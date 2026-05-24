@@ -317,7 +317,7 @@ export default function HomePage() {
                 </div>
                 <div className="text-[10px] font-bold leading-tight text-white/78">
                   <div>Made with love in Cambodia</div>
-                  <div>© 2025 Khmer Typing Adventure</div>
+                  <div>Copyright 2026 Khmer Typing Adventure</div>
                 </div>
               </div>
             </div>
