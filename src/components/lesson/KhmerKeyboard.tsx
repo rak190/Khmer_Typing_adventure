@@ -31,17 +31,17 @@ function getColumnSpan(keyData: KhmerKeyboardKey) {
 
 export default function KhmerKeyboard({ activeCode, shiftRequired = false, feedbackCode, feedbackState, activeHand, activeFinger, hintLabel, keyLabel, onKeyPress }: KhmerKeyboardProps) {
   return (
-    <section data-testid="khmer-keyboard" className="pointer-events-none absolute left-[96px] top-[612px] z-20 h-[430px] w-[1400px]">
-      <div className="lesson-keyboard-deck relative h-full px-5 pb-8 pt-5">
+    <section data-testid="khmer-keyboard" className="pointer-events-none absolute left-[110px] top-[628px] z-20 h-[414px] w-[1370px]">
+      <div className="lesson-keyboard-deck relative h-full px-4 pb-7 pt-5">
         <div className="pointer-events-none absolute inset-x-8 top-3 h-8 rounded-full bg-[#FFF0B5]/20 blur-sm" />
-        <div className="relative z-30 mb-4 grid grid-cols-[1fr_auto] items-center gap-4 px-3 text-white">
+        <div className="relative z-30 mb-3 grid grid-cols-[1fr_auto] items-center gap-4 px-3 text-white">
           <div className="lesson-finger-hint-panel">
             <span className="text-[#FFE58A]">{hintLabel}</span>
             {shiftRequired && <span className="lesson-shift-pill">Shift</span>}
           </div>
           <div className="lesson-next-key-pill">{keyLabel}</div>
         </div>
-        <div className="relative z-30 space-y-2">
+        <div className="relative z-30 space-y-2.5">
           {khmerKeyboardRows.map((row, rowIndex) => (
             <div key={rowIndex} className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-1.5">
               {row.map((keyData) => (
