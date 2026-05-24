@@ -6,9 +6,18 @@ import tseslint from 'typescript-eslint';
 
 export default [
   {
-    ignores: ['dist'],
+    ignores: ['dist', '.local', 'node_modules'],
   },
   js.configs.recommended,
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
   ...tseslint.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],

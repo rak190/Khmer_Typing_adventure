@@ -22,11 +22,17 @@ export type LessonProgressRecord = {
   lessonId: number | 'boss';
   score: number;
   accuracy: number;
+  cpm?: number;
   wpm: number;
   stars: number;
   xpEarned: number;
   coinsEarned: number;
   bestStreak: number;
+  passed?: boolean;
+  completed?: boolean;
+  timeSeconds?: number;
+  mistakes?: number;
+  backspaces?: number;
 };
 
 const LESSON_PROGRESS_STORAGE_KEY = 'khmer-typing-lesson-progress';
@@ -40,16 +46,27 @@ function getProgressId(progress: Pick<LessonProgressRecord, 'worldId' | 'lessonI
 }
 
 function mergeProgressRecord(current: LessonProgressRecord, next: LessonProgressRecord): LessonProgressRecord {
+  const bestLower = (left?: number, right?: number) => {
+    const values = [left, right].filter((value): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0);
+    return values.length > 0 ? Math.min(...values) : undefined;
+  };
+
   return {
     ...current,
     ...next,
     score: Math.max(current.score, next.score),
     accuracy: Math.max(current.accuracy, next.accuracy),
+    cpm: Math.max(current.cpm ?? 0, next.cpm ?? 0),
     wpm: Math.max(current.wpm, next.wpm),
     stars: Math.max(current.stars, next.stars),
     xpEarned: Math.max(current.xpEarned, next.xpEarned),
     coinsEarned: Math.max(current.coinsEarned, next.coinsEarned),
     bestStreak: Math.max(current.bestStreak, next.bestStreak),
+    passed: current.passed === true || next.passed === true,
+    completed: current.completed === true || next.completed === true,
+    timeSeconds: bestLower(current.timeSeconds, next.timeSeconds),
+    mistakes: bestLower(current.mistakes, next.mistakes),
+    backspaces: bestLower(current.backspaces, next.backspaces),
   };
 }
 
@@ -66,11 +83,17 @@ function normalizeStoredProgress(value: unknown): LessonProgressRecord[] {
       lessonId: progress.lessonId,
       score: Number(progress.score) || 0,
       accuracy: Number(progress.accuracy) || 0,
+      cpm: Number(progress.cpm) || 0,
       wpm: Number(progress.wpm) || 0,
       stars: Number(progress.stars) || 0,
       xpEarned: Number(progress.xpEarned) || 0,
       coinsEarned: Number(progress.coinsEarned) || 0,
       bestStreak: Number(progress.bestStreak) || 0,
+      passed: progress.passed ?? true,
+      completed: progress.completed ?? true,
+      timeSeconds: Number(progress.timeSeconds) || 0,
+      mistakes: Number(progress.mistakes) || 0,
+      backspaces: Number(progress.backspaces) || 0,
     }];
   });
 }

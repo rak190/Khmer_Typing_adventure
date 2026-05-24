@@ -82,7 +82,8 @@ function findProgressRecord(progressRecords: LessonProgressRecord[], worldId: nu
 }
 
 function isLessonComplete(progressRecords: LessonProgressRecord[], worldId: number, lessonId: AdventureNodeId) {
-  return Boolean(findProgressRecord(progressRecords, worldId, lessonId));
+  const progressRecord = findProgressRecord(progressRecords, worldId, lessonId);
+  return Boolean(progressRecord && (progressRecord.passed ?? true));
 }
 
 function getSequentialCompletedCount(worldId: number, levels: typeof lessonCurriculum[number]['levels'], progressRecords: LessonProgressRecord[]) {

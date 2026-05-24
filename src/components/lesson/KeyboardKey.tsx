@@ -4,7 +4,7 @@ import { cn } from '../../lib/cn';
 
 type KeyboardKeyProps = {
   keyData: KhmerKeyboardKey;
-  state?: 'normal' | 'target' | 'correct' | 'wrong' | 'disabled';
+  state?: 'normal' | 'target' | 'correct' | 'wrong' | 'disabled' | 'shift-target';
   onPress: (code: string) => void;
 };
 
@@ -34,7 +34,7 @@ function handZoneClass(keyData: KhmerKeyboardKey) {
 export default function KeyboardKey({ keyData, state = 'normal', onPress }: KeyboardKeyProps) {
   const physicalLabel = physicalCodeLabel(keyData.code, keyData.action);
   const isActionKey = Boolean(keyData.action && keyData.action !== 'space');
-  const disabled = state === 'disabled' || keyData.disabled;
+  const disabled = (state === 'disabled' || keyData.disabled) && state !== 'shift-target';
   const displayLabel = {
     backspace: '⌫',
     enter: '↵',
@@ -60,10 +60,12 @@ export default function KeyboardKey({ keyData, state = 'normal', onPress }: Keyb
       whileTap={disabled ? undefined : { y: 5, scale: 0.97 }}
       className={cn(
         'pointer-events-auto khmer-body lesson-stone-key relative grid h-[50px] place-items-center px-2 text-[28px] font-black leading-none transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#42D9FF]/80',
-        keyData.wide ? 'min-w-[102px] flex-[1.58] text-[17px]' : 'min-w-[58px] flex-1',
+        keyData.wide || keyData.action === 'space' ? 'text-[17px]' : '',
+        'w-full min-w-0',
         handZoneClass(keyData),
         isActionKey && 'lesson-key--special text-[16px] tracking-wide',
         state === 'target' && 'lesson-key--target',
+        state === 'shift-target' && 'lesson-key--shift-target',
         state === 'correct' && 'lesson-key--pressed lesson-key--correct',
         state === 'wrong' && 'lesson-key--pressed lesson-key--wrong',
         disabled && 'lesson-key--disabled cursor-default',
