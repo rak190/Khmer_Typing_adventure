@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Award, BarChart3, Flame, Lock, Map, Sparkles, Star, Target, Trophy, Zap } from 'lucide-react';
+import { Award, BarChart3, BookOpen, Flame, Lock, Map, Sparkles, Star, Target, Trophy, Zap } from 'lucide-react';
 import AppLayout from '../components/layout/AppLayout';
 import GameButton from '../components/game/GameButton';
 import GameBadge from '../components/game-ui/GameBadge';
@@ -32,7 +32,7 @@ const toneStyles = {
 
 function StatCard({ label, value, icon, tone = 'blue' }: StatCardProps) {
   return (
-    <section className={`rounded-[18px] border-2 bg-gradient-to-b p-4 shadow-[inset_0_2px_0_rgba(255,255,255,.62),0_12px_22px_rgba(24,71,112,.12)] ${toneStyles[tone]}`}>
+    <section className={`rounded-[16px] border-2 bg-gradient-to-b p-4 shadow-[inset_0_2px_0_rgba(255,255,255,.62),0_10px_18px_rgba(24,71,112,.1)] ${toneStyles[tone]}`}>
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[12px] font-black uppercase tracking-wide opacity-75">{label}</div>
@@ -73,14 +73,17 @@ export default function DashboardPage() {
       <AppLayout>
         <div className="min-h-screen sky-clouds px-4 py-5 xl:px-6">
           <div className="mx-auto max-w-[1500px] space-y-5">
-            <header className="rounded-[24px] border border-white/55 bg-white/72 p-5 shadow-game backdrop-blur">
+            <header className="rounded-[18px] border border-white/55 bg-white/82 p-5 shadow-game backdrop-blur">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <div className="text-[13px] font-black uppercase tracking-wide text-[#1E78E6]">Student Dashboard</div>
                   <h1 className="khmer-body text-[34px] font-black leading-tight text-[#17325A]">Khmer Typing Adventure Progress</h1>
                   <p className="mt-1 max-w-[820px] font-bold text-[#31516F]">{recommendation}</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
+                  <Link to="/lesson">
+                    <GameButton variant="primary" icon={<BookOpen size={20} />}>Continue Practice</GameButton>
+                  </Link>
                   <Link to="/map">
                     <GameButton variant="blue" icon={<Map size={20} />}>Lesson Map</GameButton>
                   </Link>
@@ -99,11 +102,11 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
-              <section className="rounded-[24px] border border-white/55 bg-white/78 p-5 shadow-game backdrop-blur">
+              <section className="rounded-[18px] border border-white/55 bg-white/84 p-5 shadow-game backdrop-blur">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <h2 className="text-[22px] font-black uppercase text-adventure">Structured Khmer Path</h2>
-                    <p className="font-bold text-[#46647A]">Next: {stats.currentLessonTitle} · {stats.currentWorld}</p>
+                    <p className="font-bold text-[#46647A]">Next: {stats.currentLessonTitle} | {stats.currentWorld}</p>
                   </div>
                   <div className="rounded-full bg-[#E7F6FF] px-4 py-2 text-sm font-black text-[#174C90]">
                     Longest streak {stats.longestStreak} days
@@ -112,7 +115,7 @@ export default function DashboardPage() {
 
                 <div className="space-y-4">
                   {structuredTypingWorlds.map((world) => (
-                    <section key={world.worldId} className="rounded-[18px] border-2 border-[#D6BC77] bg-gradient-to-b from-[#FFF8DA] to-[#F0D698] p-4 shadow-inner">
+                    <section key={world.worldId} className="rounded-[16px] border-2 border-[#D6BC77] bg-gradient-to-b from-[#FFF8DA] to-[#F0D698] p-4 shadow-inner">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <h3 className="text-[18px] font-black text-[#4D371E]">World {world.worldId}: {world.title}</h3>
@@ -123,12 +126,17 @@ export default function DashboardPage() {
                         {world.lessons.map((lesson) => {
                           const status = getStructuredLessonStatus(progress, lesson);
                           const body = (
-                            <div className={`h-full rounded-[14px] border-2 p-3 ${statusClass(status)}`}>
+                            <div className={`h-full rounded-[12px] border-2 p-3 transition ${statusClass(status)} ${status !== 'locked' ? 'hover:-translate-y-0.5 hover:shadow-md' : ''}`}>
                               <div className="flex items-center justify-between gap-2">
                                 <div className="font-black">{lesson.lessonTitle}</div>
                                 {status === 'locked' ? <Lock size={18} /> : lesson.isBoss ? <Award size={18} /> : <Target size={18} />}
                               </div>
                               <div className="mt-1 line-clamp-2 text-sm font-bold opacity-80">{lesson.skillFocus}</div>
+                              {status === 'locked' && (
+                                <div className="mt-2 rounded-[10px] bg-white/58 px-2 py-1 text-[12px] font-black opacity-85">
+                                  Pass the required earlier lesson to unlock.
+                                </div>
+                              )}
                               <div className="mt-3 flex flex-wrap gap-2 text-[12px] font-black">
                                 <span className="rounded-full bg-white/62 px-2 py-1">Acc {lesson.minimumAccuracy}%</span>
                                 <span className="rounded-full bg-white/62 px-2 py-1">CPM {lesson.targetCPM}</span>
@@ -152,7 +160,7 @@ export default function DashboardPage() {
               </section>
 
               <section className="space-y-5">
-                <section className="rounded-[24px] border border-white/55 bg-white/78 p-5 shadow-game backdrop-blur">
+                <section className="rounded-[18px] border border-white/55 bg-white/84 p-5 shadow-game backdrop-blur">
                   <h2 className="mb-4 text-[22px] font-black uppercase text-adventure">Typing Performance</h2>
                   <div className="grid grid-cols-2 gap-3">
                     <StatCard label="Avg Accuracy" value={`${stats.averageAccuracy}%`} icon={<Target size={24} />} tone="green" />
@@ -162,13 +170,13 @@ export default function DashboardPage() {
                   </div>
                 </section>
 
-                <section className="rounded-[24px] border border-white/55 bg-white/78 p-5 shadow-game backdrop-blur">
+                <section className="rounded-[18px] border border-white/55 bg-white/84 p-5 shadow-game backdrop-blur">
                   <h2 className="text-[22px] font-black uppercase text-adventure">Weak Characters</h2>
                   <div className="mt-3 space-y-2">
                     {stats.weakCharacters.length > 0 ? stats.weakCharacters.map((weakKey, index) => (
                       <div key={weakKey.value} className="flex items-center justify-between rounded-[14px] border border-[#DDBD70] bg-[#FFF8DA] px-4 py-3 font-black text-[#4D371E]">
                         <span>{index + 1}. <span className="khmer-body text-[22px]">{weakKey.value}</span></span>
-                        <span>{weakKey.mistakes} mistakes · {weakKey.backspaces} backspaces</span>
+                        <span>{weakKey.mistakes} mistakes | {weakKey.backspaces} backspaces</span>
                       </div>
                     )) : (
                       <div className="rounded-[14px] bg-[#E7F6FF] px-4 py-3 font-bold text-[#31516F]">No weak-key history yet. Complete a lesson to build adaptive practice.</div>
@@ -176,7 +184,7 @@ export default function DashboardPage() {
                   </div>
                 </section>
 
-                <section className="rounded-[24px] border border-white/55 bg-white/78 p-5 shadow-game backdrop-blur">
+                <section className="rounded-[18px] border border-white/55 bg-white/84 p-5 shadow-game backdrop-blur">
                   <h2 className="mb-4 text-[22px] font-black uppercase text-adventure">Badges Earned</h2>
                   <div className="grid grid-cols-3 gap-4">
                     {progress.badges.map((badge, index) => (
@@ -192,7 +200,7 @@ export default function DashboardPage() {
                   </div>
                 </section>
 
-                <section className="rounded-[24px] border border-white/55 bg-white/78 p-5 shadow-game backdrop-blur">
+                <section className="rounded-[18px] border border-white/55 bg-white/84 p-5 shadow-game backdrop-blur">
                   <h2 className="mb-4 text-[22px] font-black uppercase text-adventure">Recent Lesson History</h2>
                   <div className="space-y-2">
                     {stats.recentLessonHistory.length > 0 ? stats.recentLessonHistory.map((result) => (

@@ -27,7 +27,7 @@ export default function QuestScroll({ objective, progress, total, nextKey, keyHi
   const brickTotal = Math.max(1, total);
 
   return (
-    <aside data-testid="quest-scroll" className="lesson-scroll-board pointer-events-none absolute right-[44px] top-[132px] z-30 h-[872px] w-[372px] px-7 py-7 text-[#4C2D14]">
+    <aside data-testid="quest-scroll" className="lesson-scroll-board pointer-events-none absolute right-[40px] top-[132px] z-30 h-[820px] w-[340px] px-6 py-6 text-[#4C2D14]">
       <div className="lesson-scroll-roller absolute left-5 right-5 top-3 h-3" />
       <div className="lesson-scroll-roller absolute bottom-3 left-5 right-5 h-3" />
 
@@ -37,18 +37,18 @@ export default function QuestScroll({ objective, progress, total, nextKey, keyHi
         </span>
         <div>
           <h2 className="khmer-body text-[29px] font-black leading-none">បេសកកម្ម</h2>
-          <div className="khmer-body text-[13px] font-black tracking-wide text-[#8B5A20]">Temple Bridge</div>
+          <div className="text-[12px] font-black uppercase tracking-wide text-[#8B5A20]">Typing goal</div>
         </div>
       </div>
 
       <div className="mt-5 border-t-2 border-[#B58749]/35 pt-4">
-        <div className="khmer-body text-[13px] font-black tracking-wide text-[#754617]">Quest</div>
+        <div className="text-[12px] font-black uppercase tracking-wide text-[#754617]">Objective</div>
         <p className="khmer-body mt-1 line-clamp-2 text-[18px] font-bold leading-snug text-[#27324A]">{objective}</p>
       </div>
 
       <div className="mt-5 border-t-2 border-[#B58749]/35 pt-4">
         <div className="mb-3 flex items-end justify-between">
-          <div className="khmer-body text-[13px] font-black tracking-wide text-[#754617]">Progress</div>
+          <div className="text-[12px] font-black uppercase tracking-wide text-[#754617]">Progress</div>
           <div className="text-[17px] font-black text-[#24395F]">{progress} / {total}</div>
         </div>
         <div className="lesson-mini-brick-track grid grid-cols-10 gap-1.5 p-2">
@@ -69,7 +69,7 @@ export default function QuestScroll({ objective, progress, total, nextKey, keyHi
             <div
               key={stage.label}
               className={cn(
-                'khmer-body flex h-[46px] items-center gap-3 rounded-[18px] border-2 px-3 text-[16px] font-black shadow-inner',
+                'flex h-[43px] items-center gap-3 rounded-[14px] border-2 px-3 text-[15px] font-black shadow-inner',
                 stage.state === 'completed' && 'border-[#53B96A] bg-[#E8FFD8] text-[#176D35]',
                 stage.state === 'current' && 'border-[#C89B32] bg-gradient-to-r from-[#FFF1A8] to-[#E7D8FF] text-[#563280]',
                 stage.state === 'locked' && 'border-[#B6B0A8] bg-[#EFE9DF] text-[#77736D]',
@@ -92,15 +92,15 @@ export default function QuestScroll({ objective, progress, total, nextKey, keyHi
       </div>
 
       <div className="mt-5 border-t-2 border-[#B58749]/35 pt-4">
-        <div className="khmer-body text-[13px] font-black tracking-wide text-[#754617]">Next Key</div>
-        <div className="lesson-next-key-socket mt-2 flex min-h-[78px] items-center justify-between px-4 py-3">
+        <div className="text-[12px] font-black uppercase tracking-wide text-[#754617]">Next key</div>
+        <div className="lesson-next-key-socket mt-2 flex min-h-[74px] items-center justify-between px-4 py-3">
           <span className="khmer-display lesson-next-key-glyph text-[50px] leading-none">{visibleKey(nextKey)}</span>
           <span className="max-w-[160px] text-right text-[16px] font-black leading-tight text-[#34507A]">{keyHint}</span>
         </div>
       </div>
 
       <div className="mt-5 border-t-2 border-[#B58749]/35 pt-4">
-        <div className="khmer-body text-[13px] font-black tracking-wide text-[#754617]">Rewards</div>
+        <div className="text-[12px] font-black uppercase tracking-wide text-[#754617]">Rewards</div>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[13px] font-black text-[#24395F]">
           <div>
             <img src={imageAssets.star} alt="" className="mx-auto h-10 w-10 object-contain" />
