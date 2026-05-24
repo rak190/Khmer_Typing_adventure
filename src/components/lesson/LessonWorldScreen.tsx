@@ -4,8 +4,29 @@ import GameScreen from '../layout/GameScreen';
 import PageTransition from '../layout/PageTransition';
 import { backgroundImages } from '../../assets/assetManifest';
 import { saveLessonProgressToFirebase, saveMockLessonProgress } from '../../data/mockData';
-import { findKhmerKeyByCharacter, findKhmerKeyByCode, targetableKhmerKeys, type KhmerKeyboardKey } from '../../data/keyboardMap';
+import { findKhmerKeyByCode, getKhmerKeyboardInput, type KhmerKeyboardKey } from '../../data/keyboardMap';
 import type { CurriculumLevel, CurriculumWorld } from '../../data/lessonCurriculum';
+import { getStructuredLessonByRoute } from '../../data/typingProgression';
+import { countKhmerCharacters, countKhmerWords, khmerTextEquals } from '../../lib/khmerText';
+import { buildLessonTypingPlan, getCurrentTargetText, getTypedText, type TypingUnit } from '../../lib/lessonTypingPlan';
+import {
+  calculateLessonXP,
+  classifyWeakKey,
+  getBestScoreForLesson,
+  getProgressRecommendation,
+  loadStudentProgress,
+  saveStudentLessonResult,
+  summarizeWeakKeyStats,
+  type StudentBadge,
+  type StudentLessonResult,
+  type WeakKeyStatRecord,
+} from '../../lib/studentProgress';
+import {
+  calculateTypingMetrics,
+  getLessonMinimumAccuracy,
+  getLessonSpeedTargetCpm,
+  type TypingMetricResult,
+} from '../../lib/typingMetrics';
 import LessonHud from './LessonHud';
 import TypingTargetCard from './TypingTargetCard';
 import KhmerKeyboard from './KhmerKeyboard';
@@ -13,13 +34,12 @@ import QuestScroll, { type QuestStageState } from './QuestScroll';
 import LessonCompleteModal from './LessonCompleteModal';
 import type { FingerId } from './TypingHands';
 
-const TOTAL_BRIDGE_PROGRESS = 30;
-const MIN_SPEED_SECONDS = 3;
-const STAGE_LABELS = ['រៀនគ្រាប់ចុច', 'សាងសង់ស្ពាន', 'វគ្គប្រកួត'];
+const STAGE_LABELS = ['Learn keys', 'Build rhythm', 'Finish text'];
 
 type LessonWorldScreenProps = {
   world: CurriculumWorld;
   lesson: CurriculumLevel;
+  practiceMode?: 'curriculum' | 'weak';
 };
 
 type Feedback = {
@@ -28,61 +48,32 @@ type Feedback = {
   message: string;
 };
 
-type SpeedStats = {
-  cpm: number;
-  wpm: number;
-  elapsedSeconds: number;
+type LessonRunState = {
+  completedInputCount: number;
+  incorrectInputs: number;
+  backspaceCount: number;
+  streak: number;
+  bestStreak: number;
+  xpEarned: number;
+  weakKeyStats: WeakKeyStatRecord;
+  finished: boolean;
+  startedAt: number | null;
+  endedAt: number | null;
 };
 
-function cleanKeyCandidates(lesson: CurriculumLevel) {
-  const values = [
-    ...lesson.focusKeys.flatMap((item) => Array.from(item)),
-    ...lesson.stages.flatMap((stage) => stage.items.flatMap((item) => Array.from(item))),
-  ];
-  const unique: KhmerKeyboardKey[] = [];
-
-  for (const value of values) {
-    if (!value || value === '\u200d' || value === '\u200c' || value === '\n' || value === '\r' || value === '\t' || value === ' ') continue;
-    const key = findKhmerKeyByCharacter(value);
-    if (key && !unique.some((item) => item.code === key.code)) unique.push(key);
-  }
-
-  return unique.length > 0 ? unique : [targetableKhmerKeys.find((key) => key.code === 'KeyK') ?? targetableKhmerKeys[0]];
-}
-
-function buildTargetSequence(lesson: CurriculumLevel) {
-  const candidates = cleanKeyCandidates(lesson);
-  return Array.from({ length: TOTAL_BRIDGE_PROGRESS }, (_, index) => candidates[index % candidates.length]);
-}
-
-function getHandHint(target: KhmerKeyboardKey) {
-  const handLabel = target.hand === 'left' ? 'ដៃឆ្វេង' : target.hand === 'right' ? 'ដៃស្តាំ' : 'មេដៃ';
-  const fingerLabel = {
-    pinky: 'កូនដៃ',
-    ring: 'ម្រាមនាង',
-    middle: 'ម្រាមកណ្តាល',
-    index: 'ម្រាមចង្អុល',
-    thumb: 'មេដៃ',
-  }[target.finger];
-
-  return `${handLabel} - ${fingerLabel}`;
-}
-
-function getKeyHint(target: KhmerKeyboardKey) {
-  return `${target.latin} key`;
-}
-
-function getFingerHint(target: KhmerKeyboardKey) {
-  const handLabel = target.hand === 'left' ? 'Left' : target.hand === 'right' ? 'Right' : 'Either';
-  const fingerLabel = {
-    pinky: 'Pinky',
-    ring: 'Ring',
-    middle: 'Middle',
-    index: 'Index',
-    thumb: 'Thumb',
-  }[target.finger];
-
-  return `Use ${handLabel} ${fingerLabel} Finger`;
+function getInitialRunState(): LessonRunState {
+  return {
+    completedInputCount: 0,
+    incorrectInputs: 0,
+    backspaceCount: 0,
+    streak: 0,
+    bestStreak: 0,
+    xpEarned: 0,
+    weakKeyStats: {},
+    finished: false,
+    startedAt: null,
+    endedAt: null,
+  };
 }
 
 function getActiveFinger(target: KhmerKeyboardKey): FingerId {
@@ -90,94 +81,118 @@ function getActiveFinger(target: KhmerKeyboardKey): FingerId {
   return `${target.hand}-${target.finger}` as FingerId;
 }
 
-function getQuestStages(progress: number, finished: boolean): QuestStageState[] {
+function getFingerHint(target: KhmerKeyboardKey, shiftRequired: boolean) {
+  const handLabel = target.hand === 'left' ? 'left' : target.hand === 'right' ? 'right' : 'thumb';
+  const fingerLabel = {
+    pinky: 'pinky',
+    ring: 'ring',
+    middle: 'middle',
+    index: 'index',
+    thumb: 'thumb',
+  }[target.finger];
+
+  return `Use ${handLabel} ${fingerLabel}${shiftRequired ? ' + Shift' : ''}`;
+}
+
+function getKeyHint(target: TypingUnit) {
+  const keyLabel = target.key.action === 'space' ? 'Spacebar' : target.key.latin;
+  return target.modifier === 'shift' ? `Press Shift + ${keyLabel}` : `Press ${keyLabel}`;
+}
+
+function getQuestStages(progress: number, total: number, finished: boolean): QuestStageState[] {
+  const chunk = Math.max(1, Math.ceil(total / STAGE_LABELS.length));
+
   return STAGE_LABELS.map((label, index) => {
-    const start = index * 10;
-    const end = start + 10;
+    const start = index * chunk;
+    const end = Math.min(total, start + chunk);
     if (finished || progress >= end) return { label, state: 'completed' };
     if (progress >= start) return { label, state: 'current' };
     return { label, state: 'locked' };
   });
 }
 
-function getSpeedTargetWpm(lesson: CurriculumLevel) {
-  if (lesson.id === 'boss') return 22;
-  if (lesson.id >= 10) return 20;
-  if (lesson.id >= 7) return 18;
-  if (lesson.id >= 6) return 15;
-  if (lesson.id >= 4) return 14;
-  if (lesson.id >= 3) return 12;
-  if (lesson.id >= 2) return 10;
-  return 8;
+function visibleKey(key: string) {
+  return key === ' ' ? 'Spacebar' : key;
 }
 
-function getStageIndex(progress: number) {
-  return Math.min(2, Math.floor(progress / 10));
+function getElapsedMs(state: LessonRunState, now = performance.now()) {
+  if (state.startedAt === null) return 0;
+  return (state.endedAt ?? now) - state.startedAt;
 }
 
-function getStageSpeedWeight(stageIndex: number) {
-  return [0.15, 0.6, 1][stageIndex] ?? 1;
+function buildMetrics(state: LessonRunState, targetUnits: TypingUnit[], speedTargetCpm: number, minimumAccuracy: number): TypingMetricResult {
+  const typedText = getTypedText(targetUnits, state.completedInputCount);
+  const elapsedMs = getElapsedMs(state);
+
+  return calculateTypingMetrics({
+    completed: state.finished,
+    totalRequiredInputs: targetUnits.length,
+    acceptedCorrectInputs: state.completedInputCount,
+    incorrectInputs: state.incorrectInputs,
+    backspaceCount: state.backspaceCount,
+    elapsedMs,
+    correctKhmerCharacters: countKhmerCharacters(typedText),
+    correctWords: countKhmerWords(typedText),
+    bestStreak: state.bestStreak,
+    speedTargetCpm,
+    minimumAccuracy,
+  });
 }
 
-function getSpeedBonusPoints(previousCorrectAt: number | null, now: number, stageIndex: number) {
-  if (!previousCorrectAt) return 0;
-
-  const secondsSinceLastCorrect = (now - previousCorrectAt) / 1000;
-  const quickBonus = secondsSinceLastCorrect <= 0.65
-    ? 18
-    : secondsSinceLastCorrect <= 1
-      ? 12
-      : secondsSinceLastCorrect <= 1.5
-        ? 8
-        : secondsSinceLastCorrect <= 2.2
-          ? 4
-          : 0;
-
-  return Math.round(quickBonus * getStageSpeedWeight(stageIndex));
+function addWeakKeyStat(stats: WeakKeyStatRecord, value: string, keyCode: string | undefined, field: 'mistakes' | 'backspaces') {
+  const existing = stats[value];
+  return {
+    ...stats,
+    [value]: {
+      value,
+      mistakes: (existing?.mistakes ?? 0) + (field === 'mistakes' ? 1 : 0),
+      backspaces: (existing?.backspaces ?? 0) + (field === 'backspaces' ? 1 : 0),
+      keyCode: keyCode ?? existing?.keyCode,
+      category: existing?.category ?? classifyWeakKey(value),
+    },
+  };
 }
 
-export default function LessonWorldScreen({ world, lesson }: LessonWorldScreenProps) {
+export default function LessonWorldScreen({ world, lesson, practiceMode = 'curriculum' }: LessonWorldScreenProps) {
   const navigate = useNavigate();
-  const targetSequence = useMemo(() => buildTargetSequence(lesson), [lesson]);
-  const [progress, setProgress] = useState(0);
-  const [score, setScore] = useState(860);
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [wrongCount, setWrongCount] = useState(0);
-  const [xpEarned, setXpEarned] = useState(0);
-  const [speedStats, setSpeedStats] = useState<SpeedStats>({ cpm: 0, wpm: 0, elapsedSeconds: 0 });
-  const [finished, setFinished] = useState(false);
+  const plan = useMemo(() => buildLessonTypingPlan(lesson, world.id), [lesson, world.id]);
+  const structuredLesson = practiceMode === 'curriculum' ? getStructuredLessonByRoute(world.id, lesson.id) : undefined;
+  const targetUnits = plan.units;
+  const speedTargetCpm = getLessonSpeedTargetCpm(lesson, world.id);
+  const minimumAccuracy = getLessonMinimumAccuracy(lesson, world.id);
+  const [runState, setRunState] = useState<LessonRunState>(() => getInitialRunState());
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [newBadges, setNewBadges] = useState<StudentBadge[]>([]);
+  const [, setClockTick] = useState(0);
   const feedbackTimeoutRef = useRef<number | undefined>(undefined);
   const progressSavedRef = useRef(false);
-  const lessonStartTimeRef = useRef<number | null>(null);
-  const lastCorrectAtRef = useRef<number | null>(null);
 
-  const activeTarget = targetSequence[Math.min(progress, TOTAL_BRIDGE_PROGRESS - 1)] ?? targetSequence[0];
-  const totalAttempts = correctCount + wrongCount;
-  const accuracy = totalAttempts === 0 ? 100 : Math.round((correctCount / totalAttempts) * 100);
-  const speedTargetWpm = getSpeedTargetWpm(lesson);
-  const speedTargetReached = speedStats.wpm >= speedTargetWpm;
-  const starsEarned = accuracy >= 95 && speedTargetReached ? 3 : accuracy >= 85 ? 2 : 1;
-  const coinsEarned = 20 + starsEarned * 10 + Math.floor(score / 900) + (speedTargetReached ? Math.ceil(speedTargetWpm / 2) : 0);
-  const questStages = getQuestStages(progress, finished);
-  const keyHint = getKeyHint(activeTarget);
-  const handHint = getFingerHint(activeTarget);
-  const activeFinger = getActiveFinger(activeTarget);
-
-  function ensureLessonTimer(now: number) {
-    if (lessonStartTimeRef.current === null) lessonStartTimeRef.current = now;
-  }
-
-  function calculateSpeedStats(nextCorrectCount = correctCount, now = performance.now()): SpeedStats {
-    const startedAt = lessonStartTimeRef.current;
-    if (startedAt === null || nextCorrectCount <= 0) return { cpm: 0, wpm: 0, elapsedSeconds: 0 };
-
-    const elapsedSeconds = Math.max(MIN_SPEED_SECONDS, (now - startedAt) / 1000);
-    const cpm = Math.round((nextCorrectCount / elapsedSeconds) * 60);
-    return { cpm, wpm: Math.round(cpm / 5), elapsedSeconds: Math.round(elapsedSeconds) };
-  }
+  const activeTarget = targetUnits[Math.min(runState.completedInputCount, Math.max(0, targetUnits.length - 1))];
+  const typedText = getTypedText(targetUnits, runState.completedInputCount);
+  const currentTargetText = getCurrentTargetText(targetUnits, runState.completedInputCount);
+  const metrics = buildMetrics(runState, targetUnits, speedTargetCpm, minimumAccuracy);
+  const liveScore = metrics.finalScore;
+  const weakKeys = summarizeWeakKeyStats(runState.weakKeyStats, 5);
+  const resultLessonId = practiceMode === 'weak' ? 'weak-key-practice' : structuredLesson?.lessonId ?? `${world.id}:${lesson.id}`;
+  const previousBestScore = getBestScoreForLesson(loadStudentProgress(), resultLessonId);
+  const finalXpEarned = calculateLessonXP({
+    passed: metrics.passed,
+    baseXP: structuredLesson?.xpReward ?? (practiceMode === 'weak' ? 65 : 90),
+    stars: metrics.stars,
+    accuracy: metrics.accuracy,
+    cpm: metrics.cpm,
+    targetCPM: speedTargetCpm,
+    mistakes: metrics.errorCount,
+    score: metrics.finalScore,
+    previousBestScore,
+  });
+  const displayedXpEarned = runState.finished ? finalXpEarned : Math.min(40, runState.completedInputCount * 2);
+  const coinsEarned = Math.max(0, runState.finished && metrics.passed ? 20 + metrics.stars * 10 + Math.floor(metrics.finalScore / 1200) : 0);
+  const questStages = getQuestStages(runState.completedInputCount, targetUnits.length, runState.finished);
+  const shiftRequired = activeTarget?.modifier === 'shift';
+  const keyHint = activeTarget ? getKeyHint(activeTarget) : 'Complete';
+  const handHint = activeTarget ? getFingerHint(activeTarget.key, shiftRequired) : 'Complete';
+  const activeFinger = activeTarget ? getActiveFinger(activeTarget.key) : 'right-index';
 
   function showFeedback(nextFeedback: Feedback) {
     window.clearTimeout(feedbackTimeoutRef.current);
@@ -185,58 +200,86 @@ export default function LessonWorldScreen({ world, lesson }: LessonWorldScreenPr
     feedbackTimeoutRef.current = window.setTimeout(() => setFeedback(null), 620);
   }
 
-  function resetLesson() {
-    window.clearTimeout(feedbackTimeoutRef.current);
-    setProgress(0);
-    setScore(860);
-    setStreak(0);
-    setBestStreak(0);
-    setCorrectCount(0);
-    setWrongCount(0);
-    setXpEarned(0);
-    setSpeedStats({ cpm: 0, wpm: 0, elapsedSeconds: 0 });
-    setFinished(false);
-    setFeedback(null);
-    progressSavedRef.current = false;
-    lessonStartTimeRef.current = null;
-    lastCorrectAtRef.current = null;
+  function updateRunState(updater: (current: LessonRunState, now: number) => LessonRunState) {
+    const now = performance.now();
+    setRunState((current) => {
+      const startedState = current.startedAt === null && !current.finished ? { ...current, startedAt: now } : current;
+      return updater(startedState, now);
+    });
   }
 
-  function handleAttempt(code: string) {
-    if (finished || !code) return;
-    const now = performance.now();
-    const pressedKey = findKhmerKeyByCode(code);
+  function resetLesson() {
+    window.clearTimeout(feedbackTimeoutRef.current);
+    setRunState(getInitialRunState());
+    setFeedback(null);
+    setNewBadges([]);
+    progressSavedRef.current = false;
+  }
 
-    if (code === activeTarget.code) {
-      showFeedback({ code, state: 'correct', message: 'បានដាក់ក្តារស្ពាន!' });
-      setCorrectCount((next) => next + 1);
-      setScore((next) => next + 50 + Math.min(streak * 2, 40));
-      setXpEarned((next) => next + 4);
-      setStreak((next) => {
-        const nextStreak = next + 1;
-        setBestStreak((best) => Math.max(best, nextStreak));
-        return nextStreak;
-      });
+  function handleBackspace() {
+    if (runState.finished) return;
 
-      setProgress((current) => {
-        const nextProgress = Math.min(TOTAL_BRIDGE_PROGRESS, current + 1);
-        if (nextProgress >= TOTAL_BRIDGE_PROGRESS) setFinished(true);
-        return nextProgress;
+    updateRunState((current) => {
+      const removedTarget = targetUnits[Math.max(0, current.completedInputCount - 1)];
+      return {
+        ...current,
+        completedInputCount: Math.max(0, current.completedInputCount - 1),
+        backspaceCount: current.backspaceCount + 1,
+        weakKeyStats: removedTarget ? addWeakKeyStat(current.weakKeyStats, removedTarget.value, removedTarget.key.code, 'backspaces') : current.weakKeyStats,
+        streak: 0,
+      };
+    });
+  }
+
+  function handleTypedValue(value: string, code: string) {
+    if (runState.finished || !activeTarget) return;
+
+    if (khmerTextEquals(value, activeTarget.value)) {
+      updateRunState((current, now) => {
+        const nextCompletedInputCount = Math.min(targetUnits.length, current.completedInputCount + 1);
+        const nextStreak = current.streak + 1;
+        const finished = nextCompletedInputCount >= targetUnits.length;
+
+        return {
+          ...current,
+          completedInputCount: nextCompletedInputCount,
+          streak: nextStreak,
+          bestStreak: Math.max(current.bestStreak, nextStreak),
+          xpEarned: current.xpEarned + 4,
+          finished,
+          endedAt: finished ? now : current.endedAt,
+        };
       });
+      showFeedback({ code, state: 'correct', message: 'Correct Khmer input.' });
       return;
     }
 
-    if (!pressedKey?.disabled) {
-      setWrongCount((next) => next + 1);
-      setStreak(0);
-      showFeedback({ code, state: 'wrong', message: 'ព្យាយាមម្តងទៀត' });
-    }
+    updateRunState((current) => ({
+      ...current,
+      incorrectInputs: current.incorrectInputs + 1,
+      weakKeyStats: addWeakKeyStat(current.weakKeyStats, activeTarget.value, activeTarget.key.code, 'mistakes'),
+      streak: 0,
+    }));
+    showFeedback({ code, state: 'wrong', message: shiftRequired ? 'Use Shift for this key.' : 'Try the highlighted Khmer key.' });
   }
 
-  const handleAttemptRef = useRef(handleAttempt);
+  function handleKeyboardPress(code: string) {
+    if (code === 'Backspace') {
+      handleBackspace();
+      return;
+    }
+
+    const pressedKey = findKhmerKeyByCode(code);
+    if (!pressedKey || pressedKey.disabled || !activeTarget) return;
+
+    const value = pressedKey.code === activeTarget.key.code ? activeTarget.value : pressedKey.khmer;
+    handleTypedValue(value, code);
+  }
+
+  const handleKeyboardPressRef = useRef(handleKeyboardPress);
 
   useEffect(() => {
-    handleAttemptRef.current = handleAttempt;
+    handleKeyboardPressRef.current = handleKeyboardPress;
   });
 
   useEffect(() => {
@@ -246,84 +289,176 @@ export default function LessonWorldScreen({ world, lesson }: LessonWorldScreenPr
       if (event.code === 'Space' || event.code === 'Backspace' || event.code === 'Tab') event.preventDefault();
       if (event.repeat) return;
 
-      const mappedKey = findKhmerKeyByCode(event.code);
-      if (!mappedKey || mappedKey.disabled) return;
+      if (event.code === 'Backspace') {
+        event.preventDefault();
+        handleKeyboardPressRef.current('Backspace');
+        return;
+      }
+
+      const keyboardInput = getKhmerKeyboardInput(event);
+      if (!keyboardInput) return;
 
       event.preventDefault();
-      handleAttemptRef.current(mappedKey.code);
+      handleTypedValue(keyboardInput.value, keyboardInput.key.code);
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  });
+
+  useEffect(() => {
+    if (runState.startedAt === null || runState.finished) return undefined;
+    const intervalId = window.setInterval(() => setClockTick((tick) => tick + 1), 1000);
+    return () => window.clearInterval(intervalId);
+  }, [runState.finished, runState.startedAt]);
 
   useEffect(() => () => window.clearTimeout(feedbackTimeoutRef.current), []);
 
   useEffect(() => {
-    if (!finished || progressSavedRef.current) return;
+    if (!runState.finished || progressSavedRef.current) return;
+
+    const completedAt = new Date().toISOString();
+    const lessonResult: StudentLessonResult = {
+      lessonId: resultLessonId,
+      lessonTitle: practiceMode === 'weak' ? 'Weak-Key Practice' : structuredLesson?.lessonTitle ?? lesson.labelEn,
+      worldId: structuredLesson?.worldId ?? world.id,
+      skillFocus: structuredLesson?.skillFocus ?? lesson.objective,
+      targetText: plan.targetText,
+      minimumAccuracy,
+      targetCPM: speedTargetCpm,
+      difficulty: structuredLesson?.difficulty ?? (practiceMode === 'weak' ? 'adaptive' : 'beginner'),
+      badgeGroup: structuredLesson?.badgeGroup,
+      accuracy: metrics.accuracy,
+      CPM: metrics.cpm,
+      WPM: metrics.wpm,
+      mistakes: metrics.errorCount,
+      backspaces: metrics.backspaceCount,
+      weakKeys,
+      stars: metrics.stars,
+      XP: finalXpEarned,
+      score: metrics.finalScore,
+      passed: metrics.passed,
+      completedAt,
+    };
+    const saved = saveStudentLessonResult(lessonResult);
+    setNewBadges(saved.newBadges);
 
     const progressRecord = {
       worldId: world.id,
       lessonId: lesson.id,
-      score,
-      accuracy,
-      wpm: 0,
-      stars: starsEarned,
-      xpEarned,
+      score: metrics.finalScore,
+      accuracy: metrics.accuracy,
+      cpm: metrics.cpm,
+      wpm: metrics.wpm,
+      stars: metrics.stars,
+      xpEarned: finalXpEarned,
       coinsEarned,
-      bestStreak,
+      bestStreak: runState.bestStreak,
+      passed: metrics.passed,
+      completed: true,
+      timeSeconds: metrics.elapsedSeconds,
+      mistakes: metrics.errorCount,
+      backspaces: metrics.backspaceCount,
     };
 
-    saveMockLessonProgress(progressRecord);
-    void saveLessonProgressToFirebase(progressRecord);
+    if (practiceMode === 'curriculum' && metrics.passed) {
+      saveMockLessonProgress(progressRecord);
+      void saveLessonProgressToFirebase(progressRecord);
+    }
+
     progressSavedRef.current = true;
-  }, [accuracy, bestStreak, coinsEarned, finished, lesson.id, score, starsEarned, world.id, xpEarned]);
+  }, [coinsEarned, finalXpEarned, lesson.id, lesson.labelEn, lesson.objective, metrics, minimumAccuracy, plan.targetText, practiceMode, resultLessonId, runState.bestStreak, runState.finished, speedTargetCpm, structuredLesson, weakKeys, world.id]);
+
+  if (!activeTarget) {
+    return (
+      <PageTransition className="h-screen overflow-hidden bg-[#0A6FB5]">
+        <GameScreen background={backgroundImages.lesson} fit="stretch" className="grid place-items-center font-sans text-[#17325A]" style={{ backgroundSize: '100% 100%' }}>
+          <div className="rounded-[24px] bg-white/90 px-8 py-6 text-2xl font-black">This lesson has no typeable Khmer targets yet.</div>
+        </GameScreen>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition className="h-screen overflow-hidden bg-[#0A6FB5]">
       <GameScreen background={backgroundImages.lesson} fit="stretch" className="font-sans text-[#17325A]" style={{ backgroundSize: '100% 100%' }}>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#57D6FF]/10 via-transparent to-[#092A28]/34" />
-        <div className="temple-silhouette pointer-events-none opacity-50" />
+        <div className="temple-silhouette pointer-events-none opacity-40" />
 
-        <LessonHud score={score} streak={streak} accuracy={accuracy} xpEarned={xpEarned} />
+        <LessonHud score={liveScore} streak={runState.streak} accuracy={metrics.accuracy} cpm={metrics.cpm} xpEarned={displayedXpEarned} />
 
         <TypingTargetCard
-          target={activeTarget.khmer}
+          lessonTitle={`${world.title} - ${lesson.labelEn}`}
+          skillFocus={lesson.objective}
+          targetText={plan.targetText}
+          typedText={typedText}
+          currentText={currentTargetText}
           keyHint={keyHint}
           handHint={handHint}
+          metrics={metrics}
+          speedTargetCpm={speedTargetCpm}
+          minimumAccuracy={minimumAccuracy}
           feedbackState={feedback?.state}
           feedbackMessage={feedback?.message}
         />
 
         <KhmerKeyboard
-          activeCode={activeTarget.code}
+          activeCode={activeTarget.key.code}
+          shiftRequired={shiftRequired}
           feedbackCode={feedback?.code}
           feedbackState={feedback?.state}
-          activeHand={activeTarget.hand}
+          activeHand={activeTarget.key.hand}
           activeFinger={activeFinger}
-          onKeyPress={handleAttempt}
+          hintLabel={handHint}
+          keyLabel={keyHint}
+          onKeyPress={handleKeyboardPress}
         />
 
         <QuestScroll
-          objective="បំភ្លឺក្តារស្ពាន 30 Keys ដើម្បីបើកទ្វារ។"
-          progress={progress}
-          total={TOTAL_BRIDGE_PROGRESS}
-          nextKey={activeTarget.khmer}
+          objective={lesson.successCriteria}
+          progress={runState.completedInputCount}
+          total={targetUnits.length}
+          nextKey={visibleKey(activeTarget.value)}
           keyHint={keyHint}
           stages={questStages}
-          stars={starsEarned}
-          xp={xpEarned}
+          stars={metrics.stars}
+          xp={displayedXpEarned}
           coins={coinsEarned}
         />
 
-        {finished && (
+        {runState.finished && (
           <LessonCompleteModal
-            stars={starsEarned}
-            accuracy={accuracy}
-            xp={xpEarned}
+            result={metrics}
+            speedTargetCpm={speedTargetCpm}
+            xp={finalXpEarned}
             coins={coinsEarned}
+            weakKeys={weakKeys}
+            newBadges={newBadges}
+            recommendation={getProgressRecommendation(loadStudentProgress(), {
+              lessonId: resultLessonId,
+              lessonTitle: practiceMode === 'weak' ? 'Weak-Key Practice' : structuredLesson?.lessonTitle ?? lesson.labelEn,
+              worldId: structuredLesson?.worldId ?? world.id,
+              skillFocus: structuredLesson?.skillFocus ?? lesson.objective,
+              targetText: plan.targetText,
+              minimumAccuracy,
+              targetCPM: speedTargetCpm,
+              difficulty: structuredLesson?.difficulty ?? (practiceMode === 'weak' ? 'adaptive' : 'beginner'),
+              badgeGroup: structuredLesson?.badgeGroup,
+              accuracy: metrics.accuracy,
+              CPM: metrics.cpm,
+              WPM: metrics.wpm,
+              mistakes: metrics.errorCount,
+              backspaces: metrics.backspaceCount,
+              weakKeys,
+              stars: metrics.stars,
+              XP: finalXpEarned,
+              score: metrics.finalScore,
+              passed: metrics.passed,
+              completedAt: new Date().toISOString(),
+            })}
             onContinue={() => navigate('/map')}
             onRetry={resetLesson}
+            onPracticeWeakKeys={() => navigate('/lesson?practice=weak')}
           />
         )}
       </GameScreen>

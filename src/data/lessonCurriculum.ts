@@ -25,6 +25,8 @@ export type CurriculumLevel = {
   focusKeys: string[];
   unicodeRule: string;
   successCriteria: string;
+  minimumAccuracy?: number;
+  speedTargetCpm?: number;
   stages: CurriculumStage[];
 };
 

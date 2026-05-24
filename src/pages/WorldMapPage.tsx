@@ -21,6 +21,7 @@ import {
   type AdventureWorld,
 } from '../data/adventureWorlds';
 import { LESSON_PROGRESS_EVENT, resources } from '../data/mockData';
+import { loadStudentProgress, STUDENT_PROGRESS_EVENT, type StudentProgress } from '../lib/studentProgress';
 
 const sideActions = [
   { khmer: 'រង្វាន់', title: 'Treasure', icon: 'treasure' as const },
@@ -265,6 +266,7 @@ function RewardsPanel({ world }: { world: AdventureWorld }) {
 export default function WorldMapPage() {
   const navigate = useNavigate();
   const [worlds, setWorlds] = useState<AdventureWorld[]>(() => buildAdventureWorlds());
+  const [studentProgress, setStudentProgress] = useState<StudentProgress>(() => loadStudentProgress());
   const [activeWorldId, setActiveWorldId] = useState(1);
   const activeWorld = worlds.find((world) => world.id === activeWorldId) ?? worlds[0];
   const firstCurrentLesson = activeWorld.lessons.find((lesson) => getLessonState(activeWorld, lesson) === 'current') ?? activeWorld.lessons[0];
@@ -273,22 +275,21 @@ export default function WorldMapPage() {
   const selectedState = getLessonState(activeWorld, selected);
 
   useEffect(() => {
-    const refreshWorlds = () => setWorlds(buildAdventureWorlds());
+    const refreshWorlds = () => {
+      setWorlds(buildAdventureWorlds());
+      setStudentProgress(loadStudentProgress());
+    };
 
     window.addEventListener('storage', refreshWorlds);
     window.addEventListener(LESSON_PROGRESS_EVENT, refreshWorlds);
+    window.addEventListener(STUDENT_PROGRESS_EVENT, refreshWorlds);
 
     return () => {
       window.removeEventListener('storage', refreshWorlds);
       window.removeEventListener(LESSON_PROGRESS_EVENT, refreshWorlds);
+      window.removeEventListener(STUDENT_PROGRESS_EVENT, refreshWorlds);
     };
   }, []);
-
-  useEffect(() => {
-    if (!activeWorld.lessons.some((lesson) => lesson.id === selectedId)) {
-      setSelectedId(firstCurrentLesson.id);
-    }
-  }, [activeWorld, firstCurrentLesson.id, selectedId]);
 
   const selectWorld = (world: AdventureWorld) => {
     const nextLesson = world.lessons.find((lesson) => getLessonState(world, lesson) === 'current') ?? world.lessons[0];
@@ -343,8 +344,8 @@ export default function WorldMapPage() {
 
         <div className="absolute left-1/2 top-[24px] z-40 flex -translate-x-1/2 items-center gap-8">
           <HudPill icon="heart" value={`${resources.hearts}/${resources.maxHearts}`} label="Full" />
-          <HudPill icon="coin" value={resources.coins} plus />
-          <HudPill icon="gem" value={resources.gems} plus />
+          <HudPill icon="zap" value={studentProgress.totalXP.toLocaleString()} label="Typing XP" />
+          <HudPill icon="flame" value={`${studentProgress.currentStreak} day`} label="Streak" />
         </div>
 
         <div className="absolute right-[62px] top-[24px] z-40 flex items-center gap-3">

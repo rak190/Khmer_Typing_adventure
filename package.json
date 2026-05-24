@@ -9,6 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "test:typing": "node scripts/typingCoreTests.mjs",
+    "test:gamification": "node scripts/gamificationCoreTests.mjs",
     "deploy": "npm run build && gh-pages -d dist"
   },
   "dependencies": {

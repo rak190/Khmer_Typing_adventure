@@ -15,6 +15,8 @@ export type KhmerKeyboardKey = KhmerKey & {
   wide?: boolean;
 };
 
+export type KeyboardModifier = 'base' | 'shift' | 'altgr';
+
 export const khmerKeyboardRows: KhmerKeyboardKey[][] = [
   [
     { code: 'Backquote', latin: '`', khmer: '«', shiftKhmer: '»', altgrKhmer: '\u200d', hand: 'left', finger: 'pinky', row: 'top' },
@@ -89,12 +91,45 @@ export const khmerKeyboardRows: KhmerKeyboardKey[][] = [
 ];
 
 export const targetableKhmerKeys = khmerKeyboardRows.flat().filter((key) => !key.disabled && !key.action);
+export const typeableKeyboardKeys = khmerKeyboardRows.flat().filter((key) => !key.disabled && (!key.action || key.action === 'space'));
 
 export function findKhmerKeyByCode(code: string) {
   return khmerKeyboardRows.flat().find((key) => key.code === code);
 }
 
 export function findKhmerKeyByCharacter(character: string) {
-  return targetableKhmerKeys.find((key) => key.khmer === character || key.shiftKhmer === character || key.altgrKhmer === character);
+  return typeableKeyboardKeys.find((key) => key.khmer === character || key.shiftKhmer === character || key.altgrKhmer === character || (key.action === 'space' && character === ' '));
 }
 
+export function getKhmerKeyOutput(key: KhmerKeyboardKey, modifier: KeyboardModifier = 'base') {
+  if (key.action === 'space') return ' ';
+  if (modifier === 'altgr') return key.altgrKhmer ?? key.khmer;
+  if (modifier === 'shift') return key.shiftKhmer ?? key.khmer;
+  return key.khmer;
+}
+
+export function findKhmerKeyByOutput(output: string) {
+  for (const key of typeableKeyboardKeys) {
+    if (key.action === 'space' && output === ' ') return { key, modifier: 'base' as const };
+    if (key.khmer === output) return { key, modifier: 'base' as const };
+    if (key.shiftKhmer === output) return { key, modifier: 'shift' as const };
+    if (key.altgrKhmer === output) return { key, modifier: 'altgr' as const };
+  }
+
+  return null;
+}
+
+export function getKhmerKeyboardInput(event: KeyboardEvent) {
+  const key = findKhmerKeyByCode(event.code);
+  if (!key) return null;
+  if (key.action && key.action !== 'space') return null;
+
+  const usingAltGr = event.getModifierState?.('AltGraph') || (event.ctrlKey && event.altKey);
+  const modifier: KeyboardModifier = usingAltGr ? 'altgr' : event.shiftKey ? 'shift' : 'base';
+
+  return {
+    key,
+    modifier,
+    value: getKhmerKeyOutput(key, modifier),
+  };
+}
