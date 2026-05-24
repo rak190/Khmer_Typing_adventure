@@ -14,6 +14,7 @@ import LessonCompleteModal from './LessonCompleteModal';
 import type { FingerId } from './TypingHands';
 
 const TOTAL_BRIDGE_PROGRESS = 30;
+const MIN_SPEED_SECONDS = 3;
 const STAGE_LABELS = ['រៀនគ្រាប់ចុច', 'សាងសង់ស្ពាន', 'វគ្គប្រកួត'];
 
 type LessonWorldScreenProps = {
@@ -25,6 +26,12 @@ type Feedback = {
   code: string;
   state: 'correct' | 'wrong';
   message: string;
+};
+
+type SpeedStats = {
+  cpm: number;
+  wpm: number;
+  elapsedSeconds: number;
 };
 
 function cleanKeyCandidates(lesson: CurriculumLevel) {
@@ -93,6 +100,42 @@ function getQuestStages(progress: number, finished: boolean): QuestStageState[] 
   });
 }
 
+function getSpeedTargetWpm(lesson: CurriculumLevel) {
+  if (lesson.id === 'boss') return 22;
+  if (lesson.id >= 10) return 20;
+  if (lesson.id >= 7) return 18;
+  if (lesson.id >= 6) return 15;
+  if (lesson.id >= 4) return 14;
+  if (lesson.id >= 3) return 12;
+  if (lesson.id >= 2) return 10;
+  return 8;
+}
+
+function getStageIndex(progress: number) {
+  return Math.min(2, Math.floor(progress / 10));
+}
+
+function getStageSpeedWeight(stageIndex: number) {
+  return [0.15, 0.6, 1][stageIndex] ?? 1;
+}
+
+function getSpeedBonusPoints(previousCorrectAt: number | null, now: number, stageIndex: number) {
+  if (!previousCorrectAt) return 0;
+
+  const secondsSinceLastCorrect = (now - previousCorrectAt) / 1000;
+  const quickBonus = secondsSinceLastCorrect <= 0.65
+    ? 18
+    : secondsSinceLastCorrect <= 1
+      ? 12
+      : secondsSinceLastCorrect <= 1.5
+        ? 8
+        : secondsSinceLastCorrect <= 2.2
+          ? 4
+          : 0;
+
+  return Math.round(quickBonus * getStageSpeedWeight(stageIndex));
+}
+
 export default function LessonWorldScreen({ world, lesson }: LessonWorldScreenProps) {
   const navigate = useNavigate();
   const targetSequence = useMemo(() => buildTargetSequence(lesson), [lesson]);
@@ -103,20 +146,38 @@ export default function LessonWorldScreen({ world, lesson }: LessonWorldScreenPr
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
+  const [speedStats, setSpeedStats] = useState<SpeedStats>({ cpm: 0, wpm: 0, elapsedSeconds: 0 });
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const feedbackTimeoutRef = useRef<number | undefined>(undefined);
   const progressSavedRef = useRef(false);
+  const lessonStartTimeRef = useRef<number | null>(null);
+  const lastCorrectAtRef = useRef<number | null>(null);
 
   const activeTarget = targetSequence[Math.min(progress, TOTAL_BRIDGE_PROGRESS - 1)] ?? targetSequence[0];
   const totalAttempts = correctCount + wrongCount;
   const accuracy = totalAttempts === 0 ? 100 : Math.round((correctCount / totalAttempts) * 100);
-  const starsEarned = accuracy >= 95 ? 3 : accuracy >= 85 ? 2 : 1;
-  const coinsEarned = 20 + starsEarned * 10 + Math.floor(score / 900);
+  const speedTargetWpm = getSpeedTargetWpm(lesson);
+  const speedTargetReached = speedStats.wpm >= speedTargetWpm;
+  const starsEarned = accuracy >= 95 && speedTargetReached ? 3 : accuracy >= 85 ? 2 : 1;
+  const coinsEarned = 20 + starsEarned * 10 + Math.floor(score / 900) + (speedTargetReached ? Math.ceil(speedTargetWpm / 2) : 0);
   const questStages = getQuestStages(progress, finished);
   const keyHint = getKeyHint(activeTarget);
   const handHint = getFingerHint(activeTarget);
   const activeFinger = getActiveFinger(activeTarget);
+
+  function ensureLessonTimer(now: number) {
+    if (lessonStartTimeRef.current === null) lessonStartTimeRef.current = now;
+  }
+
+  function calculateSpeedStats(nextCorrectCount = correctCount, now = performance.now()): SpeedStats {
+    const startedAt = lessonStartTimeRef.current;
+    if (startedAt === null || nextCorrectCount <= 0) return { cpm: 0, wpm: 0, elapsedSeconds: 0 };
+
+    const elapsedSeconds = Math.max(MIN_SPEED_SECONDS, (now - startedAt) / 1000);
+    const cpm = Math.round((nextCorrectCount / elapsedSeconds) * 60);
+    return { cpm, wpm: Math.round(cpm / 5), elapsedSeconds: Math.round(elapsedSeconds) };
+  }
 
   function showFeedback(nextFeedback: Feedback) {
     window.clearTimeout(feedbackTimeoutRef.current);
@@ -133,13 +194,17 @@ export default function LessonWorldScreen({ world, lesson }: LessonWorldScreenPr
     setCorrectCount(0);
     setWrongCount(0);
     setXpEarned(0);
+    setSpeedStats({ cpm: 0, wpm: 0, elapsedSeconds: 0 });
     setFinished(false);
     setFeedback(null);
     progressSavedRef.current = false;
+    lessonStartTimeRef.current = null;
+    lastCorrectAtRef.current = null;
   }
 
   function handleAttempt(code: string) {
     if (finished || !code) return;
+    const now = performance.now();
     const pressedKey = findKhmerKeyByCode(code);
 
     if (code === activeTarget.code) {
