@@ -8,18 +8,18 @@ type TypingHandsProps = {
 
 const markerPositions: Record<HandSide, Record<FingerName, string>> = {
   left: {
-    pinky: 'left-[34%] top-[31%]',
-    ring: 'left-[53%] top-[17%]',
-    middle: 'left-[68%] top-[17%]',
-    index: 'left-[84%] top-[28%]',
-    thumb: 'left-[88%] top-[56%]',
+    pinky: 'left-[33.5%] top-[27%]',
+    ring: 'left-[50%] top-[15%]',
+    middle: 'left-[63%] top-[15%]',
+    index: 'left-[72%] top-[23%]',
+    thumb: 'left-[80%] top-[50.5%]',
   },
   right: {
-    thumb: 'left-[20%] top-[56%]',
-    index: 'left-[32%] top-[28%]',
-    middle: 'left-[49%] top-[17%]',
-    ring: 'left-[64%] top-[17%]',
-    pinky: 'left-[80%] top-[31%]',
+    thumb: 'left-[20%] top-[49.5%]',
+    index: 'left-[28%] top-[25%]',
+    middle: 'left-[42%] top-[15%]',
+    ring: 'left-[57.5%] top-[15.5%]',
+    pinky: 'left-[65%] top-[28%]',
   },
 };
 
