@@ -177,7 +177,7 @@ export default function LoginPage() {
 
             <div className="mt-4 flex items-center gap-2 rounded-[18px] border-2 border-[#C99A55] bg-[#FFF8E4] px-4 py-3 text-xs font-black text-[#6B4A24]">
               <Shield size={22} className="text-[#159447]" />
-              {firebaseEnabled ? 'Progress saving is ready for classroom practice.' : 'Guest mode is available. Your progress is saved on this device.'}
+              {firebaseEnabled ? 'Firebase progress saving is ready for classroom practice.' : 'Firebase config is missing. Progress can only stay in memory for this session.'}
             </div>
           </div>
         </section>

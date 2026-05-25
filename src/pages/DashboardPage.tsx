@@ -174,12 +174,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const refreshProgress = () => setProgress(safeLoadStudentProgress());
-    window.addEventListener('storage', refreshProgress);
     window.addEventListener(STUDENT_PROGRESS_EVENT, refreshProgress);
     window.addEventListener(LESSON_PROGRESS_EVENT, refreshProgress);
 
     return () => {
-      window.removeEventListener('storage', refreshProgress);
       window.removeEventListener(STUDENT_PROGRESS_EVENT, refreshProgress);
       window.removeEventListener(LESSON_PROGRESS_EVENT, refreshProgress);
     };
@@ -318,7 +316,7 @@ export default function DashboardPage() {
                     <div>
                       <h2 className="text-xl font-black text-[#176D35]">Classroom Ready</h2>
                       <p className="mt-1 font-bold leading-snug text-[#3B6D41]">
-                        Progress is saved locally with lesson IDs, accuracy, CPM, mistakes, XP, badges, and timestamps for future teacher reports.
+                        Progress is saved in Firebase with lesson IDs, accuracy, CPM, mistakes, XP, badges, and timestamps for future teacher reports.
                       </p>
                     </div>
                   </div>

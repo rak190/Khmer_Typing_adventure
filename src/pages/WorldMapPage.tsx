@@ -293,12 +293,10 @@ export default function WorldMapPage() {
       setStudentProgress(loadStudentProgress());
     };
 
-    window.addEventListener('storage', refreshWorlds);
     window.addEventListener(LESSON_PROGRESS_EVENT, refreshWorlds);
     window.addEventListener(STUDENT_PROGRESS_EVENT, refreshWorlds);
 
     return () => {
-      window.removeEventListener('storage', refreshWorlds);
       window.removeEventListener(LESSON_PROGRESS_EVENT, refreshWorlds);
       window.removeEventListener(STUDENT_PROGRESS_EVENT, refreshWorlds);
     };

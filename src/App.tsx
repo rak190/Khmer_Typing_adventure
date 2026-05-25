@@ -1,7 +1,9 @@
 import { Component, lazy, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { subscribeLessonProgressFromFirebase } from './data/mockData';
 import { subscribeToSession, type AppSession } from './lib/firebase';
+import { subscribeStudentProgressFromFirebase } from './lib/studentProgress';
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -73,6 +75,18 @@ export default function App() {
       return undefined;
     }
   }, []);
+
+  useEffect(() => {
+    if (session?.mode !== 'firebase' || !session.userId) return undefined;
+
+    const unsubscribeStudentProgress = subscribeStudentProgressFromFirebase(session.userId);
+    const unsubscribeLessonProgress = subscribeLessonProgressFromFirebase(session.userId);
+
+    return () => {
+      unsubscribeStudentProgress();
+      unsubscribeLessonProgress();
+    };
+  }, [session?.mode, session?.userId]);
 
   if (!sessionReady && !isPublicRoute) {
     return (
