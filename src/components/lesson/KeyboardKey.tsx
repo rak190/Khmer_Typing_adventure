@@ -31,22 +31,28 @@ function handZoneClass(keyData: KhmerKeyboardKey) {
   return 'lesson-key-zone--thumb';
 }
 
-export default function KeyboardKey({ keyData, state = 'normal', onPress }: KeyboardKeyProps) {
-  const physicalLabel = physicalCodeLabel(keyData.code, keyData.action);
-  const isActionKey = Boolean(keyData.action && keyData.action !== 'space');
-  const disabled = (state === 'disabled' || keyData.disabled) && state !== 'shift-target';
-  const displayLabel = {
-    backspace: '⌫',
-    enter: '↵',
-    shift: '⇧',
+function displayKeyLabel(keyData: KhmerKeyboardKey) {
+  if (!keyData.action) return keyData.khmer;
+
+  return {
+    backspace: '\u232b',
+    enter: '\u21b5',
+    shift: '\u21e7',
     caps: 'Caps',
     tab: 'Tab',
     control: 'Ctrl',
     altgr: keyData.code === 'AltLeft' ? 'Alt' : 'AltGr',
-    meta: '⊞',
-    menu: '☰',
+    meta: '\u229e',
+    menu: '\u2630',
     space: 'Space',
-  }[keyData.action ?? ''] ?? keyData.khmer;
+  }[keyData.action];
+}
+
+export default function KeyboardKey({ keyData, state = 'normal', onPress }: KeyboardKeyProps) {
+  const physicalLabel = physicalCodeLabel(keyData.code, keyData.action);
+  const isActionKey = Boolean(keyData.action && keyData.action !== 'space');
+  const disabled = (state === 'disabled' || keyData.disabled) && state !== 'shift-target';
+  const displayLabel = displayKeyLabel(keyData);
   const shiftLabel = !isActionKey && keyData.shiftKhmer && keyData.shiftKhmer !== keyData.khmer ? keyData.shiftKhmer : '';
 
   return (
@@ -60,8 +66,7 @@ export default function KeyboardKey({ keyData, state = 'normal', onPress }: Keyb
       whileTap={disabled ? undefined : { y: 5, scale: 0.97 }}
       className={cn(
         'pointer-events-auto khmer-body lesson-stone-key relative grid h-[50px] place-items-center px-2 text-[28px] font-black leading-none transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#42D9FF]/80',
-        keyData.wide || keyData.action === 'space' ? 'text-[17px]' : '',
-        'w-full min-w-0',
+        keyData.wide ? 'min-w-[102px] flex-[1.58] text-[17px]' : 'min-w-[58px] flex-1',
         handZoneClass(keyData),
         isActionKey && 'lesson-key--special text-[16px] tracking-wide',
         state === 'target' && 'lesson-key--target',
