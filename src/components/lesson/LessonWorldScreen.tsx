@@ -420,10 +420,14 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
           total={targetUnits.length}
           nextKey={visibleKey(activeTarget.value)}
           keyHint={keyHint}
+          handHint={handHint}
           stages={questStages}
+          accuracy={metrics.accuracy}
+          minimumAccuracy={minimumAccuracy}
+          cpm={metrics.cpm}
+          speedTargetCpm={speedTargetCpm}
           stars={metrics.stars}
           xp={displayedXpEarned}
-          coins={coinsEarned}
         />
 
         {runState.finished && (
