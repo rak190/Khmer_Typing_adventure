@@ -9,9 +9,11 @@ type LessonHudProps = {
   accuracy: number;
   cpm: number;
   xpEarned: number;
+  onPause: () => void;
+  onSettings: () => void;
 };
 
-export default function LessonHud({ score, streak, accuracy, cpm, xpEarned }: LessonHudProps) {
+export default function LessonHud({ score, streak, accuracy, cpm, xpEarned, onPause, onSettings }: LessonHudProps) {
   const xp = resources.xp + xpEarned;
   const xpPercent = Math.min(100, Math.round((xp / resources.nextXp) * 100));
 
@@ -66,12 +68,13 @@ export default function LessonHud({ score, streak, accuracy, cpm, xpEarned }: Le
 
       <div className="absolute right-[56px] top-[20px] flex gap-3">
         {[
-          { label: 'Pause lesson', icon: <Pause size={28} fill="currentColor" /> },
-          { label: 'Lesson settings', icon: <Settings size={28} /> },
+          { label: 'Pause lesson', icon: <Pause size={28} fill="currentColor" />, onClick: onPause },
+          { label: 'Lesson settings', icon: <Settings size={28} />, onClick: onSettings },
         ].map((item) => (
           <button
             key={item.label}
             type="button"
+            onClick={item.onClick}
             className="pointer-events-auto grid h-[58px] w-[58px] place-items-center rounded-[18px] border-[3px] border-[#7FD1FF] bg-gradient-to-b from-[#349BFA] via-[#1269D0] to-[#07418D] text-white shadow-[inset_0_3px_0_rgba(255,255,255,.3),0_5px_0_rgba(0,48,118,.56)] transition hover:-translate-y-0.5"
             aria-label={item.label}
           >

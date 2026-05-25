@@ -14,6 +14,7 @@ type LessonCompleteModalProps = {
   newBadges: StudentBadge[];
   recommendation: string;
   onContinue: () => void;
+  onContinueUnavailable: () => void;
   onRetry: () => void;
   onPracticeWeakKeys: () => void;
 };
@@ -27,6 +28,7 @@ export default function LessonCompleteModal({
   newBadges,
   recommendation,
   onContinue,
+  onContinueUnavailable,
   onRetry,
   onPracticeWeakKeys,
 }: LessonCompleteModalProps) {
@@ -109,7 +111,17 @@ export default function LessonCompleteModal({
         </div>
 
         <div className="mt-6 grid grid-cols-3 gap-4">
-          <GameButton variant="blue" size="lg" leftIcon={<Map size={25} />} onClick={onContinue} disabled={!result.passed}>
+          <GameButton
+            variant="blue"
+            size="lg"
+            leftIcon={<Map size={25} />}
+            aria-disabled={!result.passed}
+            className={!result.passed ? 'opacity-60' : undefined}
+            onClick={() => {
+              if (result.passed) onContinue();
+              else onContinueUnavailable();
+            }}
+          >
             Continue
           </GameButton>
           <GameButton variant="white" size="lg" leftIcon={<RotateCcw size={25} />} onClick={onRetry}>

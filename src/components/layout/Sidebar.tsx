@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { BookOpen, Crown, Gamepad2, Gift, Home, Map, Settings, ShieldCheck } from 'lucide-react';
+import ActionModal from '../game-ui/ActionModal';
 import Logo from '../game/Logo';
 import CharacterPlaceholder from '../characters/CharacterPlaceholder';
 
@@ -9,12 +11,14 @@ const items = [
   { label: 'World Map', khmer: 'ផែនទី', to: '/map', icon: Map },
   { label: 'Mini-Games', khmer: 'ល្បែង', to: '/battle', icon: Gamepad2 },
   { label: 'Challenges', khmer: 'ប្រកួត', to: '/battle', icon: ShieldCheck },
-  { label: 'Rewards', khmer: 'រង្វាន់', to: '/design-system', icon: Gift },
+  { label: 'Rewards', khmer: 'រង្វាន់', action: 'rewards' as const, icon: Gift },
   { label: 'Leaderboards', khmer: 'ចំណាត់ថ្នាក់', to: '/dashboard', icon: Crown },
-  { label: 'Settings', khmer: 'កំណត់', to: '/design-system', icon: Settings },
+  { label: 'Settings', khmer: 'កំណត់', action: 'settings' as const, icon: Settings },
 ];
 
 export default function Sidebar() {
+  const [modal, setModal] = useState<'rewards' | 'settings' | null>(null);
+
   return (
     <aside className="hidden h-screen w-64 shrink-0 overflow-y-auto bg-gradient-to-b from-[#12A9F0] to-[#78E3FF] px-4 py-5 shadow-2xl lg:block">
       <Logo compact className="mb-5 scale-90 origin-left" />
@@ -22,18 +26,30 @@ export default function Sidebar() {
         {items.map((item) => {
           const Icon = item.icon;
           return (
-            <NavLink
-              key={item.label}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-2xl px-4 py-3 font-black text-[#07315F] transition ${
-                  isActive ? 'bg-adventure text-white shadow-button' : 'hover:bg-white/40'
-                }`
-              }
-            >
-              <Icon size={24} />
-              <span>{item.label}</span>
-            </NavLink>
+            'action' in item ? (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => setModal(item.action)}
+                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-black text-[#07315F] transition hover:bg-white/40"
+              >
+                <Icon size={24} />
+                <span>{item.label}</span>
+              </button>
+            ) : (
+              <NavLink
+                key={item.label}
+                to={item.to}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-2xl px-4 py-3 font-black text-[#07315F] transition ${
+                    isActive ? 'bg-adventure text-white shadow-button' : 'hover:bg-white/40'
+                  }`
+                }
+              >
+                <Icon size={24} />
+                <span>{item.label}</span>
+              </NavLink>
+            )
           );
         })}
       </nav>
@@ -47,6 +63,12 @@ export default function Sidebar() {
       <div className="mt-8 grid place-items-center">
         <CharacterPlaceholder type="elephant" className="-mb-20 scale-[0.56]" />
       </div>
+      <ActionModal open={modal === 'rewards'} title="Rewards" onClose={() => setModal(null)}>
+        Rewards are earned after lessons and Boss battles. Open the dashboard to review badges and saved progress.
+      </ActionModal>
+      <ActionModal open={modal === 'settings'} title="Settings" onClose={() => setModal(null)}>
+        Settings will be available soon. Progress is saved automatically after completed lessons and boss runs.
+      </ActionModal>
     </aside>
   );
 }

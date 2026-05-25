@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Settings, Trophy } from 'lucide-react';
+import ActionModal from '../components/game-ui/ActionModal';
 import GameButton from '../components/game-ui/GameButton';
 import GameIcon, { type GameIconName } from '../components/game-ui/GameIcon';
 import GameProgressBar from '../components/game-ui/GameProgressBar';
@@ -31,17 +32,19 @@ const sideActions = [
 ];
 
 const templeJungleCardImage = 'https://cdn.pixabay.com/photo/2016/01/30/22/31/cambodia-1170693_1280.jpg';
+type MapModal = 'mail' | 'trophy' | 'settings' | 'treasure' | 'quests' | 'achievements' | 'guide' | 'rewards' | 'locked' | 'worldLocked' | 'resource' | null;
 
 type HudPillProps = {
   icon: GameIconName;
   value: string | number;
   label?: string;
   plus?: boolean;
+  onClick?: () => void;
 };
 
-function HudPill({ icon, value, label, plus }: HudPillProps) {
+function HudPill({ icon, value, label, plus, onClick }: HudPillProps) {
   return (
-    <button type="button" className="pointer-events-auto flex h-[66px] min-w-[168px] cursor-pointer items-center gap-3 rounded-[22px] border-[3px] border-[#F7B94F] bg-gradient-to-b from-[#245D74] via-[#123E57] to-[#3B2412] px-3 text-white shadow-[inset_0_3px_0_rgba(255,242,181,.28),inset_0_-8px_0_rgba(49,24,7,.5),0_6px_0_rgba(82,50,22,.55),0_18px_24px_rgba(0,23,45,.42)]">
+    <button type="button" onClick={onClick} className="pointer-events-auto flex h-[66px] min-w-[168px] cursor-pointer items-center gap-3 rounded-[22px] border-[3px] border-[#F7B94F] bg-gradient-to-b from-[#245D74] via-[#123E57] to-[#3B2412] px-3 text-white shadow-[inset_0_3px_0_rgba(255,242,181,.28),inset_0_-8px_0_rgba(49,24,7,.5),0_6px_0_rgba(82,50,22,.55),0_18px_24px_rgba(0,23,45,.42)]">
       <span className="grid h-10 w-10 place-items-center rounded-full border-2 border-[#F9D77B]/70 bg-gradient-to-b from-[#2AA69B] to-[#0D5A6B] shadow-[inset_0_2px_0_rgba(255,255,255,.3),inset_0_-4px_0_rgba(0,0,0,.24)]">
         <GameIcon name={icon} size={27} />
       </span>
@@ -54,18 +57,18 @@ function HudPill({ icon, value, label, plus }: HudPillProps) {
   );
 }
 
-function RoundHudButton({ icon, badge, label }: { icon: ReactNode; badge?: string; label: string }) {
+function RoundHudButton({ icon, badge, label, onClick }: { icon: ReactNode; badge?: string; label: string; onClick: () => void }) {
   return (
-    <button type="button" aria-label={label} className="pointer-events-auto relative grid h-[60px] w-[60px] cursor-pointer place-items-center rounded-[22px] border-[3px] border-[#F7B94F] bg-gradient-to-b from-[#217A92] via-[#0E4962] to-[#35200F] text-white shadow-[inset_0_3px_0_rgba(255,244,188,.28),inset_0_-8px_0_rgba(40,19,7,.46),0_5px_0_rgba(88,56,22,.55),0_14px_18px_rgba(0,24,54,.38)]">
+    <button type="button" onClick={onClick} aria-label={label} className="pointer-events-auto relative grid h-[60px] w-[60px] cursor-pointer place-items-center rounded-[22px] border-[3px] border-[#F7B94F] bg-gradient-to-b from-[#217A92] via-[#0E4962] to-[#35200F] text-white shadow-[inset_0_3px_0_rgba(255,244,188,.28),inset_0_-8px_0_rgba(40,19,7,.46),0_5px_0_rgba(88,56,22,.55),0_14px_18px_rgba(0,24,54,.38)]">
       {badge && <span className="absolute -right-2 -top-3 grid h-8 w-8 place-items-center rounded-full border-2 border-white bg-[#F34E35] text-base font-bold shadow-[0_4px_8px_rgba(0,0,0,.28)]">{badge}</span>}
       {icon}
     </button>
   );
 }
 
-function SideMenuCard({ khmer, title, icon, badge }: (typeof sideActions)[number]) {
+function SideMenuCard({ khmer, title, icon, badge, onClick }: (typeof sideActions)[number] & { onClick: () => void }) {
   return (
-    <button type="button" className="pointer-events-auto relative flex h-[124px] w-[108px] cursor-pointer flex-col items-center justify-center rounded-[21px] border-[2px] border-[#8FEFFF] bg-gradient-to-b from-[#1FA9A6] via-[#0E8D95] to-[#086373] px-2 pt-3 pb-2 text-center text-white shadow-[inset_0_2px_0_rgba(255,255,255,.28),inset_0_-7px_0_rgba(0,57,73,.42),0_0_0_1px_rgba(11,104,177,.82),0_3px_0_rgba(5,80,95,.72),0_10px_18px_rgba(0,24,56,.34)] transition hover:-translate-y-1">
+    <button type="button" onClick={onClick} className="pointer-events-auto relative flex h-[124px] w-[108px] cursor-pointer flex-col items-center justify-center rounded-[21px] border-[2px] border-[#8FEFFF] bg-gradient-to-b from-[#1FA9A6] via-[#0E8D95] to-[#086373] px-2 pt-3 pb-2 text-center text-white shadow-[inset_0_2px_0_rgba(255,255,255,.28),inset_0_-7px_0_rgba(0,57,73,.42),0_0_0_1px_rgba(11,104,177,.82),0_3px_0_rgba(5,80,95,.72),0_10px_18px_rgba(0,24,56,.34)] transition hover:-translate-y-1">
       <span className="pointer-events-none absolute inset-[3px] rounded-[16px] border-[2px] border-[#126DB7]/80" />
       {badge && <span className="absolute -right-3 top-[22px] grid h-8 w-8 place-items-center rounded-full border-[2px] border-white bg-[#F0443E] text-base font-bold leading-none shadow-[0_3px_7px_rgba(0,0,0,.26)]">{badge}</span>}
       <span className="relative grid h-[50px] w-[50px] place-items-center text-white">
@@ -83,10 +86,12 @@ function WorldSelector({
   worlds,
   activeWorld,
   onSelect,
+  onLockedWorld,
 }: {
   worlds: AdventureWorld[];
   activeWorld: AdventureWorld;
   onSelect: (world: AdventureWorld) => void;
+  onLockedWorld: (world: AdventureWorld) => void;
 }) {
   return (
     <div className="absolute left-[915px] top-[94px] z-40 flex -translate-x-1/2 items-center gap-5">
@@ -104,6 +109,7 @@ function WorldSelector({
             }`}
             onClick={() => {
               if (unlocked) onSelect(world);
+              else onLockedWorld(world);
             }}
             aria-label={`${world.title}${unlocked ? '' : ' locked'}`}
           >
@@ -243,7 +249,7 @@ function WorldProgressPanel({ world }: { world: AdventureWorld }) {
   );
 }
 
-function RewardsPanel({ world }: { world: AdventureWorld }) {
+function RewardsPanel({ world, onViewRewards }: { world: AdventureWorld; onViewRewards: () => void }) {
   return (
     <div
       className="absolute bottom-[28px] left-[1006px] z-30 flex h-[142px] w-[386px] items-center gap-3.5 overflow-hidden rounded-[26px] border-[4px] border-[#E0A543] bg-[#17165D] p-4 text-white shadow-[inset_0_4px_0_rgba(255,245,187,.22),inset_0_-10px_0_rgba(25,11,58,.36),0_7px_0_rgba(80,48,20,.5),0_20px_26px_rgba(0,30,62,.42)]"
@@ -260,7 +266,7 @@ function RewardsPanel({ world }: { world: AdventureWorld }) {
       <div className="relative min-w-0 flex-1">
         <div className="truncate text-[16px] font-bold leading-tight">{world.title}</div>
         <div className="line-clamp-2 text-[11px] font-bold leading-snug text-white/86">{world.id < 6 ? `បញ្ចប់ 8 មេរៀន និង Boss ដើម្បីបើក World ${world.id + 1}។` : 'ឈ្នះ Boss ចុងក្រោយ ដើម្បីបញ្ចប់ Adventure។'}</div>
-        <GameButton variant="gold" size="lg" className="mt-2 h-[36px] min-w-[148px] rounded-[18px] text-[13px]">
+        <GameButton variant="gold" size="lg" className="mt-2 h-[36px] min-w-[148px] rounded-[18px] text-[13px]" onClick={onViewRewards}>
           View Rewards
         </GameButton>
       </div>
@@ -273,6 +279,8 @@ export default function WorldMapPage() {
   const [worlds, setWorlds] = useState<AdventureWorld[]>(() => buildAdventureWorlds());
   const [studentProgress, setStudentProgress] = useState<StudentProgress>(() => loadStudentProgress());
   const [activeWorldId, setActiveWorldId] = useState(1);
+  const [modal, setModal] = useState<MapModal>(null);
+  const [lockedWorldTitle, setLockedWorldTitle] = useState('');
   const activeWorld = worlds.find((world) => world.id === activeWorldId) ?? worlds[0];
   const firstCurrentLesson = activeWorld.lessons.find((lesson) => getLessonState(activeWorld, lesson) === 'current') ?? activeWorld.lessons[0];
   const [selectedId, setSelectedId] = useState<AdventureNodeId>(firstCurrentLesson.id);
@@ -303,10 +311,17 @@ export default function WorldMapPage() {
   };
 
   const startSelectedLesson = () => {
-    if (selectedState === 'locked') return;
+    if (selectedState === 'locked') {
+      setModal('locked');
+      return;
+    }
     const query = `world=${activeWorld.id}&level=${selected.id}`;
     navigate(selected.id === 'boss' ? `/battle?${query}` : `/lesson?${query}`);
   };
+
+  const lockedReason = selected.id === 'boss'
+    ? 'Complete all 8 lessons in this world before starting the Boss challenge.'
+    : `Complete Level ${Math.max(1, Number(selected.id) - 1)} before starting this lesson.`;
 
   return (
     <PageTransition>
@@ -332,6 +347,7 @@ export default function WorldMapPage() {
         </svg>
 
         <button
+          type="button"
           className="pointer-events-auto absolute left-[62px] top-[26px] z-40 grid h-[58px] w-[58px] cursor-pointer place-items-center rounded-[20px] border-[3px] border-[#7C451F] bg-gradient-to-b from-[#FFE7A8] via-[#D99230] to-[#7A3E18] text-white shadow-[inset_0_3px_0_rgba(255,255,255,.45),inset_0_-7px_0_rgba(75,35,10,.35),0_5px_0_rgba(93,52,17,.55),0_12px_18px_rgba(0,29,60,.35)]"
           onClick={() => navigate('/')}
           aria-label="Back"
@@ -344,22 +360,41 @@ export default function WorldMapPage() {
         </div>
 
         <div className="absolute left-[72px] top-[338px] z-30 flex w-[108px] flex-col items-center gap-10">
-          {sideActions.map((item) => <SideMenuCard key={item.title} {...item} />)}
+          {sideActions.map((item) => (
+            <SideMenuCard
+              key={item.title}
+              {...item}
+              onClick={() => {
+                if (item.title === 'Treasure') setModal('treasure');
+                if (item.title === 'Daily Quests') setModal('quests');
+                if (item.title === 'Achievements') setModal('achievements');
+                if (item.title === 'Guide') setModal('guide');
+              }}
+            />
+          ))}
         </div>
 
         <div className="absolute left-1/2 top-[24px] z-40 flex -translate-x-1/2 items-center gap-8">
-          <HudPill icon="heart" value={`${resources.hearts}/${resources.maxHearts}`} label="Full" />
-          <HudPill icon="zap" value={studentProgress.totalXP.toLocaleString()} label="Typing XP" />
-          <HudPill icon="flame" value={`${studentProgress.currentStreak} day`} label="Streak" />
+          <HudPill icon="heart" value={`${resources.hearts}/${resources.maxHearts}`} label="Full" onClick={() => setModal('resource')} />
+          <HudPill icon="zap" value={studentProgress.totalXP.toLocaleString()} label="Typing XP" onClick={() => navigate('/dashboard')} />
+          <HudPill icon="flame" value={`${studentProgress.currentStreak} day`} label="Streak" onClick={() => navigate('/dashboard')} />
         </div>
 
         <div className="absolute right-[62px] top-[24px] z-40 flex items-center gap-3">
-          <RoundHudButton icon={<Mail size={31} />} badge="3" label="Mail" />
-          <RoundHudButton icon={<Trophy size={31} />} label="Trophy" />
-          <RoundHudButton icon={<Settings size={31} />} label="Settings" />
+          <RoundHudButton icon={<Mail size={31} />} badge="3" label="Mail" onClick={() => setModal('mail')} />
+          <RoundHudButton icon={<Trophy size={31} />} label="Trophy" onClick={() => setModal('trophy')} />
+          <RoundHudButton icon={<Settings size={31} />} label="Settings" onClick={() => setModal('settings')} />
         </div>
 
-        <WorldSelector worlds={worlds} activeWorld={activeWorld} onSelect={selectWorld} />
+        <WorldSelector
+          worlds={worlds}
+          activeWorld={activeWorld}
+          onSelect={selectWorld}
+          onLockedWorld={(world) => {
+            setLockedWorldTitle(world.title);
+            setModal('worldLocked');
+          }}
+        />
 
         {mapNodeLayout.map((node) => {
           const lesson = activeWorld.lessons.find((item) => item.id === node.id);
@@ -379,6 +414,7 @@ export default function WorldMapPage() {
               style={{ left: node.x, top: node.y }}
               onClick={() => {
                 setSelectedId(lesson.id);
+                if (state === 'locked') setModal('locked');
               }}
             />
           );
@@ -386,7 +422,7 @@ export default function WorldMapPage() {
 
         <MissionPanel selected={selected} world={activeWorld} state={selectedState} />
         <WorldProgressPanel world={activeWorld} />
-        <RewardsPanel world={activeWorld} />
+        <RewardsPanel world={activeWorld} onViewRewards={() => setModal('rewards')} />
 
         <div className="absolute bottom-[46px] right-[48px] z-40">
           <button
@@ -394,6 +430,7 @@ export default function WorldMapPage() {
             className="pointer-events-auto relative h-[82px] w-[320px] cursor-pointer overflow-hidden rounded-[32px] border-[4px] border-[#0C8B39] bg-gradient-to-b from-[#7CFF61] via-[#33D94F] to-[#15A947] px-7 text-[26px] font-bold text-white shadow-[inset_0_-11px_0_rgba(0,91,50,.34),0_6px_0_rgba(0,103,60,.72),0_16px_22px_rgba(0,43,74,.36)] transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:grayscale"
             onClick={startSelectedLesson}
             disabled={selectedState === 'locked'}
+            title={selectedState === 'locked' ? lockedReason : undefined}
           >
             <span className="pointer-events-none absolute left-[14px] right-[14px] top-[7px] h-[27px] rounded-full bg-white/42" />
             <span className="relative flex items-center justify-center gap-3 drop-shadow-[0_2px_1px_rgba(0,101,45,.55)]">
@@ -403,6 +440,36 @@ export default function WorldMapPage() {
             </span>
           </button>
         </div>
+
+        <ActionModal open={modal === 'settings'} title="Settings" onClose={() => setModal(null)}>
+          Settings will be available soon. Progress is currently saved automatically after lesson and boss completion.
+        </ActionModal>
+        <ActionModal open={modal === 'guide'} title="How to Play" onClose={() => setModal(null)}>
+          <p>Choose an unlocked lesson, then type the Khmer text exactly as shown.</p>
+          <p>Accuracy matters more than speed for beginners. CPM means characters per minute.</p>
+          <p>Use the keyboard and hand hints, complete lessons to unlock harder stages, and beat Boss mode by reaching the accuracy and CPM target.</p>
+        </ActionModal>
+        <ActionModal open={modal === 'locked'} title="Locked Lesson" onClose={() => setModal(null)}>
+          {lockedReason}
+        </ActionModal>
+        <ActionModal open={modal === 'worldLocked'} title="Locked World" onClose={() => setModal(null)}>
+          {lockedWorldTitle || 'This world'} is locked. Complete the previous world, including its Boss challenge, to unlock it.
+        </ActionModal>
+        <ActionModal open={modal === 'rewards' || modal === 'treasure'} title="Rewards" onClose={() => setModal(null)}>
+          Rewards are earned after lessons and Boss battles. Complete this world to unlock the treasure for the next adventure path.
+        </ActionModal>
+        <ActionModal open={modal === 'quests'} title="Daily Quests" onClose={() => setModal(null)}>
+          Daily missions are coming soon. Today, the best mission is to complete the current unlocked lesson with high accuracy.
+        </ActionModal>
+        <ActionModal open={modal === 'achievements' || modal === 'trophy'} title="Achievements" onClose={() => setModal(null)}>
+          Open the dashboard to see earned badges, locked badges, recent lesson results, weak keys, and progress toward the next lesson.
+        </ActionModal>
+        <ActionModal open={modal === 'mail'} title="Mail" onClose={() => setModal(null)}>
+          Adventure mail is coming soon. Lesson results and progress feedback are available on the dashboard.
+        </ActionModal>
+        <ActionModal open={modal === 'resource'} title="Hearts" onClose={() => setModal(null)}>
+          Hearts are a status display in this version. More heart actions will be available later.
+        </ActionModal>
       </GameScreen>
     </PageTransition>
   );

@@ -35,13 +35,15 @@ export default function GameButton({
   rightIcon,
   className,
   type = 'button',
+  disabled,
   ...props
 }: GameButtonProps) {
   return (
     <motion.button
       type={type}
-      whileHover={{ y: -2, scale: 1.01 }}
-      whileTap={{ y: 2, scale: 0.98 }}
+      disabled={disabled}
+      whileHover={disabled ? undefined : { y: -2, scale: 1.01 }}
+      whileTap={disabled ? undefined : { y: 2, scale: 0.98 }}
       className={cn(
         'pointer-events-auto relative inline-flex cursor-pointer items-center justify-center gap-2 overflow-hidden border-[2px] bg-gradient-to-b font-black shadow-[inset_0_-4px_0_rgba(0,0,0,.16),0_8px_14px_rgba(0,0,0,.16)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 disabled:cursor-not-allowed disabled:opacity-60 before:pointer-events-none before:absolute before:inset-x-4 before:top-1.5 before:h-1/3 before:rounded-full before:bg-white/28 before:content-[""]',
         variants[variant],

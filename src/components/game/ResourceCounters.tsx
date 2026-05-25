@@ -27,13 +27,13 @@ export function TopResources({ resources, compact = false, variant = 'default' }
       <HeartCounter hearts={resources.hearts} maxHearts={resources.maxHearts} />
       {!compact && (
         <>
-          <button className={iconButtonClass} aria-label="Mail">
+          <button type="button" className={`${iconButtonClass} disabled:cursor-not-allowed disabled:opacity-60`} aria-label="Mail coming soon" disabled title="Mail coming soon">
             <Mail size={22} />
           </button>
-          <button className={iconButtonClass} aria-label="Trophy">
+          <button type="button" className={`${iconButtonClass} disabled:cursor-not-allowed disabled:opacity-60`} aria-label="Trophy details coming soon" disabled title="Trophy details coming soon">
             <Trophy size={22} />
           </button>
-          <button className={iconButtonClass} aria-label="Settings">
+          <button type="button" className={`${iconButtonClass} disabled:cursor-not-allowed disabled:opacity-60`} aria-label="Settings coming soon" disabled title="Settings coming soon">
             <Settings size={22} />
           </button>
         </>

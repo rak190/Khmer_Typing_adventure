@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -15,6 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import LizardMascot from '../components/characters/LizardMascot';
+import ActionModal from '../components/game-ui/ActionModal';
 import GameBadge from '../components/game-ui/GameBadge';
 import GameButton from '../components/game-ui/GameButton';
 import GameHudCounter from '../components/game-ui/GameHudCounter';
@@ -54,7 +56,7 @@ const pathStages = [
 const badgeVariants = ['newbie', 'rising-star', 'skilled', 'boss-slayer', 'legend'] as const;
 const stageKhmerLabels = ['ព្យញ្ជនៈ', 'ស្រៈ', 'ពាក្យងាយ', 'ប្រយោគ', 'មេប្រយុទ្ធ', ''];
 
-function TopNav() {
+function TopNav({ onOpenModal }: { onOpenModal: (modal: HomeModal) => void }) {
   return (
     <header className="absolute left-0 top-0 z-40 h-[92px] w-full rounded-b-[18px] bg-gradient-to-b from-[#075ED0] via-[#004AAE] to-[#003382] shadow-[0_9px_22px_rgba(0,35,105,.32)]">
       <Link to="/" className="pointer-events-auto absolute left-[46px] top-[-10px] h-[166px] w-[250px] cursor-pointer">
@@ -81,7 +83,7 @@ function TopNav() {
       </nav>
 
       <div className="absolute right-[30px] top-[18px] flex items-center gap-3">
-        <GameHudCounter type="coins" value={resources.coins} showPlus className="h-[56px] min-h-0 min-w-[132px] rounded-[23px] px-3 py-2 text-[15px]" />
+        <GameHudCounter type="coins" value={resources.coins} showPlus onAdd={() => onOpenModal('coins')} className="h-[56px] min-h-0 min-w-[132px] rounded-[23px] px-3 py-2 text-[15px]" />
         <GameHudCounter type="hearts" value={`${resources.hearts}/${resources.maxHearts}`} label="Full" className="h-[56px] min-h-0 min-w-[126px] rounded-[23px] px-3 py-2 text-[15px]" />
         <Link
           to="/dashboard"
@@ -132,13 +134,17 @@ function IslandStage({ stage, index }: { stage: (typeof pathStages)[number]; ind
   );
 }
 
+type HomeModal = 'coins' | 'badges' | null;
+
 export default function HomePage() {
+  const [modal, setModal] = useState<HomeModal>(null);
+
   return (
     <PageTransition>
       <GameScreen background={backgroundImages.home} reference="/src/reference/home-reference.png" fit="width" designHeight={1380} className="font-sans text-[#102654]">
         <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(255,255,255,.04)_0%,rgba(255,255,255,0)_42%,rgba(201,238,255,.72)_80%,rgba(255,255,255,.96)_100%)]" />
 
-        <TopNav />
+        <TopNav onOpenModal={setModal} />
 
         <main className="absolute inset-0 z-20">
           <section className="absolute left-[172px] top-[188px] z-30 w-[650px]">
@@ -234,7 +240,7 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-              <GameButton variant="purple" size="sm" className="h-[46px] min-w-[166px] rounded-[24px] text-[13px]">
+              <GameButton variant="purple" size="sm" className="h-[46px] min-w-[166px] rounded-[24px] text-[13px]" onClick={() => setModal('badges')}>
                 View All Badges
               </GameButton>
             </div>
@@ -323,6 +329,13 @@ export default function HomePage() {
             </div>
           </footer>
         </main>
+
+        <ActionModal open={modal === 'coins'} title="Coins Coming Soon" onClose={() => setModal(null)}>
+          Coin purchases and bonus coin actions are coming soon. For now, coins are earned by completing typing lessons and boss challenges.
+        </ActionModal>
+        <ActionModal open={modal === 'badges'} title="Badges" onClose={() => setModal(null)}>
+          Open the dashboard to review earned badges, locked badges, weak keys, and recent lesson results.
+        </ActionModal>
       </GameScreen>
     </PageTransition>
   );

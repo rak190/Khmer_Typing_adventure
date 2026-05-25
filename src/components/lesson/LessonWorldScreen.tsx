@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameScreen from '../layout/GameScreen';
 import PageTransition from '../layout/PageTransition';
+import ActionModal from '../game-ui/ActionModal';
 import { backgroundImages } from '../../assets/assetManifest';
 import { saveLessonProgressToFirebase, saveMockLessonProgress } from '../../data/mockData';
 import { findKhmerKeyByCode, getKhmerKeyboardInput } from '../../data/keyboardMap';
@@ -146,6 +147,8 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   const [runState, setRunState] = useState<LessonRunState>(() => getInitialRunState());
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [newBadges, setNewBadges] = useState<StudentBadge[]>([]);
+  const [modal, setModal] = useState<'pause' | 'settings' | 'continueLocked' | null>(null);
+  const [initialProgress] = useState(() => loadStudentProgress());
   const [, setClockTick] = useState(0);
   const feedbackTimeoutRef = useRef<number | undefined>(undefined);
   const progressSavedRef = useRef(false);
@@ -153,11 +156,14 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   const activeTarget = targetUnits[Math.min(runState.completedInputCount, Math.max(0, targetUnits.length - 1))];
   const typedText = getTypedText(targetUnits, runState.completedInputCount);
   const currentTargetText = getCurrentTargetText(targetUnits, runState.completedInputCount);
-  const metrics = buildMetrics(runState, targetUnits, speedTargetCpm, minimumAccuracy);
+  const metrics = useMemo(
+    () => buildMetrics(runState, targetUnits, speedTargetCpm, minimumAccuracy),
+    [minimumAccuracy, runState, speedTargetCpm, targetUnits],
+  );
   const liveScore = metrics.finalScore;
   const weakKeys = summarizeWeakKeyStats(runState.weakKeyStats, 5);
   const resultLessonId = practiceMode === 'weak' ? 'weak-key-practice' : structuredLesson?.lessonId ?? `${world.id}:${lesson.id}`;
-  const previousBestScore = getBestScoreForLesson(loadStudentProgress(), resultLessonId);
+  const previousBestScore = getBestScoreForLesson(initialProgress, resultLessonId);
   const finalXpEarned = calculateLessonXP({
     passed: metrics.passed,
     baseXP: structuredLesson?.xpReward ?? (practiceMode === 'weak' ? 65 : 90),
@@ -208,7 +214,7 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   }
 
   function handleBackspace() {
-    if (runState.finished) return;
+    if (runState.finished || modal) return;
 
     updateRunState((current) => {
       const removedTarget = targetUnits[Math.max(0, current.completedInputCount - 1)];
@@ -223,7 +229,7 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   }
 
   function handleTypedValue(value: string, code: string) {
-    if (runState.finished || !activeTarget) return;
+    if (runState.finished || modal || !activeTarget) return;
 
     if (khmerTextEquals(value, activeTarget.value)) {
       updateRunState((current, now) => {
@@ -255,6 +261,7 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   }
 
   function handleKeyboardPress(code: string) {
+    if (modal) return;
     if (code === 'Backspace') {
       handleBackspace();
       return;
@@ -268,14 +275,22 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   }
 
   const handleKeyboardPressRef = useRef(handleKeyboardPress);
+  const handleTypedValueRef = useRef(handleTypedValue);
+  const modalRef = useRef(modal);
+  const handleKeyboardButtonPress = useCallback((code: string) => {
+    handleKeyboardPressRef.current(code);
+  }, []);
 
   useEffect(() => {
     handleKeyboardPressRef.current = handleKeyboardPress;
+    handleTypedValueRef.current = handleTypedValue;
+    modalRef.current = modal;
   });
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const usingAltGr = event.getModifierState?.('AltGraph') || (event.ctrlKey && event.altKey);
+      if (modalRef.current) return;
       if ((event.ctrlKey || event.metaKey) && !usingAltGr) return;
       if (event.code === 'Space' || event.code === 'Backspace' || event.code === 'Tab') event.preventDefault();
       if (event.repeat) return;
@@ -290,12 +305,12 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
       if (!keyboardInput) return;
 
       event.preventDefault();
-      handleTypedValue(keyboardInput.value, keyboardInput.key.code);
+      handleTypedValueRef.current(keyboardInput.value, keyboardInput.key.code);
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  });
+  }, []);
 
   useEffect(() => {
     if (runState.startedAt === null || runState.finished) return undefined;
@@ -376,7 +391,15 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#57D6FF]/10 via-transparent to-[#092A28]/34" />
         <div className="temple-silhouette pointer-events-none opacity-40" />
 
-        <LessonHud score={liveScore} streak={runState.streak} accuracy={metrics.accuracy} cpm={metrics.cpm} xpEarned={displayedXpEarned} />
+        <LessonHud
+          score={liveScore}
+          streak={runState.streak}
+          accuracy={metrics.accuracy}
+          cpm={metrics.cpm}
+          xpEarned={displayedXpEarned}
+          onPause={() => setModal('pause')}
+          onSettings={() => setModal('settings')}
+        />
 
         <TypingTargetCard
           lessonTitle={`${world.title} - ${lesson.labelEn}`}
@@ -404,7 +427,7 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
           activeFinger={fingerGuidance.activeFinger}
           hintLabel={handHint}
           keyLabel={keyHint}
-          onKeyPress={handleKeyboardPress}
+          onKeyPress={handleKeyboardButtonPress}
         />
 
         <QuestScroll
@@ -450,10 +473,21 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
               completedAt: new Date().toISOString(),
             })}
             onContinue={() => navigate('/map')}
+            onContinueUnavailable={() => setModal('continueLocked')}
             onRetry={resetLesson}
             onPracticeWeakKeys={() => navigate('/lesson?practice=weak')}
           />
         )}
+
+        <ActionModal open={modal === 'pause'} title="Lesson Paused" onClose={() => setModal(null)}>
+          Close this dialog to continue typing. Progress for this run is saved when the lesson result is complete.
+        </ActionModal>
+        <ActionModal open={modal === 'settings'} title="Settings" onClose={() => setModal(null)}>
+          Settings will be available soon. Sound and music controls are not active in this lesson build yet.
+        </ActionModal>
+        <ActionModal open={modal === 'continueLocked'} title="Accuracy Needed" onClose={() => setModal(null)}>
+          Continue unlocks after passing the lesson. Replay and focus on careful Khmer typing until accuracy reaches {minimumAccuracy}%.
+        </ActionModal>
       </GameScreen>
     </PageTransition>
   );

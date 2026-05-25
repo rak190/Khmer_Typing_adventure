@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { handImages } from '../../assets/assetManifest';
 import { cn } from '../../lib/cn';
 import type { FingerGuidance, FingerHighlight, FingerName, HandSide } from '../../lib/fingerGuidance';
@@ -75,7 +76,7 @@ function HandCard({
   );
 }
 
-export default function TypingHands({ guidance }: TypingHandsProps) {
+function TypingHands({ guidance }: TypingHandsProps) {
   return (
     <div
       className="pointer-events-none absolute inset-0 z-[25]"
@@ -88,3 +89,5 @@ export default function TypingHands({ guidance }: TypingHandsProps) {
     </div>
   );
 }
+
+export default memo(TypingHands);
