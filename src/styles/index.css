@@ -437,6 +437,117 @@ a:focus-visible {
     0 0 18px rgba(255, 226, 109, 0.42);
 }
 
+.lesson-side-hand-card {
+  position: absolute;
+  top: 205px;
+  width: 242px;
+  height: 286px;
+  border: 2px solid rgba(126, 216, 255, 0.28);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255, 226, 109, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(5, 35, 65, 0.54), rgba(3, 22, 42, 0.28));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 14px 22px rgba(0, 31, 60, 0.18);
+  overflow: hidden;
+}
+
+.lesson-side-hand-card--left {
+  left: 62px;
+}
+
+.lesson-side-hand-card--right {
+  left: 1288px;
+}
+
+.lesson-side-hand-card--active {
+  border-color: rgba(255, 226, 109, 0.48);
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 226, 109, 0.18), transparent 38%),
+    linear-gradient(180deg, rgba(7, 48, 84, 0.66), rgba(4, 28, 51, 0.36));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 0 20px rgba(255, 226, 109, 0.12),
+    0 16px 24px rgba(0, 31, 60, 0.2);
+}
+
+.lesson-side-hand-label {
+  position: absolute;
+  inset-inline: 14px;
+  top: 13px;
+  z-index: 4;
+  border: 1px solid rgba(255, 226, 109, 0.45);
+  border-radius: 14px;
+  background: rgba(5, 35, 65, 0.72);
+  color: #fff2b4;
+  padding: 8px 10px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.18;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.lesson-side-hand-figure {
+  position: absolute;
+  inset: 58px 8px 6px;
+}
+
+.lesson-side-hand-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter:
+    drop-shadow(0 10px 12px rgba(22, 12, 6, 0.18))
+    drop-shadow(0 0 10px rgba(255, 226, 109, 0.08));
+}
+
+.lesson-finger-marker {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 2px solid rgba(220, 244, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(6, 31, 55, 0.42);
+  color: transparent;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
+.lesson-finger-marker--target,
+.lesson-finger-marker--shift {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.84);
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 18%, rgba(255, 226, 109, 0.88) 20% 48%, rgba(255, 154, 73, 0.48) 49% 100%);
+  box-shadow:
+    0 0 0 5px rgba(255, 226, 109, 0.2),
+    0 0 20px rgba(255, 226, 109, 0.74);
+}
+
+.lesson-finger-marker--shift {
+  width: 48px;
+  height: 24px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 22% 50%, rgba(255, 255, 255, 0.92) 0 12%, transparent 13%),
+    linear-gradient(90deg, rgba(126, 216, 255, 0.95), rgba(255, 226, 109, 0.88));
+  color: #10334f;
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 0 5px rgba(126, 216, 255, 0.16),
+    0 0 18px rgba(126, 216, 255, 0.72);
+}
+
 .lesson-finger-hint-panel {
   display: flex;
   min-height: 50px;
@@ -1093,8 +1204,66 @@ a:focus-visible {
     border-radius: 7px;
   }
 
+  .lesson-side-hand-card {
+    top: 220px;
+    width: 220px;
+    height: 258px;
+  }
+
+  .lesson-side-hand-card--left {
+    left: 74px;
+  }
+
+  .lesson-side-hand-card--right {
+    left: 1300px;
+  }
+
+  .lesson-side-hand-label {
+    font-size: 13px;
+    padding: 7px 9px;
+  }
+
   .lesson-finger-strip {
     inset-inline: 180px;
+  }
+}
+
+@media (max-width: 700px) {
+  .lesson-side-hand-card {
+    top: 545px;
+    width: 210px;
+    height: 118px;
+    border-radius: 18px;
+  }
+
+  .lesson-side-hand-card--left {
+    left: 530px;
+  }
+
+  .lesson-side-hand-card--right {
+    left: 760px;
+  }
+
+  .lesson-side-hand-label {
+    inset-inline: 10px;
+    top: 8px;
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .lesson-side-hand-figure {
+    inset: 32px 16px 0;
+  }
+
+  .lesson-finger-marker {
+    width: 17px;
+    height: 17px;
+  }
+
+  .lesson-finger-marker--shift {
+    width: 38px;
+    height: 19px;
+    font-size: 8px;
   }
 }
 

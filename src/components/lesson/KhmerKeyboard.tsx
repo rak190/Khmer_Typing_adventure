@@ -1,7 +1,7 @@
 import { khmerKeyboardRows } from '../../data/keyboardMap';
 import type { KhmerKeyboardKey } from '../../data/keyboardMap';
+import type { FingerId } from '../../lib/fingerGuidance';
 import KeyboardKey from './KeyboardKey';
-import TypingHands, { type FingerId } from './TypingHands';
 
 type KhmerKeyboardProps = {
   activeCode: string;
@@ -23,7 +23,7 @@ function getKeyState(keyData: KhmerKeyboardKey, activeCode: string, shiftRequire
   return 'normal';
 }
 
-export default function KhmerKeyboard({ activeCode, shiftRequired = false, feedbackCode, feedbackState, activeHand, activeFinger, onKeyPress }: KhmerKeyboardProps) {
+export default function KhmerKeyboard({ activeCode, shiftRequired = false, feedbackCode, feedbackState, onKeyPress }: KhmerKeyboardProps) {
   return (
     <section data-testid="khmer-keyboard" className="pointer-events-none absolute left-[132px] top-[672px] z-20 h-[370px] w-[1318px]">
       <div className="lesson-keyboard-deck relative h-full px-4 pb-7 pt-5">
@@ -42,7 +42,6 @@ export default function KhmerKeyboard({ activeCode, shiftRequired = false, feedb
             </div>
           ))}
         </div>
-        <TypingHands activeHand={activeHand} activeFinger={activeFinger} />
       </div>
     </section>
   );
