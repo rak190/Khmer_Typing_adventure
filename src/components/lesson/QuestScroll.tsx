@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, Gauge, Lock, ScrollText, Star, Target, Zap } from 'lucide-react';
+import { Check, Lock, ScrollText, Star, Zap } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
 export type QuestStageState = {
@@ -14,10 +14,6 @@ type QuestScrollProps = {
   keyHint: string;
   handHint: string;
   stages: QuestStageState[];
-  accuracy: number;
-  minimumAccuracy: number;
-  cpm: number;
-  speedTargetCpm: number;
   stars: number;
   xp: number;
 };
@@ -34,15 +30,10 @@ export default function QuestScroll({
   keyHint,
   handHint,
   stages,
-  accuracy,
-  minimumAccuracy,
-  cpm,
-  speedTargetCpm,
   stars,
   xp,
 }: QuestScrollProps) {
   const progressPercent = total > 0 ? Math.min(100, Math.round((progress / total) * 100)) : 0;
-  const belowAccuracyTarget = accuracy < minimumAccuracy;
   const shortFingerHint = handHint.replace(/^Use /, 'Use ');
 
   return (
@@ -120,25 +111,6 @@ export default function QuestScroll({
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="mt-5 border-t-2 border-[#B58749]/35 pt-4">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-[13px] border border-[#B58749]/45 bg-white/42 p-3 shadow-inner">
-            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-black uppercase text-[#754617]"><Target size={14} /> Accuracy</div>
-            <div className="text-[20px] font-black text-[#24395F]">{accuracy}% <span className="text-[12px] text-[#755126]">/ {minimumAccuracy}%</span></div>
-          </div>
-          <div className="rounded-[13px] border border-[#B58749]/45 bg-white/42 p-3 shadow-inner">
-            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-black uppercase text-[#754617]"><Gauge size={14} /> CPM</div>
-            <div className="text-[20px] font-black text-[#24395F]">{cpm} <span className="text-[12px] text-[#755126]">/ {speedTargetCpm}</span></div>
-          </div>
-        </div>
-        {belowAccuracyTarget && (
-          <div className="mt-2 flex items-start gap-2 rounded-[12px] border border-[#C67A2F]/45 bg-[#FFF0C7] px-3 py-2 text-[12px] font-black leading-snug text-[#8A4C16]">
-            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-            <span>Slow down and focus on correct keys.</span>
-          </div>
-        )}
       </div>
 
       <div className="mt-5 border-t-2 border-[#B58749]/35 pt-4">
