@@ -13,12 +13,12 @@ import GameIcon from '../components/game-ui/GameIcon';
 import { getCurriculumLevel, getCurriculumWorld, lessonCurriculum } from '../data/lessonCurriculum';
 import { getStructuredLessonByRoute } from '../data/typingProgression';
 import {
-  getKhmerKeyboardValue,
   getLessonProgressRecords,
   resources,
   saveLessonProgressToFirebase,
   saveMockLessonProgress,
 } from '../data/mockData';
+import { getKhmerKeyboardInput } from '../data/keyboardMap';
 import type { KeyboardKeyData } from '../types/game';
 import { countKhmerCharacters, countKhmerWords, khmerTextEquals, normalizeKhmerText } from '../lib/khmerText';
 import {
@@ -83,8 +83,8 @@ function addWeakKeyStat(stats: WeakKeyStatRecord, value: string, field: 'mistake
   };
 }
 
-function getBossTimerSeconds(itemCount: number) {
-  return Math.max(75, Math.min(180, itemCount * 8 + 45));
+function getBossTimerSeconds(itemCount: number, khmerCharacterCount: number) {
+  return Math.max(120, Math.min(420, Math.ceil(khmerCharacterCount * 1.55 + itemCount * 5)));
 }
 
 function getBossMaxHp(itemCount: number) {
@@ -109,6 +109,7 @@ export default function BattlePage() {
   const structuredBossLesson = getStructuredLessonByRoute(world.id, 'boss');
   const battleItems = useMemo(() => bossLesson.stages.flatMap((stage) => stage.items).filter(Boolean), [bossLesson]);
   const targetText = useMemo(() => battleItems.join(' '), [battleItems]);
+  const targetKhmerCharacterCount = useMemo(() => countKhmerCharacters(targetText), [targetText]);
   const bossTargets = useMemo(() => {
     const curriculumTargets = getBossTargets(world.id, bossLesson);
     return {
@@ -118,7 +119,7 @@ export default function BattlePage() {
     };
   }, [bossLesson, structuredBossLesson, world.id]);
   const bossMaxHp = useMemo(() => getBossMaxHp(battleItems.length), [battleItems.length]);
-  const initialTimer = useMemo(() => getBossTimerSeconds(battleItems.length), [battleItems.length]);
+  const initialTimer = useMemo(() => getBossTimerSeconds(battleItems.length, targetKhmerCharacterCount), [battleItems.length, targetKhmerCharacterCount]);
 
   const [wordIndex, setWordIndex] = useState(0);
   const [typed, setTyped] = useState('');
@@ -132,13 +133,13 @@ export default function BattlePage() {
   const [newBadges, setNewBadges] = useState<StudentBadge[]>([]);
   const progressSavedRef = useRef(false);
 
-  const currentWord = battleItems[wordIndex % Math.max(1, battleItems.length)] ?? 'សាលា';
+  const currentWord = battleItems[Math.min(wordIndex, Math.max(0, battleItems.length - 1))] ?? 'សាលា';
   const currentUnits = useMemo(() => Array.from(normalizeKhmerText(currentWord)), [currentWord]);
   const typedUnits = useMemo(() => Array.from(normalizeKhmerText(typed)), [typed]);
   const activeKey = currentUnits[typedUnits.length] ?? '';
   const wordTextSize = currentWord.length > 42 ? 'text-2xl' : currentWord.length > 24 ? 'text-3xl' : currentWord.length > 12 ? 'text-4xl' : 'text-6xl';
   const correctPrefix = useMemo(() => normalizeKhmerText(currentWord).startsWith(normalizeKhmerText(typed)), [currentWord, typed]);
-  const bossDefeated = bossHp <= 0;
+  const bossDefeated = battleItems.length > 0 && wordIndex >= battleItems.length;
   const bossFailed = !bossDefeated && (timer <= 0 || playerHp <= 0);
   const battleFinished = bossDefeated || bossFailed;
   const elapsedMs = Math.max(1000, elapsedSeconds * 1000);
@@ -188,8 +189,10 @@ export default function BattlePage() {
   const completeCorrectWord = useCallback(() => {
     if (battleFinished) return;
 
-    const nextDamage = 30 + stats.streak * 4;
     const completedWord = currentWord;
+    const completedCount = Math.min(battleItems.length, wordIndex + 1);
+    const nextBossHp = Math.max(0, Math.round(bossMaxHp * (1 - completedCount / Math.max(1, battleItems.length))));
+    const nextDamage = Math.max(1, bossHp - nextBossHp);
 
     setStats((current) => {
       const nextStreak = current.streak + 1;
@@ -201,17 +204,14 @@ export default function BattlePage() {
         bestStreak: Math.max(current.bestStreak, nextStreak),
       };
     });
-    setBossHp((hp) => {
-      const nextHp = Math.max(0, hp - nextDamage);
-      return nextHp;
-    });
+    setBossHp(nextBossHp);
     setWordIndex((next) => next + 1);
     setTyped('');
     setDamage(nextDamage);
     setAttack(true);
     window.setTimeout(() => setAttack(false), 420);
     window.setTimeout(() => setDamage(null), 800);
-  }, [battleFinished, currentWord, stats.streak]);
+  }, [battleFinished, battleItems.length, bossHp, bossMaxHp, currentWord, wordIndex]);
 
   const registerMistake = useCallback((expectedValue: string) => {
     setStats((current) => ({
@@ -297,10 +297,10 @@ export default function BattlePage() {
         event.preventDefault();
         handlePress({ label: 'Backspace', value: '', action: 'backspace' });
       } else if (event.key.length === 1) {
-        const mappedKey = getKhmerKeyboardValue(event);
+        const mappedKey = getKhmerKeyboardInput(event);
         if (!mappedKey) return;
         event.preventDefault();
-        appendValue(mappedKey);
+        appendValue(mappedKey.value);
       }
     };
     window.addEventListener('keydown', onKeyDown);

@@ -19,12 +19,12 @@ export default function GameKeyboard({ rows, activeKey, feedbackKey, feedbackSta
   useEffect(() => {
     const updateModifier = (event: KeyboardEvent) => {
       const usingAltGr = event.getModifierState?.('AltGraph') || (event.ctrlKey && event.altKey);
-      setModifier(usingAltGr ? 'altgr' : event.shiftKey || event.getModifierState?.('CapsLock') ? 'shift' : 'base');
+      setModifier(usingAltGr ? 'altgr' : event.shiftKey ? 'shift' : 'base');
     };
 
     const resetModifier = (event: KeyboardEvent) => {
       const usingAltGr = event.getModifierState?.('AltGraph') || (event.ctrlKey && event.altKey);
-      setModifier(usingAltGr ? 'altgr' : event.shiftKey || event.getModifierState?.('CapsLock') ? 'shift' : 'base');
+      setModifier(usingAltGr ? 'altgr' : event.shiftKey ? 'shift' : 'base');
     };
 
     window.addEventListener('keydown', updateModifier);
