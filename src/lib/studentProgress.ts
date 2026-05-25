@@ -132,7 +132,11 @@ export function createEmptyStudentProgress(): StudentProgress {
 function getStorage(storage?: StorageLike): StorageLike | null {
   if (storage) return storage;
   if (typeof window === 'undefined') return null;
-  return window.localStorage;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }
 
 function normalizeBadge(value: Partial<StudentBadge>): StudentBadge | null {

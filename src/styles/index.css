@@ -352,14 +352,21 @@ a:focus-visible {
   scrollbar-color: rgba(126, 216, 255, 0.46) rgba(3, 21, 39, 0.34);
 }
 
+.boss-keyboard-dock .boss-keyboard-scroll {
+  margin-inline: auto;
+  padding-bottom: 0;
+  width: min(1080px, 80vw);
+  max-width: calc(100vw - 2rem);
+}
+
 .boss-lesson-keyboard {
   min-width: 1050px;
 }
 
 .boss-lesson-keyboard--compact {
-  min-width: 900px;
-  padding-bottom: 0.75rem;
-  padding-top: 0.75rem;
+  min-width: 1010px;
+  padding-bottom: 0.7rem;
+  padding-top: 0.7rem;
 }
 
 .boss-lesson-keyboard .lesson-stone-key {
@@ -369,10 +376,10 @@ a:focus-visible {
 }
 
 .boss-lesson-keyboard--compact .lesson-stone-key {
-  height: 34px;
-  min-width: 40px;
+  height: 39px;
+  min-width: 46px;
   border-radius: 7px;
-  font-size: 18px;
+  font-size: 21px;
 }
 
 .boss-lesson-keyboard .lesson-stone-key:is(.lesson-key--special) {
@@ -380,7 +387,7 @@ a:focus-visible {
 }
 
 .boss-lesson-keyboard--compact .lesson-stone-key:is(.lesson-key--special) {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .boss-lesson-keyboard .lesson-key-shift {
@@ -388,7 +395,7 @@ a:focus-visible {
 }
 
 .boss-lesson-keyboard--compact .lesson-key-shift {
-  font-size: 7px;
+  font-size: 8px;
 }
 
 .boss-lesson-keyboard .lesson-key-code {
@@ -398,7 +405,7 @@ a:focus-visible {
 .boss-lesson-keyboard--compact .lesson-key-code {
   bottom: 2px;
   right: 3px;
-  font-size: 7px;
+  font-size: 8px;
 }
 
 .boss-lesson-keyboard .lesson-key-target-arrow {
@@ -409,10 +416,10 @@ a:focus-visible {
 }
 
 .boss-lesson-keyboard--compact .lesson-key-target-arrow {
-  top: -11px;
-  border-left-width: 6px;
-  border-right-width: 6px;
-  border-top-width: 8px;
+  top: -13px;
+  border-left-width: 7px;
+  border-right-width: 7px;
+  border-top-width: 9px;
 }
 
 .lesson-key-code--target {
@@ -808,6 +815,41 @@ a:focus-visible {
     linear-gradient(180deg, #27aef3 0%, #9ee9ff 46%, #ebf6ff 100%);
 }
 
+.dashboard-page {
+  background:
+    radial-gradient(ellipse at 12% 10%, rgba(255, 255, 255, 0.92) 0 4.5%, transparent 10%),
+    radial-gradient(ellipse at 88% 14%, rgba(255, 255, 255, 0.84) 0 5%, transparent 12%),
+    radial-gradient(circle at 48% 16%, rgba(255, 231, 120, 0.38), transparent 18%),
+    linear-gradient(180deg, #36baf3 0%, #93e5ff 38%, #edf8ff 100%);
+}
+
+.dashboard-hero {
+  position: relative;
+  background:
+    radial-gradient(circle at 82% 24%, rgba(255, 231, 120, 0.42), transparent 16%),
+    radial-gradient(circle at 18% 72%, rgba(123, 255, 173, 0.24), transparent 19%),
+    linear-gradient(135deg, rgba(18, 96, 121, 0.96), rgba(10, 81, 125, 0.9) 52%, rgba(28, 121, 98, 0.92));
+}
+
+.dashboard-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  background:
+    repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.07) 0 2px, transparent 2px 24px),
+    radial-gradient(circle at 46% 100%, rgba(255, 255, 255, 0.18), transparent 28%);
+}
+
+.dashboard-panel {
+  backdrop-filter: blur(8px);
+}
+
+.dashboard-panel a {
+  text-decoration: none;
+}
+
 .landing-adventure-bg {
   background:
     radial-gradient(circle at 72% 26%, rgba(255, 255, 255, 0.95) 0 5%, transparent 13%),
@@ -919,20 +961,44 @@ a:focus-visible {
   background-size: cover;
 }
 
+.boss-battle-shell {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.boss-battle-hud {
+  border: 1px solid rgba(229, 244, 209, 0.22);
+  background: linear-gradient(90deg, rgba(28, 91, 81, 0.42), rgba(50, 118, 96, 0.36), rgba(28, 91, 81, 0.42));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 8px 16px rgba(0, 10, 16, 0.1);
+}
+
+.boss-hud-metrics {
+  container-type: inline-size;
+}
+
+.boss-hud-item {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(17, 77, 74, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
 .boss-battle-header,
 .boss-battle-panel,
 .boss-arena-panel {
-  border: 1px solid rgba(159, 234, 255, 0.18);
+  border: 1px solid rgba(229, 244, 209, 0.26);
   background:
-    linear-gradient(180deg, rgba(10, 58, 72, 0.58), rgba(4, 28, 36, 0.5));
+    linear-gradient(180deg, rgba(42, 101, 81, 0.42), rgba(23, 76, 67, 0.34));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 14px 26px rgba(0, 10, 16, 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 20px rgba(0, 10, 16, 0.13);
 }
 
 .boss-battle-header {
   background:
-    linear-gradient(90deg, rgba(4, 30, 38, 0.58), rgba(12, 73, 82, 0.5), rgba(4, 30, 38, 0.58));
+    linear-gradient(90deg, rgba(29, 87, 82, 0.42), rgba(42, 118, 100, 0.36), rgba(29, 87, 82, 0.42));
 }
 
 .boss-battle-panel {
@@ -942,23 +1008,23 @@ a:focus-visible {
 .boss-arena-panel {
   border-color: rgba(255, 228, 122, 0.2);
   background:
-    radial-gradient(circle at 50% 54%, rgba(255, 228, 122, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(5, 40, 48, 0.38), rgba(3, 22, 30, 0.5));
+    radial-gradient(circle at 50% 54%, rgba(255, 228, 122, 0.14), transparent 30%),
+    linear-gradient(180deg, rgba(31, 90, 81, 0.24), rgba(16, 56, 60, 0.3));
 }
 
 .boss-metric-card,
 .boss-timer-meter,
 .boss-wave-card {
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(3, 21, 28, 0.42);
+  background: rgba(18, 68, 68, 0.36);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .boss-fighter-side {
-  border-radius: 24px;
+  border-radius: 20px;
   background:
-    radial-gradient(circle at 50% 58%, rgba(255, 228, 122, 0.12), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.08));
+    radial-gradient(circle at 50% 58%, rgba(255, 228, 122, 0.14), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(17, 80, 70, 0.08));
 }
 
 .boss-fighter-side--enemy {
@@ -975,7 +1041,7 @@ a:focus-visible {
   display: grid;
   gap: 0.12rem;
   border-radius: 14px;
-  background: rgba(4, 28, 36, 0.48);
+  background: rgba(14, 68, 65, 0.5);
   padding: 0.42rem 0.62rem;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
@@ -994,14 +1060,14 @@ a:focus-visible {
 }
 
 .boss-player-character {
-  height: 240px;
-  width: 210px;
+  height: 210px;
+  width: 184px;
   filter: drop-shadow(0 24px 22px rgba(22, 255, 115, 0.16));
 }
 
 .boss-enemy-character {
-  height: 255px;
-  width: 225px;
+  height: 220px;
+  width: 194px;
   filter:
     drop-shadow(0 26px 22px rgba(0, 0, 0, 0.32))
     drop-shadow(0 0 18px rgba(255, 92, 74, 0.22));
@@ -1022,28 +1088,28 @@ a:focus-visible {
 
 .boss-combo-banner {
   display: flex;
-  min-height: 42px;
+  min-height: 36px;
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(4, 28, 36, 0.62);
-  padding: 0.45rem 0.85rem;
+  background: rgba(14, 68, 65, 0.54);
+  padding: 0.36rem 0.75rem;
   text-align: center;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .boss-combo-banner span {
   color: #ffe47a;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 1000;
   line-height: 1;
 }
 
 .boss-combo-banner small {
   color: rgba(255, 255, 255, 0.72);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 900;
 }
 
@@ -1071,6 +1137,34 @@ a:focus-visible {
     inset 0 2px 0 rgba(255, 255, 255, 0.42),
     0 0 28px rgba(255, 228, 122, 0.3),
     0 16px 32px rgba(0, 18, 24, 0.28);
+}
+
+.boss-prompt-card--active {
+  animation: bossPromptGlow 2.4s ease-in-out infinite;
+}
+
+.boss-prompt-card--danger {
+  border-color: rgba(255, 103, 82, 0.72);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.38),
+    0 0 24px rgba(255, 92, 74, 0.28),
+    0 12px 24px rgba(0, 18, 24, 0.24);
+}
+
+@keyframes bossPromptGlow {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.42),
+      0 0 22px rgba(255, 228, 122, 0.22),
+      0 16px 32px rgba(0, 18, 24, 0.24);
+  }
+  50% {
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.48),
+      0 0 34px rgba(126, 216, 255, 0.24),
+      0 18px 36px rgba(0, 18, 24, 0.26);
+  }
 }
 
 .boss-prompt-text {
@@ -1107,10 +1201,132 @@ a:focus-visible {
   background: rgba(120, 255, 159, 0.12);
 }
 
+.boss-wave-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.28rem 0.45rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.boss-wave-chip--current {
+  border-color: rgba(255, 228, 122, 0.42);
+  background: rgba(255, 228, 122, 0.18);
+  color: #ffe47a;
+  box-shadow: 0 0 14px rgba(255, 228, 122, 0.14);
+}
+
+.boss-wave-chip--done {
+  border-color: rgba(120, 255, 159, 0.3);
+  background: rgba(120, 255, 159, 0.14);
+  color: #78ff9f;
+}
+
 .boss-reward-card {
   background:
     radial-gradient(circle at 50% 18%, rgba(255, 228, 122, 0.18), transparent 34%),
-    linear-gradient(180deg, rgba(10, 58, 72, 0.78), rgba(73, 45, 13, 0.52));
+    linear-gradient(180deg, rgba(44, 105, 85, 0.46), rgba(115, 84, 32, 0.36));
+}
+
+@media (max-height: 760px) {
+  .boss-battle-shell {
+    gap: 0.38rem;
+  }
+
+  .boss-battle-panel {
+    padding: 0.55rem;
+  }
+
+  .boss-lesson-keyboard--compact {
+    min-width: 940px;
+    padding-bottom: 0.5rem;
+    padding-top: 0.5rem;
+  }
+
+  .boss-lesson-keyboard--compact .lesson-stone-key {
+    height: 34px;
+    min-width: 40px;
+    font-size: 18px;
+  }
+
+  .boss-lesson-keyboard--compact .lesson-stone-key:is(.lesson-key--special) {
+    font-size: 12px;
+  }
+
+  .boss-player-character {
+    height: 184px;
+    width: 162px;
+  }
+
+  .boss-enemy-character {
+    height: 194px;
+    width: 170px;
+  }
+
+  .boss-combo-banner {
+    min-height: 32px;
+    padding-bottom: 0.28rem;
+    padding-top: 0.28rem;
+  }
+
+  .boss-fighter-side {
+    min-height: 198px;
+  }
+
+  .boss-prompt-text {
+    min-height: 84px;
+    padding-bottom: 0.9rem;
+    padding-top: 0.9rem;
+  }
+
+  .boss-input-box {
+    min-height: 42px;
+    padding-bottom: 0.35rem;
+    padding-top: 0.35rem;
+  }
+
+  .boss-prompt-card {
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.36),
+      0 0 18px rgba(255, 228, 122, 0.22),
+      0 10px 20px rgba(0, 18, 24, 0.2);
+  }
+}
+
+@media (max-width: 1100px) {
+  .boss-keyboard-dock .boss-keyboard-scroll {
+    width: min(940px, 94vw);
+  }
+
+  .boss-lesson-keyboard--compact {
+    min-width: 920px;
+  }
+
+  .boss-lesson-keyboard--compact .lesson-stone-key {
+    height: 34px;
+    min-width: 40px;
+    font-size: 18px;
+  }
+
+  .boss-battle-header .game-button {
+    min-height: 2.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .boss-side-stack .boss-battle-panel {
+    font-size: 0.9rem;
+  }
+
+  .boss-fighter-name strong {
+    font-size: 0.88rem;
+  }
 }
 
 .path-curve {
