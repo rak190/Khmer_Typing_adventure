@@ -12,6 +12,8 @@ try {
   const metrics = await server.ssrLoadModule('/src/lib/typingMetrics.ts');
   const khmerText = await server.ssrLoadModule('/src/lib/khmerText.ts');
   const typingPlan = await server.ssrLoadModule('/src/lib/lessonTypingPlan.ts');
+  const fingerGuidance = await server.ssrLoadModule('/src/lib/fingerGuidance.ts');
+  const keyboardMap = await server.ssrLoadModule('/src/data/keyboardMap.ts');
 
   assert.equal(metrics.calculateAccuracy(9, 10), 90);
   assert.equal(metrics.calculateCpm(60, 60000), 60);
@@ -74,6 +76,25 @@ try {
   const plan = typingPlan.buildLessonTypingPlan(shiftLesson, 1);
   assert.equal(plan.units[0].key.code, 'KeyQ');
   assert.equal(plan.units[0].modifier, 'shift');
+
+  const leftGuidance = fingerGuidance.getFingerGuidance(keyboardMap.findKhmerKeyByCode('KeyD'), false);
+  assert.equal(leftGuidance.activeFinger, 'left-middle');
+  assert.deepEqual(leftGuidance.highlights, [{ hand: 'left', finger: 'middle', role: 'target' }]);
+
+  const rightGuidance = fingerGuidance.getFingerGuidance(keyboardMap.findKhmerKeyByCode('KeyK'), false);
+  assert.equal(rightGuidance.activeFinger, 'right-middle');
+  assert.deepEqual(rightGuidance.highlights, [{ hand: 'right', finger: 'middle', role: 'target' }]);
+
+  const spaceGuidance = fingerGuidance.getFingerGuidance(keyboardMap.findKhmerKeyByCode('Space'), false);
+  assert.equal(spaceGuidance.label, 'Use thumb');
+  assert.deepEqual(spaceGuidance.highlights, [{ hand: 'right', finger: 'thumb', role: 'target' }]);
+
+  const shiftGuidance = fingerGuidance.getFingerGuidance(plan.units[0].key, true);
+  assert.equal(shiftGuidance.shiftRequired, true);
+  assert.deepEqual(shiftGuidance.highlights, [
+    { hand: 'right', finger: 'pinky', role: 'shift' },
+    { hand: 'left', finger: 'pinky', role: 'target' },
+  ]);
 } finally {
   await server.close();
 }

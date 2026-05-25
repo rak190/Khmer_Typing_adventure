@@ -8,8 +8,8 @@ type TypingTargetCardProps = {
   targetText: string;
   typedText: string;
   currentText: string;
-  keyHint: string;
-  handHint: string;
+  keyHint?: string;
+  handHint?: string;
   metrics: TypingMetricResult;
   speedTargetCpm: number;
   minimumAccuracy: number;
@@ -27,8 +27,6 @@ export default function TypingTargetCard({
   targetText,
   typedText,
   currentText,
-  keyHint,
-  handHint,
   metrics,
   speedTargetCpm,
   minimumAccuracy,
@@ -78,9 +76,7 @@ export default function TypingTargetCard({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-[1fr_1fr_auto] items-center gap-3">
-          <span className="lesson-target-chip">{keyHint}</span>
-          <span className="lesson-target-chip lesson-target-chip--finger">{handHint}</span>
+        <div className="mt-4 flex justify-end">
           <span className="lesson-target-chip">Time {formatElapsedTime(metrics.elapsedSeconds)}</span>
         </div>
 

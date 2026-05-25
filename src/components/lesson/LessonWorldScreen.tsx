@@ -4,11 +4,12 @@ import GameScreen from '../layout/GameScreen';
 import PageTransition from '../layout/PageTransition';
 import { backgroundImages } from '../../assets/assetManifest';
 import { saveLessonProgressToFirebase, saveMockLessonProgress } from '../../data/mockData';
-import { findKhmerKeyByCode, getKhmerKeyboardInput, type KhmerKeyboardKey } from '../../data/keyboardMap';
+import { findKhmerKeyByCode, getKhmerKeyboardInput } from '../../data/keyboardMap';
 import type { CurriculumLevel, CurriculumWorld } from '../../data/lessonCurriculum';
 import { getStructuredLessonByRoute } from '../../data/typingProgression';
 import { countKhmerCharacters, countKhmerWords, khmerTextEquals } from '../../lib/khmerText';
 import { buildLessonTypingPlan, getCurrentTargetText, getTypedText, type TypingUnit } from '../../lib/lessonTypingPlan';
+import { getFingerGuidance } from '../../lib/fingerGuidance';
 import {
   calculateLessonXP,
   classifyWeakKey,
@@ -32,7 +33,7 @@ import TypingTargetCard from './TypingTargetCard';
 import KhmerKeyboard from './KhmerKeyboard';
 import QuestScroll, { type QuestStageState } from './QuestScroll';
 import LessonCompleteModal from './LessonCompleteModal';
-import type { FingerId } from './TypingHands';
+import TypingHands from './TypingHands';
 
 const STAGE_LABELS = ['Learn keys', 'Build rhythm', 'Finish text'];
 
@@ -74,24 +75,6 @@ function getInitialRunState(): LessonRunState {
     startedAt: null,
     endedAt: null,
   };
-}
-
-function getActiveFinger(target: KhmerKeyboardKey): FingerId {
-  if (target.hand === 'thumb') return 'right-thumb';
-  return `${target.hand}-${target.finger}` as FingerId;
-}
-
-function getFingerHint(target: KhmerKeyboardKey, shiftRequired: boolean) {
-  const handLabel = target.hand === 'left' ? 'left' : target.hand === 'right' ? 'right' : 'thumb';
-  const fingerLabel = {
-    pinky: 'pinky',
-    ring: 'ring',
-    middle: 'middle',
-    index: 'index',
-    thumb: 'thumb',
-  }[target.finger];
-
-  return `Use ${handLabel} ${fingerLabel}${shiftRequired ? ' + Shift' : ''}`;
 }
 
 function getKeyHint(target: TypingUnit) {
@@ -191,8 +174,16 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   const questStages = getQuestStages(runState.completedInputCount, targetUnits.length, runState.finished);
   const shiftRequired = activeTarget?.modifier === 'shift';
   const keyHint = activeTarget ? getKeyHint(activeTarget) : 'Complete';
-  const handHint = activeTarget ? getFingerHint(activeTarget.key, shiftRequired) : 'Complete';
-  const activeFinger = activeTarget ? getActiveFinger(activeTarget.key) : 'right-index';
+  const fingerGuidance = activeTarget
+    ? getFingerGuidance(activeTarget.key, shiftRequired)
+    : {
+        activeHand: 'right' as const,
+        activeFinger: 'right-index' as const,
+        label: 'Complete',
+        highlights: [],
+        shiftRequired: false,
+      };
+  const handHint = fingerGuidance.label;
 
   function showFeedback(nextFeedback: Feedback) {
     window.clearTimeout(feedbackTimeoutRef.current);
@@ -402,13 +393,15 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
           feedbackMessage={feedback?.message}
         />
 
+        <TypingHands guidance={fingerGuidance} />
+
         <KhmerKeyboard
           activeCode={activeTarget.key.code}
           shiftRequired={shiftRequired}
           feedbackCode={feedback?.code}
           feedbackState={feedback?.state}
-          activeHand={activeTarget.key.hand}
-          activeFinger={activeFinger}
+          activeHand={fingerGuidance.activeHand}
+          activeFinger={fingerGuidance.activeFinger}
           hintLabel={handHint}
           keyLabel={keyHint}
           onKeyPress={handleKeyboardPress}
@@ -420,10 +413,10 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
           total={targetUnits.length}
           nextKey={visibleKey(activeTarget.value)}
           keyHint={keyHint}
+          handHint={handHint}
           stages={questStages}
           stars={metrics.stars}
           xp={displayedXpEarned}
-          coins={coinsEarned}
         />
 
         {runState.finished && (

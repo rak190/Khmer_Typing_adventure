@@ -1,86 +1,90 @@
-import { motion } from 'framer-motion';
 import { handImages } from '../../assets/assetManifest';
 import { cn } from '../../lib/cn';
-
-export type FingerId = 'left-pinky' | 'left-ring' | 'left-middle' | 'left-index' | 'left-thumb' | 'right-thumb' | 'right-index' | 'right-middle' | 'right-ring' | 'right-pinky';
+import type { FingerGuidance, FingerHighlight, FingerName, HandSide } from '../../lib/fingerGuidance';
 
 type TypingHandsProps = {
-  activeHand: 'left' | 'right' | 'thumb';
-  activeFinger: FingerId;
+  guidance: FingerGuidance;
 };
 
-const fingerGroups: Array<{ hand: 'left' | 'right'; fingers: Array<{ id: FingerId; label: string }> }> = [
-  {
-    hand: 'left',
-    fingers: [
-      { id: 'left-pinky', label: 'P' },
-      { id: 'left-ring', label: 'R' },
-      { id: 'left-middle', label: 'M' },
-      { id: 'left-index', label: 'I' },
-      { id: 'left-thumb', label: 'T' },
-    ],
+const markerPositions: Record<HandSide, Record<FingerName, string>> = {
+  left: {
+    pinky: 'left-[33.5%] top-[27%]',
+    ring: 'left-[50%] top-[15%]',
+    middle: 'left-[63%] top-[15%]',
+    index: 'left-[72%] top-[23%]',
+    thumb: 'left-[80%] top-[50.5%]',
   },
-  {
-    hand: 'right',
-    fingers: [
-      { id: 'right-thumb', label: 'T' },
-      { id: 'right-index', label: 'I' },
-      { id: 'right-middle', label: 'M' },
-      { id: 'right-ring', label: 'R' },
-      { id: 'right-pinky', label: 'P' },
-    ],
+  right: {
+    thumb: 'left-[20%] top-[49.5%]',
+    index: 'left-[28%] top-[25%]',
+    middle: 'left-[42%] top-[15%]',
+    ring: 'left-[57.5%] top-[15.5%]',
+    pinky: 'left-[65%] top-[28%]',
   },
-];
+};
 
-export default function TypingHands({ activeHand, activeFinger }: TypingHandsProps) {
-  const glow = 'drop-shadow-[0_0_10px_rgba(83,235,102,.24)] drop-shadow-[0_12px_12px_rgba(35,18,8,.16)]';
-  const leftActive = activeHand === 'left' || activeHand === 'thumb';
-  const rightActive = activeHand === 'right' || activeHand === 'thumb';
+function getHighlight(highlights: FingerHighlight[], hand: HandSide, finger: FingerName) {
+  return highlights.find((highlight) => highlight.hand === hand && highlight.finger === finger);
+}
+
+function HandCard({
+  hand,
+  guidance,
+}: {
+  hand: HandSide;
+  guidance: FingerGuidance;
+}) {
+  const isActive = guidance.highlights.some((highlight) => highlight.hand === hand);
+  const image = hand === 'left' ? handImages.leftTyping : handImages.rightTyping;
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" data-active-finger={activeFinger}>
-      <motion.img
-        src={handImages.leftTyping}
-        alt=""
-        draggable={false}
-        animate={leftActive ? { y: [0, -2, 0] } : { y: 0 }}
-        transition={{ duration: 0.8, repeat: leftActive ? Infinity : 0, ease: 'easeInOut' }}
-        className={cn(
-          'pointer-events-none absolute bottom-[-184px] left-[170px] h-[172px] w-[306px] -rotate-[4deg] object-contain',
-          leftActive ? `opacity-[.28] ${glow}` : 'opacity-[.11] drop-shadow-[0_12px_12px_rgba(35,18,8,.12)]',
-        )}
-      />
-      <motion.img
-        src={handImages.rightTyping}
-        alt=""
-        draggable={false}
-        animate={rightActive ? { y: [0, -2, 0] } : { y: 0 }}
-        transition={{ duration: 0.8, repeat: rightActive ? Infinity : 0, ease: 'easeInOut' }}
-        className={cn(
-          'pointer-events-none absolute bottom-[-184px] right-[154px] h-[172px] w-[306px] rotate-[4deg] object-contain',
-          rightActive ? `opacity-[.28] ${glow}` : 'opacity-[.11] drop-shadow-[0_12px_12px_rgba(35,18,8,.12)]',
-        )}
-      />
-      <div className="lesson-finger-strip">
-        {fingerGroups.map((group) => (
-          <div key={group.hand} className="flex items-center gap-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wide text-white/62">{group.hand}</span>
-            {group.fingers.map((finger) => (
-              <span
-                key={finger.id}
-                className={cn(
-                  'grid h-7 w-7 place-items-center rounded-full border text-[12px] font-black',
-                  finger.id === activeFinger
-                    ? 'border-[#FFE26D] bg-[#FFE26D] text-[#12314C] shadow-[0_0_16px_rgba(255,226,109,.72)]'
-                    : 'border-white/18 bg-white/10 text-white/60',
-                )}
-              >
-                {finger.label}
-              </span>
-            ))}
-          </div>
-        ))}
+    <div
+      className={cn(
+        'lesson-side-hand-card',
+        hand === 'left' ? 'lesson-side-hand-card--left' : 'lesson-side-hand-card--right',
+        isActive && 'lesson-side-hand-card--active',
+      )}
+      data-active={isActive}
+    >
+      <div className={cn('lesson-side-hand-figure', hand === 'left' ? 'lesson-side-hand-figure--left' : 'lesson-side-hand-figure--right')}>
+        <img
+          src={image}
+          alt=""
+          draggable={false}
+          className="lesson-side-hand-image"
+        />
+        {(Object.keys(markerPositions[hand]) as FingerName[]).map((finger) => {
+          const highlight = getHighlight(guidance.highlights, hand, finger);
+
+          return (
+            <span
+              key={`${hand}-${finger}`}
+              className={cn(
+                'lesson-finger-marker',
+                markerPositions[hand][finger],
+                highlight?.role === 'target' && 'lesson-finger-marker--target',
+                highlight?.role === 'shift' && 'lesson-finger-marker--shift',
+              )}
+            >
+              {highlight ? <span className="sr-only">{highlight.role === 'shift' ? 'Shift finger' : 'Target finger'}</span> : null}
+            </span>
+          );
+        })}
       </div>
+    </div>
+  );
+}
+
+export default function TypingHands({ guidance }: TypingHandsProps) {
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-[25]"
+      data-testid="typing-hand-hints"
+      data-active-finger={guidance.activeFinger}
+      data-shift-required={guidance.shiftRequired}
+    >
+      <HandCard hand="left" guidance={guidance} />
+      <HandCard hand="right" guidance={guidance} />
     </div>
   );
 }
