@@ -879,6 +879,222 @@ a:focus-visible {
     linear-gradient(145deg, #073d55 0%, #052c31 52%, #04131f 100%);
 }
 
+.boss-battle-page {
+  background-color: #052c31;
+  background-position: center;
+  background-size: cover;
+}
+
+.boss-battle-vignette {
+  background:
+    linear-gradient(180deg, rgba(4, 20, 22, 0.18) 0%, rgba(4, 20, 22, 0.36) 62%, rgba(3, 13, 18, 0.74) 100%),
+    radial-gradient(circle at 50% 24%, rgba(255, 229, 148, 0.34), transparent 22%),
+    radial-gradient(circle at 20% 55%, rgba(36, 218, 125, 0.16), transparent 28%),
+    radial-gradient(circle at 82% 48%, rgba(255, 104, 78, 0.14), transparent 26%);
+}
+
+.boss-battle-header,
+.boss-battle-panel,
+.boss-arena-panel {
+  border: 1px solid rgba(159, 234, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(10, 58, 72, 0.76), rgba(4, 28, 36, 0.68));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 18px 34px rgba(0, 10, 16, 0.26);
+  backdrop-filter: blur(14px);
+}
+
+.boss-battle-header {
+  background:
+    linear-gradient(90deg, rgba(4, 30, 38, 0.82), rgba(12, 73, 82, 0.66), rgba(4, 30, 38, 0.82));
+}
+
+.boss-battle-panel {
+  color: #fff;
+}
+
+.boss-arena-panel {
+  border-color: rgba(255, 228, 122, 0.2);
+  background:
+    radial-gradient(circle at 50% 54%, rgba(255, 228, 122, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(5, 40, 48, 0.62), rgba(3, 22, 30, 0.76));
+}
+
+.boss-arena-haze {
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(255, 228, 122, 0.16), transparent 24%),
+    radial-gradient(ellipse at 16% 52%, rgba(47, 208, 111, 0.14), transparent 20%),
+    radial-gradient(ellipse at 84% 50%, rgba(255, 92, 74, 0.14), transparent 21%);
+}
+
+.boss-metric-card,
+.boss-timer-meter,
+.boss-wave-card {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(3, 21, 28, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.boss-fighter-side {
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 58%, rgba(255, 228, 122, 0.12), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.08));
+}
+
+.boss-fighter-side--enemy {
+  box-shadow: inset 0 0 40px rgba(255, 92, 74, 0.1);
+}
+
+.boss-fighter-side--player {
+  box-shadow: inset 0 0 40px rgba(47, 208, 111, 0.1);
+}
+
+.boss-fighter-name {
+  position: absolute;
+  z-index: 10;
+  display: grid;
+  gap: 0.12rem;
+  border-radius: 14px;
+  background: rgba(4, 28, 36, 0.58);
+  padding: 0.5rem 0.7rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.boss-fighter-name span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.boss-fighter-name strong {
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.boss-player-character {
+  height: 300px;
+  width: 260px;
+  filter: drop-shadow(0 24px 22px rgba(22, 255, 115, 0.16));
+}
+
+.boss-enemy-character {
+  height: 330px;
+  width: 285px;
+  filter:
+    drop-shadow(0 26px 22px rgba(0, 0, 0, 0.32))
+    drop-shadow(0 0 18px rgba(255, 92, 74, 0.22));
+}
+
+.boss-attack-beam {
+  position: absolute;
+  right: -32%;
+  top: 48%;
+  z-index: 15;
+  height: 0.55rem;
+  width: 74%;
+  transform-origin: left center;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 228, 122, 0.92), rgba(126, 216, 255, 0.55), transparent);
+  box-shadow: 0 0 24px rgba(255, 228, 122, 0.78);
+}
+
+.boss-combo-banner {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(4, 28, 36, 0.62);
+  padding: 0.7rem 1rem;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.boss-combo-banner span {
+  color: #ffe47a;
+  font-size: 1.45rem;
+  font-weight: 1000;
+  line-height: 1;
+}
+
+.boss-combo-banner small {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.boss-combo-banner--danger span,
+.boss-combo-banner--warn span {
+  color: #ff9a8c;
+}
+
+.boss-combo-banner--speed span,
+.boss-combo-banner--good span {
+  color: #9feaff;
+}
+
+.boss-combo-banner--perfect span,
+.boss-combo-banner--hot span {
+  color: #78ff9f;
+  text-shadow: 0 0 14px rgba(120, 255, 159, 0.42);
+}
+
+.boss-prompt-card {
+  border: 2px solid rgba(255, 228, 122, 0.44);
+  background: linear-gradient(180deg, rgba(255, 250, 224, 0.96), rgba(241, 204, 123, 0.92));
+  color: #17325a;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.42),
+    0 0 28px rgba(255, 228, 122, 0.3),
+    0 16px 32px rgba(0, 18, 24, 0.28);
+}
+
+.boss-prompt-text {
+  border-color: rgba(12, 83, 100, 0.18);
+  background: rgba(255, 255, 255, 0.66);
+  color: #102d48;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.boss-input-box {
+  background: rgba(8, 44, 58, 0.92);
+  color: #fff;
+}
+
+.boss-input-box--correct {
+  border-color: rgba(120, 255, 159, 0.72);
+  box-shadow: 0 0 18px rgba(120, 255, 159, 0.18);
+}
+
+.boss-input-box--wrong {
+  border-color: rgba(255, 128, 112, 0.82);
+  color: #ffb7aa;
+  box-shadow: 0 0 18px rgba(255, 92, 74, 0.16);
+}
+
+.boss-wave-card--current {
+  border-color: rgba(255, 228, 122, 0.36);
+  background: rgba(255, 228, 122, 0.14);
+  box-shadow: 0 0 18px rgba(255, 228, 122, 0.12);
+}
+
+.boss-wave-card--done {
+  border-color: rgba(120, 255, 159, 0.28);
+  background: rgba(120, 255, 159, 0.12);
+}
+
+.boss-reward-card {
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 228, 122, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(10, 58, 72, 0.78), rgba(73, 45, 13, 0.52));
+}
+
 .path-curve {
   position: absolute;
   left: 8%;
