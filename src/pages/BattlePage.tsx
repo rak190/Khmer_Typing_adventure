@@ -459,13 +459,12 @@ export default function BattlePage() {
   };
 
   return (
-    <PageTransition className="min-h-screen overflow-x-hidden overflow-y-auto text-white">
+    <PageTransition className="h-screen overflow-hidden text-white">
       <div
-        className="boss-battle-page relative min-h-screen px-4 py-4 lg:px-6"
+        className="boss-battle-page relative h-screen overflow-hidden px-3 py-3 lg:px-4"
         style={{ backgroundImage: `url(${backgroundImages.battle})` }}
       >
-        <div className="boss-battle-vignette pointer-events-none absolute inset-0" />
-        <header className="boss-battle-header relative z-20 flex flex-wrap items-center gap-3 rounded-[24px] px-4 py-3">
+        <header className="boss-battle-header relative z-20 flex flex-wrap items-center gap-3 rounded-[22px] px-3 py-2">
           <Link to="/map" className="shrink-0">
             <Logo compact={false} className="origin-left scale-[.62] sm:scale-75 lg:scale-[.82]" />
           </Link>
@@ -489,8 +488,8 @@ export default function BattlePage() {
           </div>
         </header>
 
-        <div className="boss-battle-grid relative z-10 mt-4 grid gap-4 2xl:grid-cols-[270px_minmax(0,1fr)_285px] xl:grid-cols-[240px_minmax(0,1fr)_260px]">
-          <aside className="boss-side-stack grid gap-4 xl:block xl:space-y-4">
+        <div className="boss-battle-grid relative z-10 mt-3 grid gap-3 2xl:grid-cols-[260px_minmax(0,1fr)_270px] xl:grid-cols-[220px_minmax(0,1fr)_240px] lg:grid-cols-[180px_minmax(0,1fr)_200px]">
+          <aside className="boss-side-stack grid gap-3 xl:block xl:space-y-3">
             <BossPanel className="boss-player-panel">
               <div className="flex items-center gap-3">
                 <div className="grid h-14 w-14 place-items-center rounded-[16px] bg-gradient-to-b from-[#4CE982] to-[#16723A] text-white shadow-[0_0_18px_rgba(76,233,130,.25)]">
@@ -537,8 +536,7 @@ export default function BattlePage() {
             </BossPanel>
           </aside>
 
-          <main className="boss-arena-panel relative min-h-[760px] overflow-hidden rounded-[28px] p-4 shadow-2xl">
-            <div className="boss-arena-haze pointer-events-none absolute inset-0" />
+          <main className="boss-arena-panel relative overflow-hidden rounded-[26px] p-3 shadow-2xl">
             <div className="relative z-10 grid grid-cols-2 gap-2 lg:grid-cols-4">
               <BattleMetric label="Accuracy" value={`${bossResult.accuracy}%`} icon={<Target size={21} />} tone={bossResult.accuracy >= bossTargets.minimumAccuracy ? 'green' : 'gold'} />
               <BattleMetric label="CPM" value={bossResult.cpm} icon={<Gauge size={21} />} tone={bossResult.cpm >= bossTargets.targetCPM ? 'green' : 'blue'} />
@@ -546,8 +544,8 @@ export default function BattlePage() {
               <BattleMetric label="Time" value={`${timer}s`} icon={<Clock size={21} />} tone={timer < 25 ? 'red' : 'gold'} />
             </div>
 
-            <div className="relative z-10 mt-4 grid items-center gap-3 lg:grid-cols-[minmax(170px,.78fr)_minmax(360px,1.15fr)_minmax(190px,.86fr)]">
-              <div className="boss-fighter-side boss-fighter-side--player relative min-h-[310px]">
+            <div className="relative z-10 mt-3 grid items-center gap-3 lg:grid-cols-[minmax(145px,.68fr)_minmax(340px,1.18fr)_minmax(165px,.76fr)]">
+              <div className="boss-fighter-side boss-fighter-side--player relative min-h-[250px]">
                 <div className="boss-fighter-name left-3 top-3">
                   <span>Student</span>
                   <strong>Typing Hero</strong>
@@ -568,7 +566,7 @@ export default function BattlePage() {
                   <small>{performanceFeedback.detail}</small>
                 </motion.div>
 
-                <div className="boss-prompt-card relative mt-3 rounded-[26px] px-5 py-6 text-center">
+                <div className="boss-prompt-card relative mt-2 rounded-[24px] px-4 py-4 text-center">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <span className="rounded-full bg-[#0B4B5F]/12 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#0C5364]">{waveLabel}</span>
                     <span className="rounded-full bg-[#FFE47A]/40 px-3 py-1 text-xs font-black text-[#6B4512]">Wave {currentWave.index + 1} / {bossLesson.stages.length}</span>
@@ -576,16 +574,16 @@ export default function BattlePage() {
                       <Volume2 size={22} />
                     </button>
                   </div>
-                  <div className={`khmer-body boss-prompt-text mx-auto min-h-[136px] rounded-[22px] border-4 px-5 py-8 font-black leading-tight ${wordTextSize}`}>
+                  <div className={`khmer-body boss-prompt-text mx-auto min-h-[104px] rounded-[20px] border-4 px-4 py-5 font-black leading-tight ${wordTextSize}`}>
                     {currentWord}
                   </div>
-                  <div className={`khmer-body boss-input-box mt-4 min-h-[68px] rounded-[18px] border-2 px-4 py-3 text-center text-3xl font-black ${correctPrefix ? 'boss-input-box--correct' : 'boss-input-box--wrong'}`}>
+                  <div className={`khmer-body boss-input-box mt-3 min-h-[54px] rounded-[16px] border-2 px-4 py-2 text-center text-2xl font-black ${correctPrefix ? 'boss-input-box--correct' : 'boss-input-box--wrong'}`}>
                     {typed || '...'}
                   </div>
-                  <div className="mt-3 text-center text-sm font-black text-[#24536A]">Type the boss phrase exactly, then press Enter if needed.</div>
+                  <div className="mt-2 text-center text-xs font-black text-[#24536A]">Type the boss phrase exactly, then press Enter if needed.</div>
                 </div>
 
-                <div className="boss-timer-meter mt-3 rounded-[18px] p-3">
+                <div className="boss-timer-meter mt-2 rounded-[16px] p-2.5">
                   <div className="mb-2 flex items-center justify-between gap-3 text-xs font-black uppercase tracking-wide text-white/68">
                     <span>Battle Timer</span>
                     <span>{waveProgressPercent}% complete</span>
@@ -603,7 +601,7 @@ export default function BattlePage() {
                 </div>
               </div>
 
-              <div className="boss-fighter-side boss-fighter-side--enemy relative min-h-[330px]">
+              <div className="boss-fighter-side boss-fighter-side--enemy relative min-h-[260px]">
                 <div className="boss-fighter-name right-3 top-3 text-right">
                   <span>Boss</span>
                   <strong>{bossLesson.labelEn}</strong>
@@ -621,12 +619,12 @@ export default function BattlePage() {
               </div>
             </div>
 
-            <div className="relative z-10 mx-auto mt-4 max-w-[1120px]">
+            <div className="relative z-10 mx-auto mt-3 max-w-[1120px]">
               <KhmerKeyboard onKeyPress={handlePress} activeKey={activeKey} compact />
             </div>
           </main>
 
-          <aside className="boss-side-stack grid gap-4 xl:block xl:space-y-4">
+          <aside className="boss-side-stack grid gap-3 xl:block xl:space-y-3">
             <BossPanel>
               <div className="flex items-center justify-between gap-3">
                 <div>

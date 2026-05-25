@@ -102,11 +102,11 @@ export default function KhmerKeyboard({ activeKey, feedbackKey, feedbackState = 
 
   return (
     <div className={cn('boss-keyboard-scroll mx-auto w-full overflow-x-auto pb-2', compact ? 'max-w-[1120px]' : 'max-w-[1280px]')}>
-      <section data-testid="boss-khmer-keyboard" className={cn('lesson-keyboard-deck boss-lesson-keyboard relative mx-auto px-4 pb-6 pt-5', compact && 'boss-lesson-keyboard--compact')}>
+      <section data-testid="boss-khmer-keyboard" className={cn('lesson-keyboard-deck boss-lesson-keyboard relative mx-auto px-4', compact ? 'boss-lesson-keyboard--compact' : 'pb-6 pt-5')}>
         <div className="pointer-events-none absolute inset-x-8 top-3 h-8 rounded-full bg-[#FFF0B5]/20 blur-sm" />
-        <div className="relative z-30 space-y-2.5">
+        <div className={cn('relative z-30', compact ? 'space-y-1.5' : 'space-y-2.5')}>
           {khmerKeyboardRows.map((row, rowIndex) => (
-            <div key={rowIndex} className="flex justify-center gap-1.5">
+            <div key={rowIndex} className={cn('flex justify-center', compact ? 'gap-1' : 'gap-1.5')}>
               {row.map((keyData) => (
                 <KeyboardKey
                   key={`${rowIndex}-${keyData.latin}-${keyData.code}`}
