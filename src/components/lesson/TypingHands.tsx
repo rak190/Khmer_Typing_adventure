@@ -8,18 +8,18 @@ type TypingHandsProps = {
 
 const markerPositions: Record<HandSide, Record<FingerName, string>> = {
   left: {
-    pinky: 'left-[32%] top-[32%]',
-    ring: 'left-[50%] top-[18%]',
-    middle: 'left-[65%] top-[18%]',
-    index: 'left-[81%] top-[27%]',
-    thumb: 'left-[85%] top-[56%]',
+    pinky: 'left-[34%] top-[31%]',
+    ring: 'left-[53%] top-[17%]',
+    middle: 'left-[68%] top-[17%]',
+    index: 'left-[84%] top-[28%]',
+    thumb: 'left-[88%] top-[56%]',
   },
   right: {
-    thumb: 'left-[22%] top-[56%]',
-    index: 'left-[34%] top-[27%]',
-    middle: 'left-[49%] top-[18%]',
-    ring: 'left-[63%] top-[18%]',
-    pinky: 'left-[78%] top-[32%]',
+    thumb: 'left-[20%] top-[56%]',
+    index: 'left-[32%] top-[28%]',
+    middle: 'left-[49%] top-[17%]',
+    ring: 'left-[64%] top-[17%]',
+    pinky: 'left-[80%] top-[31%]',
   },
 };
 
@@ -46,15 +46,12 @@ function HandCard({
       )}
       data-active={isActive}
     >
-      <div className="lesson-side-hand-figure">
+      <div className={cn('lesson-side-hand-figure', hand === 'left' ? 'lesson-side-hand-figure--left' : 'lesson-side-hand-figure--right')}>
         <img
           src={image}
           alt=""
           draggable={false}
-          className={cn(
-            'lesson-side-hand-image',
-            hand === 'left' ? '-rotate-[7deg]' : 'rotate-[7deg]',
-          )}
+          className="lesson-side-hand-image"
         />
         {(Object.keys(markerPositions[hand]) as FingerName[]).map((finger) => {
           const highlight = getHighlight(guidance.highlights, hand, finger);
@@ -69,7 +66,7 @@ function HandCard({
                 highlight?.role === 'shift' && 'lesson-finger-marker--shift',
               )}
             >
-              {highlight?.role === 'shift' ? 'Shift' : ''}
+              {highlight ? <span className="sr-only">{highlight.role === 'shift' ? 'Shift finger' : 'Target finger'}</span> : null}
             </span>
           );
         })}

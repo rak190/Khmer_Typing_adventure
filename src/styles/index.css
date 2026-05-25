@@ -455,6 +455,15 @@ a:focus-visible {
 .lesson-side-hand-figure {
   position: absolute;
   inset: 32px 0 0;
+  transform-origin: 50% 52%;
+}
+
+.lesson-side-hand-figure--left {
+  transform: rotate(-7deg);
+}
+
+.lesson-side-hand-figure--right {
+  transform: rotate(7deg);
 }
 
 .lesson-side-hand-image {
@@ -495,17 +504,10 @@ a:focus-visible {
 }
 
 .lesson-finger-marker--shift {
-  width: 48px;
+  width: 24px;
   height: 24px;
-  border-radius: 999px;
   background:
-    radial-gradient(circle at 22% 50%, rgba(255, 255, 255, 0.92) 0 12%, transparent 13%),
-    linear-gradient(90deg, rgba(126, 216, 255, 0.95), rgba(255, 226, 109, 0.88));
-  color: #10334f;
-  font-size: 10px;
-  font-weight: 1000;
-  letter-spacing: 0;
-  text-transform: uppercase;
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 18%, rgba(126, 216, 255, 0.9) 20% 48%, rgba(255, 226, 109, 0.48) 49% 100%);
   box-shadow:
     0 0 0 5px rgba(126, 216, 255, 0.16),
     0 0 18px rgba(126, 216, 255, 0.72);
@@ -1212,9 +1214,8 @@ a:focus-visible {
   }
 
   .lesson-finger-marker--shift {
-    width: 38px;
+    width: 19px;
     height: 19px;
-    font-size: 8px;
   }
 }
 
