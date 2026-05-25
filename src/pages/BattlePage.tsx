@@ -493,7 +493,7 @@ export default function BattlePage() {
               </div>
             </div>
 
-            <div className="relative z-10 mx-auto mt-3 max-w-3xl">
+            <div className="relative z-10 mx-auto mt-3 max-w-[1120px]">
               <div className="mb-3 flex items-center gap-3 rounded-[16px] bg-black/40 p-3">
                 <ProgressBar value={timer} max={initialTimer} color={timer < 25 ? 'red' : 'green'} className="flex-1" />
                 <div className="rounded-full bg-adventure px-4 py-2 text-xl font-black">{timer}s</div>

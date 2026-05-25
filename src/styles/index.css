@@ -347,6 +347,40 @@ a:focus-visible {
   filter: saturate(0.55);
 }
 
+.boss-keyboard-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(126, 216, 255, 0.46) rgba(3, 21, 39, 0.34);
+}
+
+.boss-lesson-keyboard {
+  min-width: 1050px;
+}
+
+.boss-lesson-keyboard .lesson-stone-key {
+  height: 44px;
+  min-width: 49px;
+  font-size: 23px;
+}
+
+.boss-lesson-keyboard .lesson-stone-key:is(.lesson-key--special) {
+  font-size: 14px;
+}
+
+.boss-lesson-keyboard .lesson-key-shift {
+  font-size: 8px;
+}
+
+.boss-lesson-keyboard .lesson-key-code {
+  font-size: 8px;
+}
+
+.boss-lesson-keyboard .lesson-key-target-arrow {
+  top: -14px;
+  border-left-width: 7px;
+  border-right-width: 7px;
+  border-top-width: 10px;
+}
+
 .lesson-key-code--target {
   color: #10334f;
   background: rgba(173, 239, 255, 0.9);
