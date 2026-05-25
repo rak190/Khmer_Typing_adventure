@@ -35,7 +35,6 @@ function HandCard({
   guidance: FingerGuidance;
 }) {
   const isActive = guidance.highlights.some((highlight) => highlight.hand === hand);
-  const showsLabel = guidance.activeHand === hand;
   const image = hand === 'left' ? handImages.leftTyping : handImages.rightTyping;
 
   return (
@@ -47,11 +46,6 @@ function HandCard({
       )}
       data-active={isActive}
     >
-      {showsLabel && (
-        <div className="lesson-side-hand-label">
-          {guidance.label}
-        </div>
-      )}
       <div className="lesson-side-hand-figure">
         <img
           src={image}

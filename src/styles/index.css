@@ -452,27 +452,6 @@ a:focus-visible {
   left: 1288px;
 }
 
-.lesson-side-hand-label {
-  position: absolute;
-  left: 50%;
-  top: -6px;
-  z-index: 4;
-  border: 1px solid rgba(255, 226, 109, 0.45);
-  border-radius: 999px;
-  background: rgba(5, 35, 65, 0.68);
-  color: #fff2b4;
-  padding: 7px 12px;
-  text-align: center;
-  font-size: 15px;
-  font-weight: 900;
-  line-height: 1;
-  white-space: nowrap;
-  transform: translateX(-50%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 6px 14px rgba(0, 26, 50, 0.18);
-}
-
 .lesson-side-hand-figure {
   position: absolute;
   inset: 32px 0 0;
@@ -1202,11 +1181,6 @@ a:focus-visible {
     left: 1300px;
   }
 
-  .lesson-side-hand-label {
-    font-size: 13px;
-    padding: 7px 9px;
-  }
-
   .lesson-finger-strip {
     inset-inline: 180px;
   }
@@ -1226,13 +1200,6 @@ a:focus-visible {
 
   .lesson-side-hand-card--right {
     left: 760px;
-  }
-
-  .lesson-side-hand-label {
-    inset-inline: 10px;
-    top: 8px;
-    padding: 5px 8px;
-    font-size: 11px;
   }
 
   .lesson-side-hand-figure {
