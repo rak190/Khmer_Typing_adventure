@@ -39,7 +39,7 @@ export function getFingerGuidance(key: KhmerKeyboardKey, shiftRequired: boolean)
     return {
       activeHand: 'right',
       activeFinger: 'right-thumb',
-      label: 'Use thumb for Spacebar',
+      label: 'Use thumb',
       highlights: [{ hand: 'right', finger: 'thumb', role: 'target' }],
       shiftRequired: false,
     };
@@ -64,7 +64,7 @@ export function getFingerGuidance(key: KhmerKeyboardKey, shiftRequired: boolean)
   return {
     activeHand: targetHand,
     activeFinger,
-    label: `Use ${shiftHand} pinky + Shift, then ${targetHand} ${fingerLabels[targetFinger]}`,
+    label: `Use ${shiftHand} pinky + Shift`,
     highlights: [
       { hand: shiftHand, finger: 'pinky', role: 'shift' },
       { hand: targetHand, finger: targetFinger, role: 'target' },

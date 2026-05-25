@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { handImages } from '../../assets/assetManifest';
 import { cn } from '../../lib/cn';
 import type { FingerGuidance, FingerHighlight, FingerName, HandSide } from '../../lib/fingerGuidance';
@@ -36,6 +35,7 @@ function HandCard({
   guidance: FingerGuidance;
 }) {
   const isActive = guidance.highlights.some((highlight) => highlight.hand === hand);
+  const showsLabel = guidance.activeHand === hand;
   const image = hand === 'left' ? handImages.leftTyping : handImages.rightTyping;
 
   return (
@@ -47,22 +47,19 @@ function HandCard({
       )}
       data-active={isActive}
     >
-      {isActive && (
+      {showsLabel && (
         <div className="lesson-side-hand-label">
           {guidance.label}
         </div>
       )}
       <div className="lesson-side-hand-figure">
-        <motion.img
+        <img
           src={image}
           alt=""
           draggable={false}
-          animate={isActive ? { y: [0, -3, 0] } : { y: 0 }}
-          transition={{ duration: 0.9, repeat: isActive ? Infinity : 0, ease: 'easeInOut' }}
           className={cn(
             'lesson-side-hand-image',
             hand === 'left' ? '-rotate-[7deg]' : 'rotate-[7deg]',
-            isActive ? 'opacity-[.46]' : 'opacity-[.2]',
           )}
         />
         {(Object.keys(markerPositions[hand]) as FingerName[]).map((finger) => {

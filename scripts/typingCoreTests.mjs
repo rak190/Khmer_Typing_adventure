@@ -86,7 +86,7 @@ try {
   assert.deepEqual(rightGuidance.highlights, [{ hand: 'right', finger: 'middle', role: 'target' }]);
 
   const spaceGuidance = fingerGuidance.getFingerGuidance(keyboardMap.findKhmerKeyByCode('Space'), false);
-  assert.equal(spaceGuidance.label, 'Use thumb for Spacebar');
+  assert.equal(spaceGuidance.label, 'Use thumb');
   assert.deepEqual(spaceGuidance.highlights, [{ hand: 'right', finger: 'thumb', role: 'target' }]);
 
   const shiftGuidance = fingerGuidance.getFingerGuidance(plan.units[0].key, true);
