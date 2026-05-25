@@ -1,4 +1,5 @@
 import type { Achievement } from '../../types/game';
+import { Link } from 'react-router-dom';
 import GameBadge from './GameBadge';
 import GameButton from './GameButton';
 
@@ -16,7 +17,9 @@ export default function GameAchievementStrip({ achievements }: GameAchievementSt
           <h2 className="text-2xl font-black text-adventure">Achievements</h2>
           <p className="font-bold text-slate-600">Collect badges as your typing skills grow.</p>
         </div>
-        <GameButton variant="purple" size="sm">View All Badges</GameButton>
+        <Link to="/dashboard">
+          <GameButton variant="purple" size="sm">View All Badges</GameButton>
+        </Link>
       </div>
       <div className="mt-4 flex gap-4 overflow-x-auto pb-1">
         {achievements.map((achievement, index) => (

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { achievements } from '../../data/mockData';
 import Badge from './Badge';
 import GameButton from './GameButton';
@@ -12,7 +13,9 @@ export default function AchievementStrip() {
             <Badge key={achievement.id} icon={achievement.icon} label={achievement.name} subtitle={achievement.subtitle} tone={achievement.tone} compact />
           ))}
         </div>
-        <GameButton variant="purple" size="sm">View All Badges</GameButton>
+        <Link to="/dashboard">
+          <GameButton variant="purple" size="sm">View All Badges</GameButton>
+        </Link>
       </div>
     </section>
   );

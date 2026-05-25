@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { memo } from 'react';
 import type { KhmerKeyboardKey } from '../../data/keyboardMap';
 import { cn } from '../../lib/cn';
 
@@ -48,7 +49,7 @@ function displayKeyLabel(keyData: KhmerKeyboardKey) {
   }[keyData.action];
 }
 
-export default function KeyboardKey({ keyData, state = 'normal', onPress }: KeyboardKeyProps) {
+function KeyboardKey({ keyData, state = 'normal', onPress }: KeyboardKeyProps) {
   const physicalLabel = physicalCodeLabel(keyData.code, keyData.action);
   const isActionKey = Boolean(keyData.action && keyData.action !== 'space');
   const disabled = (state === 'disabled' || keyData.disabled) && state !== 'shift-target';
@@ -96,3 +97,5 @@ export default function KeyboardKey({ keyData, state = 'normal', onPress }: Keyb
     </motion.button>
   );
 }
+
+export default memo(KeyboardKey);

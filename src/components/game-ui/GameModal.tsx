@@ -19,7 +19,7 @@ export default function GameModal({ open = true, title, children, rewardIcon, ac
 
   const panel = (
     <section className="relative w-full max-w-md rounded-[30px] border-[4px] border-[#D5B16D] bg-gradient-to-b from-white to-[#FFF4D8] p-6 text-center shadow-[0_24px_60px_rgba(0,0,0,.35)]">
-      <button className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full border-2 border-[#B75A42] bg-gradient-to-b from-[#FF9EA1] to-[#D73542] text-white shadow-button" onClick={onClose} aria-label="Close">
+      <button type="button" className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full border-2 border-[#B75A42] bg-gradient-to-b from-[#FF9EA1] to-[#D73542] text-white shadow-button" onClick={onClose} aria-label="Close">
         <X size={22} />
       </button>
       {rewardIcon && <GameIcon name={rewardIcon} size={68} className="mx-auto mb-3" />}

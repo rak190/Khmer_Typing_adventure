@@ -34,9 +34,14 @@ export default function GameMapNode({ level, state = 'completed', color = 'green
       onClick={() => {
         onClick?.();
       }}
-      className={cn('pointer-events-auto absolute w-[170px] -translate-x-1/2 -translate-y-1/2 cursor-pointer text-center drop-shadow-[0_12px_13px_rgba(0,29,48,.35)]', className)}
+      className={cn(
+        'pointer-events-auto absolute w-[170px] -translate-x-1/2 -translate-y-1/2 text-center drop-shadow-[0_12px_13px_rgba(0,29,48,.35)]',
+        locked ? 'cursor-not-allowed' : 'cursor-pointer',
+        className,
+      )}
       style={style}
       aria-label={`Level ${level}${locked ? ' locked' : ''}`}
+      aria-disabled={locked}
     >
       <motion.div
         animate={selected && !locked ? { scale: [1, 1.04, 1], filter: ['brightness(1)', 'brightness(1.12)', 'brightness(1)'] } : undefined}

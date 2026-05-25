@@ -45,14 +45,26 @@ export type AppSession = {
   user?: User | null;
 };
 
+function getLocalStorage(): Storage | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 export function getDemoSession(): AppSession | null {
-  const demoUserId = window.localStorage.getItem(DEMO_USER_KEY);
+  const demoUserId = getLocalStorage()?.getItem(DEMO_USER_KEY);
   return demoUserId ? { mode: 'demo', userId: demoUserId, user: null } : null;
 }
 
 function setDemoSession(userId: string) {
-  window.localStorage.setItem(DEMO_USER_KEY, userId);
-  window.dispatchEvent(new Event(DEMO_SESSION_EVENT));
+  getLocalStorage()?.setItem(DEMO_USER_KEY, userId);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(DEMO_SESSION_EVENT));
+  }
 }
 
 export function subscribeToSession(onChange: (session: AppSession | null) => void) {
@@ -118,8 +130,10 @@ export async function signInAsGuest() {
 }
 
 export async function signOutSession() {
-  window.localStorage.removeItem(DEMO_USER_KEY);
-  window.dispatchEvent(new Event(DEMO_SESSION_EVENT));
+  getLocalStorage()?.removeItem(DEMO_USER_KEY);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(DEMO_SESSION_EVENT));
+  }
   if (auth?.currentUser) {
     await signOut(auth);
   }
