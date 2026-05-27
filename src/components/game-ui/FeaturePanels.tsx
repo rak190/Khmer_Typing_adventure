@@ -9,6 +9,7 @@ import {
   type RewardAmount,
   type TreasureReward,
 } from '../../lib/playerFeatures';
+import type { EconomyInventoryItem, ShopItem } from '../../lib/economy';
 
 function PanelCard({ children, tone = 'default' }: { children: ReactNode; tone?: 'default' | 'green' | 'gold' | 'locked' }) {
   const toneClass = {
@@ -203,26 +204,45 @@ export function TreasurePanel({
   rewards,
   wallet,
   onClaim,
+  shopItems = [],
+  inventory = [],
+  onPurchase,
+  purchaseMessage,
+  purchasingItemId,
 }: {
   rewards: TreasureReward[];
-  wallet: { coins: number; gems: number; XP: number; stars: number };
+  wallet: { coins: number; gems: number; XP: number; stars: number; hearts?: number; maxHearts?: number };
   onClaim: (rewardId: string) => void;
+  shopItems?: ShopItem[];
+  inventory?: EconomyInventoryItem[];
+  onPurchase?: (itemId: string) => void;
+  purchaseMessage?: string;
+  purchasingItemId?: string;
 }) {
+  const inventoryById = new Map(inventory.map((item) => [item.itemId, item]));
+
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-4 gap-2 text-center text-xs font-black text-[#17325A]">
+      <div className="grid grid-cols-2 gap-2 text-center text-xs font-black text-[#17325A] sm:grid-cols-5">
         {[
           ['កាក់', wallet.coins],
           ['ពេជ្រ', wallet.gems],
           ['XP', wallet.XP],
+          wallet.hearts !== undefined ? ['បេះដូង', `${wallet.hearts}/${wallet.maxHearts ?? 5}`] : null,
           ['ផ្កាយ', wallet.stars],
-        ].map(([label, value]) => (
+        ].filter(Boolean).map(([label, value]) => (
           <div key={label} className="rounded-[13px] border border-[#DDBD70] bg-white/62 px-2 py-2 shadow-inner">
             <div className="uppercase text-[#7A4D19]">{label}</div>
-            <div className="text-lg">{Number(value).toLocaleString()}</div>
+            <div className="text-lg">{typeof value === 'number' ? value.toLocaleString() : value}</div>
           </div>
         ))}
       </div>
+
+      {purchaseMessage && (
+        <div className="rounded-[13px] border border-[#8ED47A] bg-[#ECFFD9] px-3 py-2 text-center text-sm font-black text-[#176D35]">
+          {purchaseMessage}
+        </div>
+      )}
 
       {rewards.map((reward) => (
         <PanelCard key={reward.id} tone={reward.status === 'locked' ? 'locked' : reward.status === 'claimed' ? 'green' : 'gold'}>
@@ -246,6 +266,60 @@ export function TreasurePanel({
           )}
         </PanelCard>
       ))}
+
+      {shopItems.length > 0 && (
+        <PanelCard tone="default">
+          <h3 className="font-black text-[#17325A]">ហាង</h3>
+          <div className="mt-3 space-y-3">
+            {shopItems.map((item) => {
+              const ownedItem = inventoryById.get(item.itemId);
+              const quantity = ownedItem?.quantity ?? 0;
+              const ownedLabel = item.consumable ? `មាន ${quantity}` : ownedItem?.owned ? 'បានទិញ' : 'មិនទាន់ទិញ';
+              const notEnough = item.currency === 'coins' ? wallet.coins < item.cost : wallet.gems < item.cost;
+
+              return (
+                <div key={item.itemId} className="rounded-[14px] border border-[#DDBD70] bg-white/62 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-black text-[#17325A]">{item.title}</div>
+                      <p className="mt-1 text-sm font-bold text-[#4D371E]">{item.description}</p>
+                      <div className="mt-2 text-xs font-black text-[#70420A]">
+                        {item.cost.toLocaleString()} {item.currency === 'coins' ? 'កាក់' : 'ពេជ្រ'} · {ownedLabel}
+                      </div>
+                      {notEnough && <div className="mt-1 text-xs font-bold text-[#8B2B1E]">Not enough coins.</div>}
+                    </div>
+                    <GameButton
+                      variant="gold"
+                      size="sm"
+                      disabled={!onPurchase || notEnough || (!item.consumable && ownedItem?.owned === true) || purchasingItemId === item.itemId}
+                      onClick={() => onPurchase?.(item.itemId)}
+                    >
+                      {purchasingItemId === item.itemId ? '...' : ownedItem?.owned && !item.consumable ? 'Owned' : 'Buy'}
+                    </GameButton>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </PanelCard>
+      )}
+
+      {inventory.length > 0 && (
+        <PanelCard tone="green">
+          <h3 className="font-black text-[#17325A]">Inventory</h3>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {inventory.map((item) => {
+              const shopItem = shopItems.find((entry) => entry.itemId === item.itemId);
+              return (
+                <div key={item.itemId} className="rounded-[12px] bg-white/62 px-3 py-2 text-sm font-black text-[#17325A]">
+                  <div>{shopItem?.title ?? item.itemId}</div>
+                  <div className="text-xs text-[#4D371E]">{item.quantity > 0 ? `x${item.quantity}` : item.owned ? 'owned' : 'locked'}</div>
+                </div>
+              );
+            })}
+          </div>
+        </PanelCard>
+      )}
     </div>
   );
 }

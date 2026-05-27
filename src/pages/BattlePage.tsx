@@ -18,7 +18,6 @@ import { getStructuredLessonByRoute } from '../data/typingProgression';
 import {
   getLessonProgressRecords,
   resetLessonProgressRecords,
-  resources,
   saveLessonProgressToFirebase,
   saveMockLessonProgress,
 } from '../data/mockData';
@@ -26,7 +25,6 @@ import { getKhmerKeyboardInput } from '../data/keyboardMap';
 import type { KeyboardKeyData } from '../types/game';
 import { countKhmerCharacters, countKhmerWords, khmerTextEquals, normalizeKhmerText } from '../lib/khmerText';
 import {
-  calculateLessonXP,
   classifyWeakKey,
   getBestScoreForLesson,
   loadStudentProgress,
@@ -47,6 +45,8 @@ import {
   formatElapsedTime,
 } from '../lib/typingMetrics';
 import { loadAppSettings, resetFeatureProgressState, saveAppSettings } from '../lib/playerFeatures';
+import { calculateRewards, prepareBossAttempt } from '../lib/economy';
+import { useEconomyState } from '../lib/useEconomyState';
 
 type BossRunStats = {
   correctInputs: number;
@@ -57,7 +57,7 @@ type BossRunStats = {
   bestStreak: number;
   weakKeyStats: WeakKeyStatRecord;
 };
-type BossModal = 'help' | 'settings' | 'sound' | 'continueLocked' | null;
+type BossModal = 'help' | 'settings' | 'sound' | 'continueLocked' | 'noHearts' | null;
 
 function BattleResourceIcon({ name }: { name: 'coin' | 'gem' }) {
   return <GameIcon name={name} size={24} decorative={false} className="h-6 w-6" />;
@@ -192,6 +192,10 @@ export default function BattlePage() {
   const [settings, setSettings] = useState(() => loadAppSettings());
   const [initialProgress] = useState(() => loadStudentProgress());
   const [initialLessonProgress] = useState(() => getLessonProgressRecords());
+  const [bossReady, setBossReady] = useState(false);
+  const [bossEntryMessage, setBossEntryMessage] = useState('');
+  const [attemptNonce, setAttemptNonce] = useState(0);
+  const economy = useEconomyState();
   const progressSavedRef = useRef(false);
 
   const currentWord = battleItems[Math.min(wordIndex, Math.max(0, battleItems.length - 1))] ?? 'សាលា';
@@ -233,18 +237,23 @@ export default function BattlePage() {
     getBestScoreForLesson(initialProgress, resultLessonId),
     initialLessonProgress.find((record) => record.worldId === world.id && record.lessonId === 'boss')?.score ?? 0,
   );
-  const finalXpEarned = calculateLessonXP({
-    passed: bossResult.passed,
-    baseXP: bossTargets.baseXP,
-    stars: bossResult.stars,
+  const rewardCalculation = calculateRewards({
+    mode: 'boss',
     accuracy: bossResult.accuracy,
-    cpm: bossResult.cpm,
+    CPM: bossResult.cpm,
     targetCPM: bossTargets.targetCPM,
     mistakes: stats.mistakes,
+    stars: bossResult.stars,
+    passed: bossResult.passed,
     score: bossResult.finalScore,
     previousBestScore,
+    currentStreak: economy.streak || initialProgress.currentStreak,
+    worldId: world.id,
+    lessonId: resultLessonId,
   });
-  const coinsEarned = bossResult.passed ? 50 + bossResult.stars * 20 + world.id * 5 : 0;
+  const finalXpEarned = battleFinished ? rewardCalculation.xpEarned : 0;
+  const coinsEarned = battleFinished ? rewardCalculation.coinsEarned : 0;
+  const gemsEarned = battleFinished ? rewardCalculation.gemsEarned : 0;
   const weakKeys = summarizeWeakKeyStats(stats.weakKeyStats, 5);
   const completedPrompts = Math.min(wordIndex, battleItems.length);
   const currentWave = useMemo(() => {
@@ -280,7 +289,7 @@ export default function BattlePage() {
   }, [bossLesson.stages, completedPrompts]);
 
   const completeCorrectWord = useCallback(() => {
-    if (battleFinished) return;
+    if (!bossReady || battleFinished) return;
 
     const completedWord = currentWord;
     const completedCount = Math.min(battleItems.length, wordIndex + 1);
@@ -304,7 +313,7 @@ export default function BattlePage() {
     setAttack(true);
     window.setTimeout(() => setAttack(false), 420);
     window.setTimeout(() => setDamage(null), 800);
-  }, [battleFinished, battleItems.length, bossHp, bossMaxHp, currentWord, wordIndex]);
+  }, [battleFinished, battleItems.length, bossHp, bossMaxHp, bossReady, currentWord, wordIndex]);
 
   const registerMistake = useCallback((expectedValue: string) => {
     setStats((current) => ({
@@ -317,7 +326,7 @@ export default function BattlePage() {
   }, []);
 
   const submitWord = useCallback(() => {
-    if (!typed || battleFinished) return;
+    if (!bossReady || !typed || battleFinished) return;
 
     if (khmerTextEquals(typed, currentWord)) {
       completeCorrectWord();
@@ -325,10 +334,10 @@ export default function BattlePage() {
       registerMistake(activeKey || currentWord);
       setTyped('');
     }
-  }, [activeKey, battleFinished, completeCorrectWord, currentWord, registerMistake, typed]);
+  }, [activeKey, battleFinished, bossReady, completeCorrectWord, currentWord, registerMistake, typed]);
 
   const appendValue = useCallback((value: string) => {
-    if (battleFinished) return;
+    if (!bossReady || battleFinished) return;
 
     setTyped((next) => {
       const candidate = normalizeKhmerText(next + value).slice(0, normalizeKhmerText(currentWord).length);
@@ -342,11 +351,11 @@ export default function BattlePage() {
 
       return candidate;
     });
-  }, [battleFinished, completeCorrectWord, currentWord, registerMistake]);
+  }, [battleFinished, bossReady, completeCorrectWord, currentWord, registerMistake]);
 
   const handlePress = useCallback(
     (keyData: KeyboardKeyData) => {
-      if (battleFinished) return;
+      if (!bossReady || battleFinished) return;
 
       if (keyData.action === 'backspace') {
         setTyped((next) => {
@@ -367,21 +376,21 @@ export default function BattlePage() {
       if (keyData.action && keyData.action !== 'space') return;
       appendValue(keyData.action === 'space' ? ' ' : keyData.value);
     },
-    [activeKey, appendValue, battleFinished, currentWord, submitWord],
+    [activeKey, appendValue, battleFinished, bossReady, currentWord, submitWord],
   );
 
   useEffect(() => {
-    if (battleFinished) return undefined;
+    if (!bossReady || battleFinished) return undefined;
     const interval = window.setInterval(() => {
       setTimer((next) => Math.max(0, next - 1));
       setElapsedSeconds((next) => next + 1);
     }, 1000);
     return () => window.clearInterval(interval);
-  }, [battleFinished]);
+  }, [battleFinished, bossReady]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (battleFinished) return;
+      if (!bossReady || battleFinished) return;
 
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -398,7 +407,25 @@ export default function BattlePage() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [appendValue, battleFinished, handlePress, submitWord]);
+  }, [appendValue, battleFinished, bossReady, handlePress, submitWord]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void prepareBossAttempt().then(({ usedRetryToken }) => {
+      if (cancelled) return;
+      setBossReady(true);
+      setBossEntryMessage(usedRetryToken ? 'បានប្រើ Retry Token សម្រាប់ Boss នេះ។' : 'បានចំណាយបេះដូង 1 សម្រាប់ Boss នេះ។');
+    }).catch((error) => {
+      if (cancelled) return;
+      const message = error instanceof Error ? error.message : 'Not enough hearts. Practice normal lessons or wait for refill.';
+      setBossReady(false);
+      setBossEntryMessage(message);
+      setModal('noHearts');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [attemptNonce]);
 
   useEffect(() => {
     if (!battleFinished || progressSavedRef.current) return;
@@ -422,6 +449,10 @@ export default function BattlePage() {
       weakKeys,
       stars: bossResult.stars,
       XP: finalXpEarned,
+      coinsEarned,
+      gemsEarned,
+      rewardReasons: rewardCalculation.rewardReasons,
+      mode: 'boss',
       score: bossResult.finalScore,
       passed: bossResult.passed,
       completedAt,
@@ -454,7 +485,7 @@ export default function BattlePage() {
     }
 
     progressSavedRef.current = true;
-  }, [battleFinished, bossDefeated, bossLesson.objective, bossResult, bossTargets.minimumAccuracy, bossTargets.targetCPM, coinsEarned, finalXpEarned, resultLessonId, stats.backspaces, stats.bestStreak, stats.mistakes, structuredBossLesson, targetText, weakKeys, world.id, world.title]);
+  }, [battleFinished, bossDefeated, bossLesson.objective, bossResult, bossTargets.minimumAccuracy, bossTargets.targetCPM, coinsEarned, finalXpEarned, gemsEarned, resultLessonId, rewardCalculation.rewardReasons, stats.backspaces, stats.bestStreak, stats.mistakes, structuredBossLesson, targetText, weakKeys, world.id, world.title]);
 
   const retryBattle = () => {
     setBossHp(bossMaxHp);
@@ -467,7 +498,10 @@ export default function BattlePage() {
     setStats(getInitialStats());
     setElapsedSeconds(0);
     setNewBadges([]);
+    setBossReady(false);
+    setBossEntryMessage('');
     progressSavedRef.current = false;
+    setAttemptNonce((current) => current + 1);
   };
 
   const handleResetProgress = () => {
@@ -498,8 +532,8 @@ export default function BattlePage() {
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <StatPill icon={<BattleResourceIcon name="coin" />} value={resources.coins} tone="dark" className="min-h-10 rounded-[14px] px-3 py-1.5" />
-            <StatPill icon={<BattleResourceIcon name="gem" />} value={resources.gems} tone="dark" className="min-h-10 rounded-[14px] px-3 py-1.5" />
+            <StatPill icon={<BattleResourceIcon name="coin" />} value={economy.coins} tone="dark" className="min-h-10 rounded-[14px] px-3 py-1.5" />
+            <StatPill icon={<BattleResourceIcon name="gem" />} value={economy.gems} tone="dark" className="min-h-10 rounded-[14px] px-3 py-1.5" />
             <button type="button" onClick={() => setModal('settings')} className="grid h-10 w-10 place-items-center rounded-[14px] bg-gradient-to-b from-[#1F9BFF] to-[#073E8B] shadow-button" aria-label="Settings">
               <Settings size={19} />
             </button>
@@ -822,6 +856,12 @@ export default function BattlePage() {
         </ActionModal>
         <ActionModal open={modal === 'continueLocked'} title="មិនទាន់ឆ្លង Boss" onClose={() => setModal(null)}>
           បន្តបានបន្ទាប់ពីឈ្នះ Boss ដោយមានភាពត្រឹមត្រូវយ៉ាងតិច {bossTargets.minimumAccuracy}%។ សូមសាកម្តងទៀត ហើយផ្តោតលើការវាយអក្សរខ្មែរឲ្យត្រឹមត្រូវជាមុន។
+        </ActionModal>
+        <ActionModal open={modal === 'noHearts'} title="បេះដូងមិនគ្រប់" onClose={() => navigate('/map')}>
+          <div className="space-y-2 font-black">
+            <p>Not enough hearts. Practice normal lessons or wait for refill.</p>
+            {bossEntryMessage && bossEntryMessage !== 'Not enough hearts.' && <p>{bossEntryMessage}</p>}
+          </div>
         </ActionModal>
       </div>
     </PageTransition>

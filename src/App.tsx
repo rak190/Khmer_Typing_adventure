@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { subscribeLessonProgressFromFirebase } from './data/mockData';
 import { subscribeToSession, type AppSession } from './lib/firebase';
+import { ensureUserEconomy, subscribeUserEconomy } from './lib/economy';
 import { subscribeStudentProgressFromFirebase } from './lib/studentProgress';
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -79,14 +80,17 @@ export default function App() {
   useEffect(() => {
     if (session?.mode !== 'firebase' || !session.userId) return undefined;
 
+    void ensureUserEconomy(session.userId, session.user?.displayName ?? undefined).catch((error) => console.error('Unable to prepare user economy.', error));
+    const unsubscribeEconomy = subscribeUserEconomy(session.userId);
     const unsubscribeStudentProgress = subscribeStudentProgressFromFirebase(session.userId);
     const unsubscribeLessonProgress = subscribeLessonProgressFromFirebase(session.userId);
 
     return () => {
+      unsubscribeEconomy();
       unsubscribeStudentProgress();
       unsubscribeLessonProgress();
     };
-  }, [session?.mode, session?.userId]);
+  }, [session?.mode, session?.userId, session?.user?.displayName]);
 
   if (!sessionReady && !isPublicRoute) {
     return (

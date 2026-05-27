@@ -7,11 +7,12 @@ import Logo from '../game/Logo';
 import CharacterPlaceholder from '../characters/CharacterPlaceholder';
 import AccountMenu from './AccountMenu';
 import { resetLessonProgressRecords } from '../../data/mockData';
+import { claimEconomyReward, getActiveEconomyUserId, purchaseShopItem, shopItems } from '../../lib/economy';
+import { useEconomyState, useInventoryState } from '../../lib/useEconomyState';
 import { loadStudentProgress, resetStudentProgress } from '../../lib/studentProgress';
 import {
   buildTreasureRewards,
   claimTreasureReward,
-  getWalletSummary,
   loadAppSettings,
   resetFeatureProgressState,
   saveAppSettings,
@@ -33,8 +34,20 @@ export default function Sidebar() {
   const [settings, setSettings] = useState(() => loadAppSettings());
   const [progress, setProgress] = useState(() => loadStudentProgress());
   const [, setFeatureRevision] = useState(0);
+  const [featureMessage, setFeatureMessage] = useState('');
+  const [purchasingItemId, setPurchasingItemId] = useState<string | undefined>();
+  const economy = useEconomyState();
+  const inventory = useInventoryState();
   const rewards = buildTreasureRewards(progress);
-  const wallet = getWalletSummary(progress);
+  const earnedStars = progress.lessonResults.reduce((total, result) => total + result.stars, 0);
+  const wallet = {
+    coins: economy.coins,
+    gems: economy.gems,
+    XP: economy.typingXP,
+    stars: earnedStars,
+    hearts: economy.hearts,
+    maxHearts: economy.maxHearts,
+  };
 
   const handleResetProgress = () => {
     resetStudentProgress();
@@ -42,6 +55,42 @@ export default function Sidebar() {
     void resetLessonProgressRecords().catch((error) => console.error('Unable to reset lesson progress records.', error));
     setProgress(loadStudentProgress());
     setFeatureRevision((revision) => revision + 1);
+  };
+
+  const handleTreasureClaim = async (rewardId: string) => {
+    const reward = rewards.find((item) => item.id === rewardId);
+    if (!reward || reward.status === 'claimed') {
+      setFeatureMessage('Already claimed.');
+      return;
+    }
+    if (reward.status !== 'claimable') return;
+
+    try {
+      const userId = getActiveEconomyUserId();
+      if (userId) await claimEconomyReward(userId, reward.id, reward.reward, 'treasure');
+      claimTreasureReward(rewardId);
+      setFeatureMessage('Reward claimed!');
+      setFeatureRevision((revision) => revision + 1);
+    } catch (error) {
+      setFeatureMessage(error instanceof Error ? error.message : 'Saved locally. Sync will retry.');
+    }
+  };
+
+  const handlePurchase = async (itemId: string) => {
+    const userId = getActiveEconomyUserId();
+    if (!userId) {
+      setFeatureMessage('Saved locally. Sync will retry.');
+      return;
+    }
+    setPurchasingItemId(itemId);
+    try {
+      await purchaseShopItem(userId, itemId);
+      setFeatureMessage('Purchased!');
+    } catch (error) {
+      setFeatureMessage(error instanceof Error ? error.message : 'Saved locally. Sync will retry.');
+    } finally {
+      setPurchasingItemId(undefined);
+    }
   };
 
   return (
@@ -95,10 +144,12 @@ export default function Sidebar() {
         <TreasurePanel
           rewards={rewards}
           wallet={wallet}
-          onClaim={(rewardId) => {
-            claimTreasureReward(rewardId);
-            setFeatureRevision((revision) => revision + 1);
-          }}
+          shopItems={shopItems}
+          inventory={inventory}
+          purchaseMessage={featureMessage}
+          purchasingItemId={purchasingItemId}
+          onClaim={handleTreasureClaim}
+          onPurchase={handlePurchase}
         />
       </ActionModal>
       <ActionModal open={modal === 'settings'} title="ការកំណត់" onClose={() => setModal(null)}>

@@ -13,7 +13,6 @@ import { countKhmerCharacters, countKhmerWords, khmerTextEquals } from '../../li
 import { buildLessonTypingPlan, getCurrentTargetText, getTypedText, type TypingUnit } from '../../lib/lessonTypingPlan';
 import { getFingerGuidance } from '../../lib/fingerGuidance';
 import {
-  calculateLessonXP,
   classifyWeakKey,
   getBestScoreForLesson,
   getProgressRecommendation,
@@ -32,6 +31,7 @@ import {
   type TypingMetricResult,
 } from '../../lib/typingMetrics';
 import { loadAppSettings, resetFeatureProgressState, saveAppSettings } from '../../lib/playerFeatures';
+import { calculateRewards, loadCachedEconomy } from '../../lib/economy';
 import LessonHud from './LessonHud';
 import TypingTargetCard from './TypingTargetCard';
 import KhmerKeyboard from './KhmerKeyboard';
@@ -168,19 +168,24 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   const weakKeys = summarizeWeakKeyStats(runState.weakKeyStats, 5);
   const resultLessonId = practiceMode === 'weak' ? 'weak-key-practice' : structuredLesson?.lessonId ?? `${world.id}:${lesson.id}`;
   const previousBestScore = getBestScoreForLesson(initialProgress, resultLessonId);
-  const finalXpEarned = calculateLessonXP({
-    passed: metrics.passed,
-    baseXP: structuredLesson?.xpReward ?? (practiceMode === 'weak' ? 65 : 90),
-    stars: metrics.stars,
+  const rewardCalculation = calculateRewards({
+    mode: 'lesson',
     accuracy: metrics.accuracy,
-    cpm: metrics.cpm,
+    CPM: metrics.cpm,
     targetCPM: speedTargetCpm,
     mistakes: metrics.errorCount,
+    stars: metrics.stars,
+    passed: metrics.passed,
     score: metrics.finalScore,
     previousBestScore,
+    currentStreak: loadCachedEconomy().streak || initialProgress.currentStreak,
+    worldId: structuredLesson?.worldId ?? world.id,
+    lessonId: resultLessonId,
   });
+  const finalXpEarned = rewardCalculation.xpEarned;
   const displayedXpEarned = runState.finished ? finalXpEarned : Math.min(40, runState.completedInputCount * 2);
-  const coinsEarned = Math.max(0, runState.finished && metrics.passed ? 20 + metrics.stars * 10 + Math.floor(metrics.finalScore / 1200) : 0);
+  const coinsEarned = runState.finished ? rewardCalculation.coinsEarned : 0;
+  const gemsEarned = runState.finished ? rewardCalculation.gemsEarned : 0;
   const questStages = getQuestStages(runState.completedInputCount, targetUnits.length, runState.finished);
   const shiftRequired = activeTarget?.modifier === 'shift';
   const keyHint = activeTarget ? getKeyHint(activeTarget) : 'Complete';
@@ -355,6 +360,10 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
       weakKeys,
       stars: metrics.stars,
       XP: finalXpEarned,
+      coinsEarned,
+      gemsEarned,
+      rewardReasons: rewardCalculation.rewardReasons,
+      mode: 'lesson',
       score: metrics.finalScore,
       passed: metrics.passed,
       completedAt,
@@ -386,7 +395,7 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
     }
 
     progressSavedRef.current = true;
-  }, [coinsEarned, finalXpEarned, lesson.id, lesson.labelEn, lesson.objective, metrics, minimumAccuracy, plan.targetText, practiceMode, resultLessonId, runState.bestStreak, runState.finished, speedTargetCpm, structuredLesson, weakKeys, world.id]);
+  }, [coinsEarned, finalXpEarned, gemsEarned, lesson.id, lesson.labelEn, lesson.objective, metrics, minimumAccuracy, plan.targetText, practiceMode, resultLessonId, rewardCalculation.rewardReasons, runState.bestStreak, runState.finished, speedTargetCpm, structuredLesson, weakKeys, world.id]);
 
   if (!activeTarget) {
     return (
