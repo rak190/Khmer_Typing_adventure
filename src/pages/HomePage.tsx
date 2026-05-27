@@ -10,6 +10,7 @@ import {
   Map,
   Play,
   Shield,
+  Sparkles,
   Swords,
   Timer,
   Trophy,
@@ -76,8 +77,8 @@ function TopNav({ onOpenModal }: { onOpenModal: (modal: HomeModal) => void }) {
         <img src={imageAssets.logo} alt="Khmer Typing Adventure" className="h-full w-full object-contain drop-shadow-[0_10px_12px_rgba(0,22,76,.34)]" />
       </Link>
 
-      <nav className="absolute left-[300px] right-[520px] top-[17px] flex h-[58px] items-center justify-center gap-[14px]">
-        {navItems.map((item) => {
+      <nav className="absolute left-[300px] right-[560px] top-[17px] flex h-[58px] items-center justify-center gap-[14px]">
+        {navItems.filter((item) => item.icon !== Users).map((item) => {
           const Icon = item.icon;
           return (
             <Link
@@ -96,6 +97,24 @@ function TopNav({ onOpenModal }: { onOpenModal: (modal: HomeModal) => void }) {
       </nav>
 
       <div className="absolute right-[30px] top-[18px] flex items-center gap-3">
+        <Link
+          to="/shop"
+          aria-label="Open adventure shop"
+          className="pointer-events-auto group relative flex h-[56px] min-w-[146px] items-center justify-center gap-2 overflow-visible rounded-[23px] border-[3px] border-[#FFE17B] bg-gradient-to-b from-[#FFF6A8] via-[#FFC23A] to-[#D8750C] px-3 text-[#542B00] shadow-[inset_0_2px_0_rgba(255,255,255,.52),inset_0_-5px_0_rgba(118,57,0,.22),0_9px_15px_rgba(0,34,93,.28),0_0_12px_rgba(255,211,69,.32)] transition hover:-translate-y-0.5 hover:scale-[1.01] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70"
+        >
+          <span className="pointer-events-none absolute -right-2 -top-2 z-20 rotate-6 rounded-full border border-white bg-gradient-to-b from-[#FF5B54] to-[#C51E2A] px-2 py-0.5 text-[9px] font-black text-white shadow-button">
+            NEW
+          </span>
+          <span className="pointer-events-none absolute inset-x-4 top-1.5 h-4 rounded-full bg-white/30" />
+          <span className="relative z-10 grid h-10 w-10 shrink-0 place-items-center rounded-[14px] border-2 border-[#8B4D0B] bg-gradient-to-b from-[#8B4D0B] to-[#492401] shadow-[inset_0_2px_0_rgba(255,255,255,.24),0_5px_8px_rgba(0,0,0,.2)]">
+            <img src={imageAssets.chest} alt="" className="h-10 w-10 object-contain drop-shadow-[0_3px_3px_rgba(0,0,0,.24)] transition group-hover:scale-110" />
+          </span>
+          <span className="relative z-10 min-w-0 leading-tight">
+            <span className="khmer-body block text-[11px] font-black text-[#6B3400]">ហាង</span>
+            <span className="block whitespace-nowrap text-[17px] font-black leading-none tracking-normal">Shop</span>
+          </span>
+          <Sparkles className="relative z-10 shrink-0 text-[#8B3E00] transition group-hover:rotate-12 group-hover:scale-125" size={16} />
+        </Link>
         <GameHudCounter type="coins" value={economy.coins} showPlus onAdd={() => onOpenModal('coins')} className="h-[56px] min-h-0 min-w-[132px] rounded-[23px] px-3 py-2 text-[15px]" />
         <GameHudCounter type="hearts" value={`${economy.hearts}/${economy.maxHearts}`} label="Full" className="h-[56px] min-h-0 min-w-[126px] rounded-[23px] px-3 py-2 text-[15px]" />
         <AccountMenu variant="home" />
@@ -332,11 +351,6 @@ export default function HomePage() {
                 );
               })}
             </div>
-            <Link to="/dashboard" className="pointer-events-auto ml-auto inline-flex cursor-pointer">
-              <GameButton variant="white" size="sm" leftIcon={<GraduationCap size={19} />} className="h-[50px] min-w-[178px] rounded-[25px] border-[#8DBDFF] text-[14px]">
-                For Teachers
-              </GameButton>
-            </Link>
           </section>
 
           <footer className="absolute bottom-0 left-0 z-30 h-[92px] w-full overflow-hidden rounded-t-[18px] bg-gradient-to-b from-[#075AC9] via-[#0047A6] to-[#00317E] px-[76px] py-2 text-white shadow-[0_-10px_20px_rgba(0,54,118,.18)]">

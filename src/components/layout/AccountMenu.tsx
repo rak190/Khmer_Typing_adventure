@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ChevronDown, LogOut, UserRound } from 'lucide-react';
+import { BadgeCheck, ChevronDown, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { signOutSession, subscribeToSession, type AppSession } from '../../lib/firebase';
 import { loadStudentProgress, type StudentProgress } from '../../lib/studentProgress';
-import {
-  USER_PROFILE_EVENT,
-  avatarChoices,
-  getSessionAvatar,
-  getSessionDisplayName,
-  loadUserProfile,
-  saveUserProfile,
-} from '../../lib/userProfile';
+import { USER_PROFILE_EVENT, getSessionDisplayName } from '../../lib/userProfile';
+import { PROFILE_AVATARS } from '../../data/avatars';
+import { PLAYER_TITLES } from '../../data/playerTitles';
+import { getUserProfile, loadCachedGameProfile, type GameProfile } from '../../services/profileService';
 import { cn } from '../../lib/cn';
 
 type AccountMenuProps = {
@@ -22,16 +18,27 @@ export default function AccountMenu({ variant = 'home' }: AccountMenuProps) {
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState<AppSession | null>(null);
   const [progress, setProgress] = useState<StudentProgress>(() => loadStudentProgress());
-  const [profile, setProfile] = useState(() => loadUserProfile());
-  const displayName = getSessionDisplayName(session, progress);
-  const avatar = getSessionAvatar(session);
+  const [profile, setProfile] = useState<GameProfile>(() => loadCachedGameProfile());
+  const displayName = profile.displayName || getSessionDisplayName(session, progress);
+  const avatar = PROFILE_AVATARS.find((item) => item.id === profile.equippedAvatarId) ?? PROFILE_AVATARS[0];
+  const title = PLAYER_TITLES.find((item) => item.id === profile.equippedTitleId) ?? PLAYER_TITLES[0];
   const level = progress.currentLevel || 1;
 
   useEffect(() => subscribeToSession(setSession), []);
 
   useEffect(() => {
+    let active = true;
+    void getUserProfile(session?.userId).then((nextProfile) => {
+      if (active) setProfile(nextProfile);
+    }).catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [session?.userId]);
+
+  useEffect(() => {
     const refreshProfile = () => {
-      setProfile(loadUserProfile());
+      setProfile(loadCachedGameProfile(session?.userId));
       setProgress(loadStudentProgress());
     };
 
@@ -41,7 +48,7 @@ export default function AccountMenu({ variant = 'home' }: AccountMenuProps) {
       window.removeEventListener(USER_PROFILE_EVENT, refreshProfile);
       window.removeEventListener('khmer-student-progress-change', refreshProfile);
     };
-  }, []);
+  }, [session?.userId]);
 
   const buttonClass = variant === 'home'
     ? 'pointer-events-auto flex h-[58px] w-[176px] cursor-pointer items-center gap-2 rounded-[23px] border-2 border-white/35 bg-gradient-to-b from-[#78E0FF]/85 to-[#1472D8]/90 px-3 text-white shadow-[inset_0_-5px_0_rgba(0,38,91,.25),0_9px_16px_rgba(0,36,97,.24)]'
@@ -50,10 +57,6 @@ export default function AccountMenu({ variant = 'home' }: AccountMenuProps) {
   const avatarClass = variant === 'home'
     ? 'grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-white/75 bg-gradient-to-b from-[#D6FFF7] to-[#30BE69]'
     : 'grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-b from-mint to-primary shadow';
-
-  const chooseAvatar = (nextAvatar: string) => {
-    setProfile(saveUserProfile({ ...profile, avatar: nextAvatar }));
-  };
 
   const logout = async () => {
     await signOutSession();
@@ -65,15 +68,15 @@ export default function AccountMenu({ variant = 'home' }: AccountMenuProps) {
     <div className="pointer-events-auto relative">
       <button type="button" className={buttonClass} onClick={() => setOpen((value) => !value)} aria-label="គណនីអ្នកលេង">
         <span className={avatarClass}>
-          {avatar.kind === 'image' ? (
-            <img src={avatar.value} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+          {session?.user?.photoURL && !profile.equippedAvatarId ? (
+            <img src={session.user.photoURL} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
           ) : (
-            <span className="khmer-body text-[22px] font-black">{avatar.value || <UserRound size={23} />}</span>
+            <img src={avatar.image} alt="" className="h-full w-full object-cover" />
           )}
         </span>
         <span className="min-w-0 flex-1 text-left leading-tight">
           <span className={cn('block truncate font-black', variant === 'home' ? 'text-[16px]' : '')}>{displayName}</span>
-          <span className={cn('block font-extrabold text-white/90', variant === 'home' ? 'text-[11px]' : 'text-xs')}>កម្រិត {level}</span>
+          <span className={cn('block truncate font-extrabold text-white/90', variant === 'home' ? 'text-[11px]' : 'text-xs')}>Level {level} · {title.name}</span>
         </span>
         <ChevronDown className="ml-auto shrink-0" size={18} />
       </button>
@@ -83,27 +86,17 @@ export default function AccountMenu({ variant = 'home' }: AccountMenuProps) {
           <div className="font-black">គណនីរបស់អ្នក</div>
           <div className="mt-1 truncate text-sm font-bold text-[#65411F]">{session?.user?.email ?? (session?.mode === 'demo' ? 'Guest Adventure' : 'អ្នកលេង')}</div>
 
-          {avatar.kind !== 'image' && (
-            <div className="mt-3">
-              <div className="mb-2 text-xs font-black uppercase text-[#7A4D19]">ជ្រើសរូបគណនី</div>
-              <div className="grid grid-cols-6 gap-2">
-                {avatarChoices.map((choice) => (
-                  <button
-                    key={choice}
-                    type="button"
-                    className={cn(
-                      'grid h-9 w-9 place-items-center rounded-full border-2 bg-white/70 text-lg font-black shadow-inner',
-                      profile.avatar === choice ? 'border-[#1764B2] ring-2 ring-[#7ED8FF]' : 'border-[#DDBD70]',
-                    )}
-                    onClick={() => chooseAvatar(choice)}
-                    aria-label={`ជ្រើសរូប ${choice}`}
-                  >
-                    {choice}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <button
+            type="button"
+            className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[16px] border-2 border-[#1764B2] bg-gradient-to-b from-[#7BD8FF] to-[#1764B2] font-black text-white shadow-button"
+            onClick={() => {
+              setOpen(false);
+              navigate('/profile');
+            }}
+          >
+            <BadgeCheck size={18} />
+            Open Player Profile
+          </button>
 
           <button
             type="button"

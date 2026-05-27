@@ -1,158 +1,169 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Award,
-  BarChart3,
   BookOpen,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
+  Clock,
   Flame,
-  Keyboard,
-  Lock,
+  Gem,
+  Heart,
+  Info,
+  Mail,
   Map,
+  Medal,
+  Settings,
   ShieldCheck,
+  ShoppingCart,
   Sparkles,
   Star,
+  Swords,
   Target,
   Trophy,
   Zap,
 } from 'lucide-react';
-import AppLayout from '../components/layout/AppLayout';
-import GameButton from '../components/game/GameButton';
-import GameBadge from '../components/game-ui/GameBadge';
-import PageTransition from '../components/layout/PageTransition';
-import ProgressBar from '../components/game/ProgressBar';
-import { LESSON_PROGRESS_EVENT } from '../data/mockData';
-import { structuredTypingWorlds, type StructuredTypingLesson, type StructuredTypingWorld } from '../data/typingProgression';
+import { imageAssets } from '../assets/assetManifest';
+import { PROFILE_AVATARS } from '../data/avatars';
+import { PLAYER_TITLES } from '../data/playerTitles';
+import { resetLessonProgressRecords } from '../data/mockData';
 import {
-  getProgressRecommendation,
-  getStructuredLessonStatus,
-  getStudentDashboardStats,
+  getNextStructuredLesson,
+  getStructuredLessons,
+  type StructuredTypingLesson,
+} from '../data/typingProgression';
+import ActionModal from '../components/game-ui/ActionModal';
+import GameButton from '../components/game-ui/GameButton';
+import { AchievementsPanel, DailyQuestsPanel, SettingsPanel } from '../components/game-ui/FeaturePanels';
+import AppLayout from '../components/layout/AppLayout';
+import PageTransition from '../components/layout/PageTransition';
+import { claimDailyQuestReward, getActiveEconomyUserId } from '../lib/economy';
+import {
+  buildAchievementProgress,
+  buildDailyQuests,
+  claimDailyQuest,
+  loadAppSettings,
+  PLAYER_FEATURES_EVENT,
+  resetFeatureProgressState,
+  saveAppSettings,
+  type AppSettings,
+  type DailyQuest,
+  type RewardAmount,
+} from '../lib/playerFeatures';
+import {
   createEmptyStudentProgress,
+  getStudentDashboardStats,
   loadStudentProgress,
+  resetStudentProgress,
   STUDENT_PROGRESS_EVENT,
+  type StudentLessonResult,
   type StudentProgress,
 } from '../lib/studentProgress';
+import { useDailyQuestClaimIds, useEconomyState } from '../lib/useEconomyState';
+import { USER_PROFILE_EVENT } from '../lib/userProfile';
+import { loadCachedGameProfile } from '../services/profileService';
+
+type DashboardModal = 'details' | 'dailyQuests' | 'achievements' | 'settings' | 'messages' | null;
+
+type HudPillProps = {
+  icon: ReactNode;
+  value: string;
+  label: string;
+  onAdd?: () => void;
+  ariaLabel?: string;
+};
 
 type StatCardProps = {
-  label: string;
-  value: string | number;
-  detail?: string;
   icon: ReactNode;
-  tone?: 'blue' | 'green' | 'gold' | 'purple' | 'red';
+  label: string;
+  value: string;
+  subtitle: string;
+  tone: 'purple' | 'gold' | 'blue' | 'green' | 'orange';
+  progress?: number;
 };
 
-const toneStyles = {
-  blue: 'from-[#E7F7FF] to-[#BDEBFF] border-[#7DC9F2] text-[#174C90]',
-  green: 'from-[#E9FFD9] to-[#BDF39B] border-[#76C95F] text-[#176D35]',
-  gold: 'from-[#FFF6CA] to-[#FFD777] border-[#D99A27] text-[#70420A]',
-  purple: 'from-[#F0E8FF] to-[#D7C0FF] border-[#9A77E8] text-[#4D2E93]',
-  red: 'from-[#FFE7DF] to-[#FFB7A8] border-[#E06D5B] text-[#8B2B1E]',
+const statTones: Record<StatCardProps['tone'], string> = {
+  purple: 'from-[#321758]/94 via-[#4A2584]/90 to-[#271044]/94 border-[#B88DFF] text-[#F8EDFF]',
+  gold: 'from-[#513608]/94 via-[#8C5E12]/90 to-[#3C2705]/94 border-[#FFD267] text-[#FFF8D8]',
+  blue: 'from-[#073A5C]/94 via-[#075E8C]/90 to-[#05283E]/94 border-[#43CFFF] text-[#E9FAFF]',
+  green: 'from-[#063F30]/94 via-[#0B764A]/90 to-[#052C22]/94 border-[#61D66C] text-[#EFFFF0]',
+  orange: 'from-[#62350A]/94 via-[#A85C10]/90 to-[#472506]/94 border-[#FFB848] text-[#FFF0D3]',
 };
 
-function DashboardPanel({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return (
-    <section className={`dashboard-panel rounded-[22px] border border-white/60 bg-white/88 p-5 shadow-game ${className}`}>
-      {children}
-    </section>
-  );
+const questCopy: Record<string, { title: string; detail: string; icon: ReactNode }> = {
+  'complete-lesson': {
+    title: 'បញ្ចប់មេរៀន 1 ថ្ងៃ',
+    detail: 'Complete 1 lesson',
+    icon: <Swords size={24} />,
+  },
+  'type-khmer-characters': {
+    title: 'វាយតួអក្សរខ្មែរ',
+    detail: 'Type Khmer characters',
+    icon: <BookOpen size={24} />,
+  },
+  'accuracy-target': {
+    title: 'គោលដៅត្រឹមត្រូវ',
+    detail: 'Reach today\'s accuracy target',
+    icon: <Target size={24} />,
+  },
+  'attempt-boss': {
+    title: 'សាកល្បង Boss',
+    detail: 'Try a Boss Battle',
+    icon: <ShieldCheck size={24} />,
+  },
+};
+
+function clamp(value: number, min = 0, max = 100) {
+  return Math.max(min, Math.min(max, value));
 }
 
-function SectionHeading({ icon, title, subtitle }: { icon: ReactNode; title: string; subtitle?: string }) {
-  return (
-    <div className="mb-4 flex items-start justify-between gap-3">
-      <div className="flex min-w-0 items-start gap-3">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[#E8F6FF] text-[#1764B2] shadow-inner">
-          {icon}
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-xl font-black leading-tight text-[#17325A]">{title}</h2>
-          {subtitle && <p className="mt-0.5 font-bold leading-snug text-[#4F6A7F]">{subtitle}</p>}
-        </div>
-      </div>
-    </div>
-  );
+function formatNumber(value: number) {
+  return Math.round(value).toLocaleString();
 }
 
-function StatCard({ label, value, detail, icon, tone = 'blue' }: StatCardProps) {
-  return (
-    <section className={`rounded-[18px] border-2 bg-gradient-to-b p-4 shadow-[inset_0_2px_0_rgba(255,255,255,.62),0_10px_18px_rgba(24,71,112,.1)] ${toneStyles[tone]}`}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[11px] font-black uppercase tracking-wide opacity-75">{label}</div>
-          <div className="mt-1 truncate text-[30px] font-black leading-none">{value}</div>
-          {detail && <div className="mt-1 truncate text-xs font-black opacity-70">{detail}</div>}
-        </div>
-        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] bg-white/58 shadow-inner">{icon}</div>
-      </div>
-    </section>
-  );
+function xpThresholdForLevel(level: number) {
+  const safeLevel = Math.max(1, Math.floor(level));
+  const thresholds = [0, 100, 250, 450, 700];
+  if (safeLevel - 1 < thresholds.length) return thresholds[safeLevel - 1];
+
+  let currentLevel = 5;
+  let requirement = 700;
+  let step = 350;
+  while (currentLevel < safeLevel) {
+    requirement += step;
+    step = Math.round(step * 1.18);
+    currentLevel += 1;
+  }
+  return requirement;
+}
+
+function getLevelXP(totalXP: number, level: number) {
+  const start = xpThresholdForLevel(level);
+  const end = xpThresholdForLevel(level + 1);
+  const target = Math.max(1, end - start);
+  const current = clamp(totalXP - start, 0, target);
+  return {
+    current,
+    target,
+    percent: Math.round((current / target) * 100),
+  };
+}
+
+function rewardLabel(reward: RewardAmount) {
+  const parts = [
+    reward.coins ? `${reward.coins} coins` : null,
+    reward.gems ? `${reward.gems} gems` : null,
+    reward.XP ? `${reward.XP} XP` : null,
+    reward.stars ? `${reward.stars} stars` : null,
+  ].filter(Boolean);
+  return parts.join(' + ');
 }
 
 function lessonHref(lesson: StructuredTypingLesson) {
   return lesson.isBoss
     ? `/battle?world=${lesson.routeWorldId}`
     : `/lesson?world=${lesson.routeWorldId}&level=${lesson.routeLessonId}`;
-}
-
-function WorldProgressCard({ world, progress }: { world: StructuredTypingWorld; progress: StudentProgress }) {
-  const lessonStates = world.lessons.map((lesson) => ({
-    lesson,
-    status: getStructuredLessonStatus(progress, lesson),
-  }));
-  const completed = lessonStates.filter((item) => item.status === 'completed').length;
-  const nextLesson = lessonStates.find((item) => item.status === 'unlocked')?.lesson;
-  const percent = world.lessons.length > 0 ? Math.round((completed / world.lessons.length) * 100) : 0;
-
-  return (
-    <article className="rounded-[18px] border-2 border-[#D8B56C] bg-gradient-to-b from-[#FFF9DE] to-[#EDCF88] p-4 text-[#4D371E] shadow-[inset_0_2px_0_rgba(255,255,255,.62),0_12px_20px_rgba(72,84,73,.12)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs font-black uppercase tracking-wide text-[#8A632C]">World {world.worldId}</div>
-          <h3 className="truncate text-lg font-black leading-tight">{world.title}</h3>
-          <p className="mt-1 line-clamp-2 text-sm font-bold text-[#76542B]">{world.subtitle}</p>
-        </div>
-        <div className="rounded-full bg-white/60 px-3 py-1 text-sm font-black">{completed}/{world.lessons.length}</div>
-      </div>
-
-      <div className="mt-3">
-        <ProgressBar value={percent} max={100} color={percent === 100 ? 'green' : 'gold'} showValue />
-      </div>
-
-      <div className="mt-3 grid gap-2">
-        {lessonStates.map(({ lesson, status }) => {
-          const content = (
-            <div className={`flex items-center justify-between gap-2 rounded-[12px] border px-3 py-2 text-sm font-black transition ${
-              status === 'completed'
-                ? 'border-[#58B86E] bg-[#E7FFD7] text-[#176D35]'
-                : status === 'unlocked'
-                  ? 'border-[#D79B2E] bg-[#FFF2B0] text-[#70420A] hover:-translate-y-0.5 hover:shadow-md'
-                  : 'border-[#BBB4A7] bg-[#EEE8DE] text-[#706C66]'
-            }`}
-          >
-            <span className="min-w-0 truncate">{lesson.lessonTitle}</span>
-            <span className="shrink-0">
-              {status === 'completed' ? <CheckCircle2 size={17} /> : status === 'unlocked' ? <ChevronRight size={17} /> : <Lock size={16} />}
-            </span>
-          </div>
-          );
-
-          return status === 'locked'
-            ? <div key={lesson.lessonId}>{content}</div>
-            : <Link key={lesson.lessonId} to={lessonHref(lesson)}>{content}</Link>;
-        })}
-      </div>
-
-      {nextLesson ? (
-        <Link to={lessonHref(nextLesson)} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-[#174C90] px-3 py-2 text-sm font-black text-white shadow-button">
-          Practice Next <ChevronRight size={16} />
-        </Link>
-      ) : (
-        <div className="mt-3 rounded-[14px] bg-[#DFFFD4] px-3 py-2 text-center text-sm font-black text-[#176D35]">World complete</div>
-      )}
-    </article>
-  );
 }
 
 function safeLoadStudentProgress(): StudentProgress {
@@ -164,166 +175,699 @@ function safeLoadStudentProgress(): StudentProgress {
   }
 }
 
+function formatResetCountdown(now: Date) {
+  const reset = new Date(now);
+  reset.setHours(24, 0, 0, 0);
+  const ms = Math.max(0, reset.getTime() - now.getTime());
+  const hours = Math.floor(ms / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+function DashboardPanel({
+  children,
+  className = '',
+  ariaLabelledBy,
+}: {
+  children: ReactNode;
+  className?: string;
+  ariaLabelledBy?: string;
+}) {
+  return (
+    <section
+      aria-labelledby={ariaLabelledBy}
+      className={`dashboard-panel rounded-[22px] border-[3px] border-[#C99031] bg-[#062F35]/88 p-4 text-white shadow-[0_18px_40px_rgba(0,0,0,.34),inset_0_2px_0_rgba(255,255,255,.12)] ${className}`}
+    >
+      {children}
+    </section>
+  );
+}
+
+function SectionTitle({ id, icon, title, subtitle, action }: { id: string; icon: ReactNode; title: string; subtitle?: string; action?: ReactNode }) {
+  return (
+    <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-[#FFCC57] bg-[#0B4B50] text-[#FFE68A] shadow-[inset_0_-3px_0_rgba(0,0,0,.22)]">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <h2 id={id} className="khmer-body text-xl font-black leading-tight text-[#FFE6A6]">{title}</h2>
+          {subtitle && <p className="mt-0.5 text-sm font-bold leading-snug text-[#C9F5E8]">{subtitle}</p>}
+        </div>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function HudPill({ icon, value, label, onAdd, ariaLabel }: HudPillProps) {
+  return (
+    <div className="flex min-h-[54px] items-center gap-3 rounded-full border-[3px] border-[#D99725] bg-[#052D34]/92 px-4 py-2 shadow-[0_8px_18px_rgba(0,0,0,.28),inset_0_2px_0_rgba(255,255,255,.1)]">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#0B4A50] text-white">{icon}</span>
+      <span className="min-w-0 leading-tight">
+        <span className="block text-[24px] font-black leading-none text-white">{value}</span>
+        <span className="block text-xs font-black text-[#FFE7A6]">{label}</span>
+      </span>
+      {onAdd && (
+        <button
+          type="button"
+          aria-label={ariaLabel ?? `Open shop for ${label}`}
+          onClick={onAdd}
+          className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-[#72C8BD]/70 bg-[#0E5960] text-[#FFF0A5] shadow-inner transition hover:bg-[#16706F] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70"
+        >
+          +
+        </button>
+      )}
+    </div>
+  );
+}
+
+function HudIconButton({
+  icon,
+  label,
+  badge,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  badge?: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="relative grid h-[58px] w-[58px] place-items-center rounded-full border-[3px] border-[#D99725] bg-[#052D34]/92 text-[#FFE7A6] shadow-[0_8px_18px_rgba(0,0,0,.28),inset_0_2px_0_rgba(255,255,255,.1)] transition hover:-translate-y-0.5 hover:bg-[#0B4A50] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70"
+    >
+      {icon}
+      {badge ? (
+        <span className="absolute -right-1 -top-1 grid h-6 min-w-6 place-items-center rounded-full border-2 border-white bg-[#E83D38] px-1 text-xs font-black text-white">
+          {badge}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
+function StatCard({ icon, label, value, subtitle, tone, progress }: StatCardProps) {
+  return (
+    <article className={`min-h-[118px] rounded-[18px] border-[3px] bg-gradient-to-br p-4 shadow-[0_14px_28px_rgba(0,0,0,.3),inset_0_2px_0_rgba(255,255,255,.16)] ${statTones[tone]}`}>
+      <div className="flex items-center gap-3">
+        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full border-2 border-white/24 bg-white/13 shadow-inner">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <div className="khmer-body truncate text-sm font-black text-[#FFE9A8]">{label}</div>
+          <div className="mt-1 text-[28px] font-black leading-none tracking-normal text-white">{value}</div>
+          <div className="mt-1 truncate text-sm font-bold text-white/78">{subtitle}</div>
+        </div>
+      </div>
+      {typeof progress === 'number' && (
+        <div className="mt-3 h-3 overflow-hidden rounded-full bg-black/32 shadow-inner" aria-hidden="true">
+          <div className="h-full rounded-full bg-gradient-to-r from-[#7BE747] to-[#FBE44B]" style={{ width: `${clamp(progress)}%` }} />
+        </div>
+      )}
+    </article>
+  );
+}
+
+function ProgressRing({ percent }: { percent: number }) {
+  const safePercent = clamp(percent);
+  return (
+    <div
+      className="grid h-36 w-36 shrink-0 place-items-center rounded-full border-[3px] border-[#2DAE8A] shadow-[0_12px_22px_rgba(0,0,0,.32),inset_0_0_0_10px_rgba(0,0,0,.18)]"
+      style={{ background: `conic-gradient(#7FE33F ${safePercent * 3.6}deg, rgba(7, 54, 59, .92) 0deg)` }}
+      aria-label={`${safePercent}% complete`}
+    >
+      <div className="grid h-24 w-24 place-items-center rounded-full bg-[#062B31] text-center text-[34px] font-black text-[#FFF3C6] shadow-inner">
+        {safePercent}%
+      </div>
+    </div>
+  );
+}
+
+function MetricLine({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[#85D5C8]/18 py-2 last:border-b-0">
+      <span className="flex min-w-0 items-center gap-2 font-bold text-[#DDF8EF]">
+        <span className="text-[#FFE172]">{icon}</span>
+        <span className="truncate">{label}</span>
+      </span>
+      <span className="shrink-0 font-black text-white">{value}</span>
+    </div>
+  );
+}
+
+function StreakPanel({ current, best }: { current: number; best: number }) {
+  const activeDots = clamp(current, 0, 7);
+
+  return (
+    <DashboardPanel className="min-h-[240px] bg-[#07343A]/91" ariaLabelledBy="streak-heading">
+      <div className="flex items-start gap-4">
+        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-[#153E42] text-[#FF8D2D] shadow-inner">
+          <Flame size={42} fill="currentColor" />
+        </span>
+        <div>
+          <h2 id="streak-heading" className="khmer-body text-2xl font-black text-[#FFE6A6]">ស្ទ្រីកហាត់</h2>
+          <div className="mt-1 text-[42px] font-black leading-none text-[#FFD75D]">{current} ថ្ងៃ</div>
+          <p className="mt-1 font-bold text-white/82">Best: {best} days</p>
+        </div>
+      </div>
+      <div className="mt-5 flex gap-2 rounded-full bg-black/22 p-2">
+        {Array.from({ length: 7 }, (_, index) => (
+          <span
+            key={index}
+            className={`grid h-8 flex-1 place-items-center rounded-full border text-sm font-black ${
+              index < activeDots
+                ? 'border-[#A8F06A] bg-gradient-to-b from-[#9EEE4B] to-[#3F9E20] text-white'
+                : 'border-white/10 bg-white/13 text-white/45'
+            }`}
+            aria-label={index < activeDots ? `Practice day ${index + 1} complete` : `Practice day ${index + 1} pending`}
+          >
+            {index < activeDots ? <CheckCircle2 size={18} /> : ''}
+          </span>
+        ))}
+      </div>
+      <p className="khmer-body mt-5 rounded-[14px] border border-[#51C990]/30 bg-[#083E42] px-4 py-3 text-center font-black text-[#DDFAD4]">
+        បន្តហាត់រាល់ថ្ងៃ ដើម្បីរក្សា streak!
+      </p>
+    </DashboardPanel>
+  );
+}
+
+function RecentLessonRow({ result }: { result: StudentLessonResult }) {
+  const stars = clamp(result.stars, 0, 3);
+
+  return (
+    <article className="flex items-center gap-3 rounded-[14px] border-2 border-[#E2C98B] bg-[#F8EAC3] px-3 py-3 text-[#263117] shadow-[0_7px_14px_rgba(0,0,0,.16)]">
+      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] border-2 border-[#2B8C3C] bg-gradient-to-b from-[#4CBF46] to-[#197838] text-xl font-black text-white shadow-inner">
+        {String(result.worldId).replace(/\D/g, '') || 'L'}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate font-black text-[#263117]">{result.lessonTitle}</h3>
+        <p className="text-sm font-bold text-[#4B5832]">Accuracy: {result.accuracy}% · CPM {result.CPM}</p>
+      </div>
+      <div className="hidden shrink-0 items-center gap-0.5 sm:flex" aria-label={`${stars} stars`}>
+        {Array.from({ length: 3 }, (_, index) => (
+          <Star
+            key={index}
+            size={19}
+            className={index < stars ? 'text-[#F7A915]' : 'text-[#9E9C8C]'}
+            fill="currentColor"
+          />
+        ))}
+      </div>
+      <CheckCircle2 className={result.passed ? 'text-[#259B3E]' : 'text-[#A85D05]'} size={24} />
+    </article>
+  );
+}
+
+function QuestPreviewRow({
+  quest,
+  disabled,
+  onClaim,
+}: {
+  quest: DailyQuest;
+  disabled: boolean;
+  onClaim: (questId: string) => void;
+}) {
+  const copy = questCopy[quest.id] ?? { title: quest.title, detail: quest.description, icon: <Target size={24} /> };
+  const percent = quest.total > 0 ? Math.round((quest.progress / quest.total) * 100) : 0;
+
+  return (
+    <article className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-[16px] border border-[#4DBAA6]/80 bg-[#0B4A50]/92 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.12)]">
+      <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-[#D99725] bg-gradient-to-b from-[#D88A18] to-[#92520A] text-white shadow-inner">
+        {copy.icon}
+      </span>
+      <div className="min-w-0">
+        <div className="khmer-body truncate font-black text-[#FFF0B0]">{copy.title}</div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-bold text-[#D6F6EE]">
+          <span>{copy.detail}</span>
+          <span>{quest.progress}/{quest.total}</span>
+        </div>
+        <div className="mt-2 h-3 overflow-hidden rounded-full bg-black/35 shadow-inner">
+          <div className="h-full rounded-full bg-gradient-to-r from-[#63D63A] to-[#B6FF54]" style={{ width: `${clamp(percent)}%` }} />
+        </div>
+      </div>
+      <div className="min-w-[88px] text-right">
+        {quest.status === 'claimable' ? (
+          <GameButton
+            variant="green"
+            size="sm"
+            disabled={disabled}
+            onClick={() => onClaim(quest.id)}
+            aria-label={`Claim ${rewardLabel(quest.reward)} for ${copy.detail}`}
+          >
+            Claim
+          </GameButton>
+        ) : (
+          <div className={`rounded-full px-3 py-2 text-sm font-black ${quest.status === 'claimed' ? 'bg-[#DFFFD4] text-[#176D35]' : 'bg-[#173A3E] text-[#FFE6A6]'}`}>
+            {quest.status === 'claimed' ? 'Claimed' : rewardLabel(quest.reward)}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
 export default function DashboardPage() {
+  const navigate = useNavigate();
+  const economy = useEconomyState();
+  const dailyQuestClaimIds = useDailyQuestClaimIds();
   const [progress, setProgress] = useState<StudentProgress>(() => safeLoadStudentProgress());
+  const [settings, setSettings] = useState<AppSettings>(() => loadAppSettings());
+  const [profile, setProfile] = useState(() => loadCachedGameProfile());
+  const [modal, setModal] = useState<DashboardModal>(null);
+  const [featureMessage, setFeatureMessage] = useState('');
+  const [claimingQuestId, setClaimingQuestId] = useState<string | null>(null);
+  const [extraClaimIds, setExtraClaimIds] = useState<string[]>([]);
+  const [isHydrating, setIsHydrating] = useState(true);
+  const [now, setNow] = useState(() => new Date());
+
   const stats = useMemo(() => getStudentDashboardStats(progress), [progress]);
-  const recommendation = useMemo(() => getProgressRecommendation(progress), [progress]);
+  const lessons = useMemo(() => getStructuredLessons(), []);
+  const nextStructuredLesson = useMemo(() => getNextStructuredLesson(progress.completedLessons), [progress.completedLessons]);
+  const lessonTarget = nextStructuredLesson ? lessonHref(nextStructuredLesson) : '/map';
+  const achievements = useMemo(() => buildAchievementProgress(progress), [progress]);
+  const combinedClaimIds = useMemo(() => Array.from(new Set([...dailyQuestClaimIds, ...extraClaimIds])), [dailyQuestClaimIds, extraClaimIds]);
+  const dailyQuests = useMemo(() => buildDailyQuests(progress, undefined, combinedClaimIds), [combinedClaimIds, progress]);
+  const previewQuests = dailyQuests.slice(0, 3);
+  const claimableQuestCount = dailyQuests.filter((quest) => quest.status === 'claimable').length;
+
+  const earnedStars = progress.lessonResults.reduce((total, result) => total + result.stars, 0);
+  const totalStars = Math.max(lessons.length * 3, 1);
+  const bossLessons = lessons.filter((lesson) => lesson.isBoss);
+  const bossesDefeated = progress.lessonResults.filter((result) => result.passed && (result.difficulty === 'boss' || result.lessonId.includes('boss'))).length;
   const completionPercent = stats.totalLessons > 0 ? Math.round((Math.min(stats.totalLessonsCompleted, stats.totalLessons) / stats.totalLessons) * 100) : 0;
-  const nextStructuredLesson = structuredTypingWorlds.flatMap((world) => world.lessons).find((lesson) => getStructuredLessonStatus(progress, lesson) === 'unlocked');
-  const earnedBadges = progress.badges.filter((badge) => badge.unlocked);
+  const displayXP = Math.max(economy.typingXP, stats.totalXP);
+  const displayLevel = Math.max(economy.level, stats.currentLevel);
+  const levelXP = getLevelXP(displayXP, displayLevel);
+  const streak = Math.max(economy.streak, stats.currentStreak);
+  const longestStreak = Math.max(economy.longestStreak, stats.longestStreak);
+  const unlockedAchievements = achievements.filter((achievement) => achievement.unlocked).length;
+  const resetCountdown = formatResetCountdown(now);
+  const profileAvatar = PROFILE_AVATARS.find((item) => item.id === profile.equippedAvatarId) ?? PROFILE_AVATARS[0];
+  const profileTitle = PLAYER_TITLES.find((item) => item.id === profile.equippedTitleId) ?? PLAYER_TITLES[0];
 
   useEffect(() => {
-    const refreshProgress = () => setProgress(safeLoadStudentProgress());
+    const refreshProgress = () => {
+      setProgress(safeLoadStudentProgress());
+      setIsHydrating(false);
+    };
+
+    refreshProgress();
     window.addEventListener(STUDENT_PROGRESS_EVENT, refreshProgress);
-    window.addEventListener(LESSON_PROGRESS_EVENT, refreshProgress);
+    window.addEventListener(PLAYER_FEATURES_EVENT, refreshProgress);
 
     return () => {
       window.removeEventListener(STUDENT_PROGRESS_EVENT, refreshProgress);
-      window.removeEventListener(LESSON_PROGRESS_EVENT, refreshProgress);
+      window.removeEventListener(PLAYER_FEATURES_EVENT, refreshProgress);
     };
   }, []);
+
+  useEffect(() => {
+    const refreshProfile = () => setProfile(loadCachedGameProfile());
+    window.addEventListener(USER_PROFILE_EVENT, refreshProfile);
+    return () => window.removeEventListener(USER_PROFILE_EVENT, refreshProfile);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const openShop = () => navigate('/shop');
+
+  const handleDailyQuestClaim = async (questId: string) => {
+    const quest = dailyQuests.find((item) => item.id === questId);
+    if (!quest || quest.status !== 'claimable') return;
+
+    setClaimingQuestId(questId);
+    setFeatureMessage('');
+    try {
+      const userId = getActiveEconomyUserId();
+      if (userId) await claimDailyQuestReward(userId, quest.id, quest.reward);
+      claimDailyQuest(questId);
+      setExtraClaimIds((ids) => Array.from(new Set([...ids, questId])));
+      setFeatureMessage('Quest reward claimed!');
+    } catch (error) {
+      setFeatureMessage(error instanceof Error ? error.message : 'Saved locally. Sync will retry.');
+    } finally {
+      setClaimingQuestId(null);
+    }
+  };
+
+  const handleResetProgress = () => {
+    resetStudentProgress();
+    resetFeatureProgressState();
+    void resetLessonProgressRecords().catch((error) => console.error('Unable to reset lesson progress records.', error));
+    setProgress(safeLoadStudentProgress());
+  };
 
   return (
     <PageTransition>
       <AppLayout>
-        <div className="dashboard-page min-h-screen px-4 py-5 xl:px-6">
-          <div className="mx-auto max-w-[1480px] space-y-5">
-            <header className="dashboard-hero overflow-hidden rounded-[28px] border border-white/55 p-5 text-white shadow-game">
-              <div className="relative z-10 flex flex-wrap items-center justify-between gap-5">
-                <div className="max-w-[780px]">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/24 bg-white/14 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#DDF6FF]">
-                    <Sparkles size={15} /> Student Progress
-                  </div>
-                  <h1 className="mt-3 text-[34px] font-black leading-tight sm:text-[42px]">Khmer Typing Dashboard</h1>
-                  <p className="mt-2 text-lg font-bold leading-snug text-white/86">{recommendation}</p>
-                  <div className="mt-4 max-w-[560px]">
-                    <div className="mb-1 flex justify-between text-xs font-black uppercase tracking-wide text-white/72">
-                      <span>Adventure Progress</span>
-                      <span>{completionPercent}%</span>
-                    </div>
-                    <ProgressBar value={completionPercent} max={100} color="gold" showValue />
-                  </div>
-                </div>
-                <div className="grid min-w-[260px] gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                  <Link to={nextStructuredLesson ? lessonHref(nextStructuredLesson) : '/map'}>
-                    <GameButton variant="primary" icon={<BookOpen size={20} />} className="w-full">Continue</GameButton>
-                  </Link>
-                  <Link to="/map">
-                    <GameButton variant="blue" icon={<Map size={20} />} className="w-full">Lesson Map</GameButton>
-                  </Link>
-                  <Link to="/lesson?practice=weak">
-                    <GameButton variant="purple" icon={<Keyboard size={20} />} className="w-full">Weak Keys</GameButton>
-                  </Link>
-                </div>
+        <div
+          className="relative min-h-screen overflow-x-hidden px-4 py-4 text-white xl:px-6"
+          style={{
+            backgroundImage: `linear-gradient(90deg, rgba(3, 22, 25, .86), rgba(5, 45, 53, .38) 42%, rgba(3, 24, 28, .88)), linear-gradient(180deg, rgba(4, 31, 39, .12), rgba(3, 18, 21, .94)), url(${imageAssets.backgrounds.worldMap})`,
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'cover',
+          }}
+        >
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_24%_8%,rgba(255,232,119,.18),transparent_24%),radial-gradient(circle_at_92%_84%,rgba(74,204,92,.22),transparent_20%)]" />
+
+          <main className="relative z-10 mx-auto max-w-[1540px] space-y-4">
+            <header className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <HudPill
+                  icon={<Heart className="text-[#FF4B3F]" size={28} fill="currentColor" />}
+                  value={`${economy.hearts}/${economy.maxHearts}`}
+                  label="Full"
+                  onAdd={openShop}
+                  ariaLabel="Open shop for hearts"
+                />
+                <HudPill
+                  icon={<img src={imageAssets.coin} alt="" className="h-8 w-8" />}
+                  value={formatNumber(economy.coins)}
+                  label="Coins"
+                  onAdd={openShop}
+                  ariaLabel="Open shop for coins"
+                />
+                <HudPill
+                  icon={<Gem className="text-[#C671FF]" size={30} fill="currentColor" />}
+                  value={formatNumber(economy.gems)}
+                  label="Gems"
+                  onAdd={openShop}
+                  ariaLabel="Open shop for gems"
+                />
+                <HudPill
+                  icon={<Zap className="text-[#38D6FF]" size={30} fill="currentColor" />}
+                  value={formatNumber(displayXP)}
+                  label="Typing XP"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <HudIconButton icon={<Mail size={26} />} label="Open messages" badge={claimableQuestCount || undefined} onClick={() => setModal('messages')} />
+                <HudIconButton icon={<Trophy size={27} />} label="Open achievements" onClick={() => setModal('achievements')} />
+                <HudIconButton icon={<Settings size={28} />} label="Open settings" onClick={() => setModal('settings')} />
               </div>
             </header>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <StatCard label="Total XP" value={stats.totalXP.toLocaleString()} detail={`Level ${stats.currentLevel}`} icon={<Zap size={28} />} tone="gold" />
-              <StatCard label="Lessons Complete" value={`${stats.totalLessonsCompleted}/${stats.totalLessons}`} detail={stats.currentWorld} icon={<Trophy size={28} />} tone="purple" />
-              <StatCard label="Current Streak" value={`${stats.currentStreak} days`} detail={`Longest ${stats.longestStreak} days`} icon={<Flame size={28} />} tone="green" />
-              <StatCard label="Next Lesson" value={stats.currentLessonTitle} detail="Unlocked path" icon={<Target size={28} />} tone="blue" />
-            </div>
+            {isHydrating && (
+              <div className="rounded-full border border-[#FFE6A6]/45 bg-[#062F35]/82 px-4 py-2 text-sm font-black text-[#FFE6A6]">
+                Loading saved dashboard data...
+              </div>
+            )}
 
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)]">
-              <DashboardPanel>
-                <SectionHeading
-                  icon={<Map size={24} />}
-                  title="Learning Path"
-                  subtitle="Compact view of unlocked lessons, completed worlds, and the next practice target."
-                />
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {structuredTypingWorlds.map((world) => (
-                    <WorldProgressCard key={world.worldId} world={world} progress={progress} />
-                  ))}
-                </div>
-              </DashboardPanel>
-
-              <div className="space-y-5">
-                <DashboardPanel>
-                  <SectionHeading icon={<BarChart3 size={24} />} title="Typing Performance" subtitle="CPM is the main Khmer speed metric." />
-                  <div className="grid grid-cols-2 gap-3">
-                    <StatCard label="Avg Accuracy" value={`${stats.averageAccuracy}%`} icon={<Target size={24} />} tone="green" />
-                    <StatCard label="Avg CPM" value={stats.averageCPM} icon={<BarChart3 size={24} />} tone="blue" />
-                    <StatCard label="Best Accuracy" value={`${stats.bestAccuracy}%`} icon={<Star size={24} />} tone="gold" />
-                    <StatCard label="Best CPM" value={stats.bestCPM} icon={<Zap size={24} />} tone="purple" />
-                  </div>
-                </DashboardPanel>
-
-                <DashboardPanel>
-                  <SectionHeading icon={<Keyboard size={24} />} title="Weak Keys" subtitle="Practice these before harder boss lessons." />
-                  <div className="space-y-2">
-                    {stats.weakCharacters.length > 0 ? stats.weakCharacters.map((weakKey, index) => (
-                      <div key={weakKey.value} className="flex items-center justify-between gap-3 rounded-[16px] border border-[#DDBD70] bg-[#FFF8DA] px-4 py-3 font-black text-[#4D371E]">
-                        <span>{index + 1}. <span className="khmer-body text-[24px]">{weakKey.value}</span></span>
-                        <span className="text-sm">{weakKey.mistakes} mistakes</span>
-                      </div>
-                    )) : (
-                      <div className="rounded-[16px] bg-[#E7F6FF] px-4 py-4 font-bold text-[#31516F]">
-                        No weak keys yet. Complete one lesson and this card will turn mistakes into practice.
-                      </div>
-                    )}
-                  </div>
-                </DashboardPanel>
-
-                <DashboardPanel>
-                  <SectionHeading icon={<Award size={24} />} title="Badges" subtitle={`${earnedBadges.length}/${progress.badges.length} earned`} />
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {progress.badges.map((badge, index) => (
-                      <GameBadge
-                        key={badge.badgeId}
-                        label={badge.badgeName}
-                        compact
-                        locked={!badge.unlocked}
-                        earned={badge.unlocked}
-                        variant={index % 3 === 0 ? 'master' : index % 3 === 1 ? 'rising-star' : 'boss-slayer'}
+            <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_370px]">
+              <div className="relative overflow-hidden rounded-[24px] border-[3px] border-[#D99725] bg-[#062F35]/54 p-4 shadow-[0_18px_40px_rgba(0,0,0,.34),inset_0_2px_0_rgba(255,255,255,.12)] sm:p-5">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#05343C]/72 via-[#075967]/28 to-transparent" />
+                <div className="relative z-10 grid gap-5 md:grid-cols-[220px_minmax(0,1fr)]">
+                  <div className="flex items-end justify-center">
+                    <div className="relative h-[220px] w-[220px]">
+                      <div className="absolute bottom-0 left-1/2 h-20 w-44 -translate-x-1/2 rounded-[50%] bg-[#4B351F]/70 shadow-[0_20px_30px_rgba(0,0,0,.34)]" />
+                      <img
+                        src={imageAssets.elephantGuide}
+                        alt="Elephant typing guide"
+                        className="relative h-full w-full object-contain drop-shadow-[0_18px_18px_rgba(0,0,0,.36)]"
                       />
-                    ))}
-                  </div>
-                </DashboardPanel>
-
-                <DashboardPanel>
-                  <SectionHeading icon={<CalendarDays size={24} />} title="Recent Activity" subtitle="Latest saved lesson results." />
-                  <div className="space-y-2">
-                    {stats.recentLessonHistory.length > 0 ? stats.recentLessonHistory.map((result) => (
-                      <div key={`${result.lessonId}-${result.completedAt}`} className="rounded-[16px] border border-[#B9D8F2] bg-[#F2FBFF] p-3">
-                        <div className="flex items-center justify-between gap-3 font-black text-[#17325A]">
-                          <span className="min-w-0 truncate">{result.lessonTitle}</span>
-                          <span className={`shrink-0 rounded-full px-2 py-1 text-xs ${result.passed ? 'bg-[#DFFFD4] text-[#176D35]' : 'bg-[#FFE5DC] text-[#8B2B1E]'}`}>
-                            {result.passed ? 'Passed' : 'Retry'}
-                          </span>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-2 text-[12px] font-black text-[#46647A]">
-                          <span>Acc {result.accuracy}%</span>
-                          <span>CPM {result.CPM}</span>
-                          <span>Stars {result.stars}</span>
-                          <span>XP +{result.XP}</span>
-                        </div>
-                      </div>
-                    )) : (
-                      <div className="rounded-[16px] bg-[#E7F6FF] px-4 py-4 font-bold text-[#31516F]">
-                        No lesson history yet. Start a lesson to save your first result here.
-                      </div>
-                    )}
-                  </div>
-                </DashboardPanel>
-
-                <DashboardPanel className="border-[#A9DFA5] bg-[#F4FFE8]/92">
-                  <div className="flex items-start gap-3">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[#DFFFD4] text-[#176D35] shadow-inner">
-                      <ShieldCheck size={24} />
-                    </span>
-                    <div>
-                      <h2 className="text-xl font-black text-[#176D35]">Classroom Ready</h2>
-                      <p className="mt-1 font-bold leading-snug text-[#3B6D41]">
-                        Progress is saved in Firebase with lesson IDs, accuracy, CPM, mistakes, XP, badges, and timestamps for future teacher reports.
-                      </p>
                     </div>
                   </div>
-                </DashboardPanel>
+                  <div className="flex min-w-0 flex-col justify-center py-2">
+                    <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-[#FFE6A6]/50 bg-[#04292F]/76 px-3 py-1 text-xs font-black uppercase text-[#FFE6A6]">
+                      <Sparkles size={15} /> Typing Hero Control Center
+                    </div>
+                    <h1 className="khmer-body text-[32px] font-black leading-tight text-white drop-shadow sm:text-[42px]">
+                      សួស្តី! អ្នកវាយអក្សរ
+                      <span className="block font-sans text-[34px] sm:text-[42px]">Level {displayLevel}</span>
+                    </h1>
+                    <p className="khmer-body mt-2 max-w-2xl text-xl font-black leading-snug text-[#E6FFF7]">
+                      Continue your Khmer typing adventure!
+                    </p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-[16px] border border-[#70D4C2]/45 bg-[#052D34]/82 px-4 py-3">
+                        <div className="text-xs font-black uppercase text-[#FFE6A6]">Current World</div>
+                        <div className="truncate text-xl font-black text-white">{stats.currentWorld}</div>
+                      </div>
+                      <div className="rounded-[16px] border border-[#70D4C2]/45 bg-[#052D34]/82 px-4 py-3">
+                        <div className="text-xs font-black uppercase text-[#FFE6A6]">Next Lesson</div>
+                        <div className="truncate text-xl font-black text-white">{stats.currentLessonTitle}</div>
+                      </div>
+                    </div>
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      <GameButton
+                        variant="gold"
+                        size="md"
+                        rightIcon={<ChevronRight size={20} />}
+                        onClick={() => navigate(lessonTarget)}
+                        aria-label={`Continue ${stats.currentLessonTitle}`}
+                      >
+                        Continue Level {displayLevel}
+                      </GameButton>
+                      <GameButton variant="blue" size="md" leftIcon={<Map size={19} />} onClick={() => navigate('/map')}>
+                        World Map
+                      </GameButton>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <StreakPanel current={streak} best={longestStreak} />
+            </section>
+
+            <section aria-label="Dashboard stats" className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <StatCard
+                icon={<Medal size={34} />}
+                label="Typing XP"
+                value={formatNumber(displayXP)}
+                subtitle={`Level ${displayLevel}`}
+                tone="purple"
+                progress={levelXP.percent}
+              />
+              <StatCard
+                icon={<Star size={36} fill="currentColor" />}
+                label="ផ្កាយសរុប"
+                value={`${earnedStars}/${totalStars}`}
+                subtitle="Stars earned"
+                tone="gold"
+                progress={Math.round((earnedStars / totalStars) * 100)}
+              />
+              <StatCard
+                icon={<Target size={36} />}
+                label="ភាពត្រឹមត្រូវ"
+                value={`${stats.averageAccuracy}%`}
+                subtitle="Average Accuracy"
+                tone="blue"
+              />
+              <StatCard
+                icon={<Zap size={36} fill="currentColor" />}
+                label="CPM ល្អបំផុត"
+                value={`${stats.bestCPM || stats.averageCPM}`}
+                subtitle="CPM"
+                tone="green"
+              />
+              <StatCard
+                icon={<Swords size={36} />}
+                label="ពួក Boss"
+                value={`${bossesDefeated}`}
+                subtitle="Boss Defeated"
+                tone="orange"
+                progress={bossLessons.length > 0 ? Math.round((bossesDefeated / bossLessons.length) * 100) : 0}
+              />
+            </section>
+
+            <section className="grid gap-4 xl:grid-cols-[minmax(300px,.85fr)_minmax(360px,1fr)_minmax(400px,1.15fr)]">
+              <DashboardPanel ariaLabelledBy="progress-heading">
+                <SectionTitle
+                  id="progress-heading"
+                  icon={<Award size={24} />}
+                  title="ការរីកចម្រើន / Progress Overview"
+                  subtitle="World progress, stars, bosses, and badges."
+                />
+                <div className="grid gap-5 sm:grid-cols-[160px_minmax(0,1fr)] xl:grid-cols-1 2xl:grid-cols-[160px_minmax(0,1fr)]">
+                  <div className="flex flex-col items-center justify-center gap-3 text-center">
+                    <ProgressRing percent={completionPercent} />
+                    <div>
+                      <div className="khmer-body text-xl font-black text-white">ពិភពលោក {nextStructuredLesson?.routeWorldId ?? 1}</div>
+                      <div className="font-bold text-[#C9F5E8]">{stats.currentWorld}</div>
+                    </div>
+                  </div>
+                  <div className="rounded-[18px] border border-[#65C6B6]/34 bg-[#052A30]/82 px-4 py-3">
+                    <MetricLine icon={<BookOpen size={18} />} label="Lessons completed" value={`${stats.totalLessonsCompleted}/${stats.totalLessons}`} />
+                    <MetricLine icon={<Star size={18} fill="currentColor" />} label="Stars collected" value={`${earnedStars}/${totalStars}`} />
+                    <MetricLine icon={<Swords size={18} />} label="Bosses defeated" value={`${bossesDefeated}/${bossLessons.length}`} />
+                    <MetricLine icon={<Trophy size={18} />} label="Achievements" value={`${unlockedAchievements}/${achievements.length}`} />
+                  </div>
+                </div>
+                <GameButton
+                  variant="gold"
+                  size="md"
+                  className="mt-5 w-full"
+                  rightIcon={<ChevronRight size={20} />}
+                  onClick={() => setModal('details')}
+                >
+                  View Details
+                </GameButton>
+              </DashboardPanel>
+
+              <DashboardPanel ariaLabelledBy="recent-lessons-heading">
+                <SectionTitle
+                  id="recent-lessons-heading"
+                  icon={<BookOpen size={24} />}
+                  title="មេរៀនថ្មីៗ / Recent Lessons"
+                  subtitle="Latest completed lesson results."
+                />
+                <div className="space-y-3">
+                  {stats.recentLessonHistory.length > 0 ? (
+                    stats.recentLessonHistory.slice(0, 3).map((result) => (
+                      <RecentLessonRow key={`${result.lessonId}-${result.completedAt}`} result={result} />
+                    ))
+                  ) : (
+                    <div className="rounded-[16px] border border-[#63C6B5]/45 bg-[#083F46]/90 px-4 py-6 text-center font-bold text-[#D6F6EE]">
+                      No lessons completed yet. Start your first lesson!
+                    </div>
+                  )}
+                </div>
+                <GameButton
+                  variant="gold"
+                  size="md"
+                  className="mt-5 w-full"
+                  rightIcon={<ChevronRight size={20} />}
+                  onClick={() => navigate('/lesson')}
+                >
+                  View All Lessons
+                </GameButton>
+              </DashboardPanel>
+
+              <DashboardPanel ariaLabelledBy="daily-quests-heading">
+                <SectionTitle
+                  id="daily-quests-heading"
+                  icon={<CalendarDays size={24} />}
+                  title="បេសកកម្មប្រចាំថ្ងៃ / Daily Quests"
+                  subtitle="Practice goals that reset every day."
+                  action={(
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#70D4C2]/55 bg-[#052A30]/82 px-3 py-2 text-sm font-black text-[#FFF0B0]">
+                      <Clock size={16} /> {resetCountdown}
+                    </span>
+                  )}
+                />
+                {featureMessage && (
+                  <div className="mb-3 rounded-[14px] border border-[#7FE35E]/55 bg-[#143E26]/88 px-3 py-2 text-center text-sm font-black text-[#DFFFD4]">
+                    {featureMessage}
+                  </div>
+                )}
+                <div className="space-y-3">
+                  {previewQuests.map((quest) => (
+                    <QuestPreviewRow
+                      key={quest.id}
+                      quest={quest}
+                      disabled={claimingQuestId === quest.id}
+                      onClaim={handleDailyQuestClaim}
+                    />
+                  ))}
+                </div>
+                <GameButton
+                  variant="gold"
+                  size="md"
+                  className="mt-5 w-full"
+                  rightIcon={<ChevronRight size={20} />}
+                  onClick={() => setModal('dailyQuests')}
+                >
+                  View All Quests
+                </GameButton>
+              </DashboardPanel>
+            </section>
+
+            <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <div className="rounded-[20px] border-[3px] border-[#3DA7E8] bg-gradient-to-r from-[#0B4D98]/92 via-[#124A86]/90 to-[#0A396A]/92 p-4 shadow-[0_14px_32px_rgba(0,0,0,.28)]">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/18 text-[#D9F5FF]">
+                      <Info size={24} />
+                    </span>
+                    <div>
+                      <h2 className="khmer-body text-lg font-black text-white">គន្លឹះហាត់ / Practice Tip</h2>
+                      <p className="font-bold text-[#E5F8FF]">Accuracy comes first. Calm Khmer keystrokes make CPM grow naturally.</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <GameButton variant="gold" size="sm" rightIcon={<ChevronRight size={18} />} onClick={() => navigate(lessonTarget)}>
+                      Continue Practice
+                    </GameButton>
+                    <GameButton variant="blue" size="sm" leftIcon={<BookOpen size={18} />} onClick={() => navigate('/lesson')}>
+                      Lessons
+                    </GameButton>
+                    <GameButton variant="green" size="sm" leftIcon={<ShoppingCart size={18} />} onClick={() => navigate('/shop')}>
+                      Shop
+                    </GameButton>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigate('/profile')}
+                className="rounded-[20px] border-[3px] border-[#C99031] bg-[#062F35]/88 p-4 text-left shadow-[0_14px_32px_rgba(0,0,0,.28)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70"
+                aria-label="Open player profile"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="grid h-12 w-12 overflow-hidden rounded-full border-2 border-[#FFE17B] bg-[#0B4A50] text-[#FFE17B]">
+                    <img src={profileAvatar.image} alt="" className="h-full w-full object-cover" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="khmer-body font-black text-[#FFE6A6]">{profile.displayName || progress.studentName || 'Typing Hero'}</div>
+                    <div className="text-sm font-bold text-[#D6F6EE]">{profileTitle.name} · Level {displayLevel} · {levelXP.current}/{levelXP.target} XP</div>
+                  </div>
+                </div>
+                <div className="mt-3 h-3 overflow-hidden rounded-full bg-black/32 shadow-inner">
+                  <div className="h-full rounded-full bg-gradient-to-r from-[#6DE24D] to-[#F7E55B]" style={{ width: `${levelXP.percent}%` }} />
+                </div>
+              </button>
+            </section>
+          </main>
+
+          <ActionModal open={modal === 'details'} title="Progress Details" actionLabel="Close" onClose={() => setModal(null)}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[14px] border border-[#DDBD70] bg-white/60 p-3">
+                <div className="font-black text-[#17325A]">Current path</div>
+                <div>{stats.currentWorld}</div>
+                <div>{stats.currentLessonTitle}</div>
+              </div>
+              <div className="rounded-[14px] border border-[#DDBD70] bg-white/60 p-3">
+                <div className="font-black text-[#17325A]">Typing performance</div>
+                <div>Accuracy {stats.averageAccuracy}% · Best CPM {stats.bestCPM}</div>
+                <div>Best accuracy {stats.bestAccuracy}%</div>
               </div>
             </div>
-          </div>
+          </ActionModal>
+
+          <ActionModal open={modal === 'dailyQuests'} title="Daily Quests" actionLabel="Close" onClose={() => setModal(null)}>
+            {featureMessage && (
+              <div className="rounded-[13px] border border-[#8ED47A] bg-[#ECFFD9] px-3 py-2 text-center text-sm font-black text-[#176D35]">
+                {featureMessage}
+              </div>
+            )}
+            <DailyQuestsPanel quests={dailyQuests} onClaim={handleDailyQuestClaim} />
+          </ActionModal>
+
+          <ActionModal open={modal === 'achievements'} title="Achievements" actionLabel="Close" onClose={() => setModal(null)}>
+            <AchievementsPanel achievements={achievements} />
+          </ActionModal>
+
+          <ActionModal open={modal === 'settings'} title="Settings" actionLabel="Close" onClose={() => setModal(null)}>
+            <SettingsPanel
+              settings={settings}
+              onChange={(nextSettings) => setSettings(saveAppSettings(nextSettings))}
+              onResetProgress={handleResetProgress}
+            />
+          </ActionModal>
+
+          <ActionModal open={modal === 'messages'} title="Messages" actionLabel="Close" onClose={() => setModal(null)}>
+            <p>Notifications will collect quest reminders, teacher notes, and event rewards here. For now, claimable quest alerts are shown on the Daily Quests panel.</p>
+          </ActionModal>
         </div>
       </AppLayout>
     </PageTransition>

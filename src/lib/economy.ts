@@ -14,6 +14,7 @@ import { auth, db, getDemoSession, type AppSession } from './firebase';
 import { countKhmerCharacters } from './khmerText';
 import type { RewardAmount } from './playerFeatures';
 import type { StudentLessonResult } from './studentProgress';
+import { SHOP_ITEMS, type ShopItemEffect } from '../data/shopItems';
 
 export const ECONOMY_CACHE_KEY = 'khmer-typing-economy-cache';
 export const INVENTORY_CACHE_KEY = 'khmer-typing-inventory-cache';
@@ -53,7 +54,7 @@ export type ShopItem = {
   cost: number;
   currency: 'coins' | 'gems';
   consumable: boolean;
-  effect: 'retry-token' | 'hint-scroll' | 'slow-time' | 'accuracy-shield' | 'streak-freeze' | 'cosmetic';
+  effect: ShopItemEffect;
 };
 
 export type RewardCalculationInput = {
@@ -79,71 +80,17 @@ export type CalculatedRewards = {
   rewardReasons: string[];
 };
 
-export const shopItems: ShopItem[] = [
-  {
-    itemId: 'retry-token',
-    title: 'សំបុត្រសាកម្តងទៀត',
-    description: 'សាក Boss ម្តងដោយមិនចំណាយបេះដូង។',
-    cost: 100,
-    currency: 'coins',
-    consumable: true,
-    effect: 'retry-token',
-  },
-  {
-    itemId: 'hint-scroll',
-    title: 'ក្រដាសជំនួយ',
-    description: 'រក្សាទុកសម្រាប់ជំនួយគ្រាប់ចុច/ម្រាមដៃខ្លាំងជាងមុន។',
-    cost: 50,
-    currency: 'coins',
-    consumable: true,
-    effect: 'hint-scroll',
-  },
-  {
-    itemId: 'slow-time',
-    title: 'បន្ថយពេល Boss',
-    description: 'Power-up សម្រាប់បន្ថែមពេល Boss នៅពេលភ្ជាប់ពេញលេញ។',
-    cost: 120,
-    currency: 'coins',
-    consumable: true,
-    effect: 'slow-time',
-  },
-  {
-    itemId: 'accuracy-shield',
-    title: 'ខែលភាពត្រឹមត្រូវ',
-    description: 'Power-up សម្រាប់ការពារកំហុសដំបូង នៅពេលភ្ជាប់ពេញលេញ។',
-    cost: 150,
-    currency: 'coins',
-    consumable: true,
-    effect: 'accuracy-shield',
-  },
-  {
-    itemId: 'streak-freeze',
-    title: 'ការពារ Streak',
-    description: 'ការពារ streak ប្រសិនបើខកខានហាត់មួយថ្ងៃ។',
-    cost: 200,
-    currency: 'coins',
-    consumable: true,
-    effect: 'streak-freeze',
-  },
-  {
-    itemId: 'keyboard-skin',
-    title: 'ស្បែកក្តារចុច',
-    description: 'គ្រឿងតុបតែងក្តារចុច សម្គាល់ថាបានទិញ។',
-    cost: 300,
-    currency: 'coins',
-    consumable: false,
-    effect: 'cosmetic',
-  },
-  {
-    itemId: 'avatar-costume',
-    title: 'សម្លៀកបំពាក់រូបគណនី',
-    description: 'គ្រឿងតុបតែងរូបគណនី សម្គាល់ថាបានទិញ។',
-    cost: 500,
-    currency: 'coins',
-    consumable: false,
-    effect: 'cosmetic',
-  },
-];
+export const shopItems: ShopItem[] = SHOP_ITEMS
+  .filter((item) => !item.comingSoon)
+  .map((item) => ({
+    itemId: item.id,
+    title: `${item.khmerName} / ${item.name}`,
+    description: item.description,
+    cost: item.price,
+    currency: item.currency,
+    consumable: item.type === 'powerup' || item.type === 'heart',
+    effect: item.effect,
+  }));
 
 const defaultEconomy: EconomyState = {
   coins: 0,
@@ -377,6 +324,22 @@ function applyLocalEconomy(updater: (economy: EconomyState) => EconomyState, use
   return next;
 }
 
+function economyFirestoreFields(economy: EconomyState) {
+  const data: Partial<EconomyState> = {
+    coins: economy.coins,
+    gems: economy.gems,
+    hearts: economy.hearts,
+    maxHearts: economy.maxHearts,
+    typingXP: economy.typingXP,
+    level: economy.level,
+    streak: economy.streak,
+    longestStreak: economy.longestStreak,
+  };
+  if (economy.lastPracticeDate) data.lastPracticeDate = economy.lastPracticeDate;
+  if (economy.lastHeartRefillAt) data.lastHeartRefillAt = economy.lastHeartRefillAt;
+  return data;
+}
+
 export async function ensureUserEconomy(userId: string, displayName?: string) {
   const ref = userDoc(userId);
   const cached = loadCachedEconomy(userId);
@@ -387,7 +350,7 @@ export async function ensureUserEconomy(userId: string, displayName?: string) {
     const initial = normalizeEconomy(cached);
     await setDoc(ref, {
       displayName: displayName ?? null,
-      ...initial,
+      ...economyFirestoreFields(initial),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     }, { merge: true });
@@ -433,8 +396,7 @@ export async function refillHeartsIfNeeded(userId = getActiveEconomyUserId()) {
     const current = normalizeEconomy(snapshot.exists() ? snapshot.data() as Partial<EconomyState> : defaultEconomy);
     const next = applyHeartRefill(current, now);
     transaction.set(ref, {
-      ...next,
-      lastHeartRefillAt: next.lastHeartRefillAt,
+      ...economyFirestoreFields(next),
       updatedAt: serverTimestamp(),
       createdAt: snapshot.exists() ? snapshot.data().createdAt ?? serverTimestamp() : serverTimestamp(),
     }, { merge: true });
@@ -464,7 +426,7 @@ export async function spendHeartForBoss(userId = getActiveEconomyUserId()) {
     const current = applyHeartRefill(normalizeEconomy(snapshot.exists() ? snapshot.data() as Partial<EconomyState> : defaultEconomy), now);
     if (current.hearts <= 0) throw new Error('Not enough hearts.');
     const next = { ...current, hearts: current.hearts - 1 };
-    transaction.set(ref, { ...next, updatedAt: serverTimestamp() }, { merge: true });
+    transaction.set(ref, { ...economyFirestoreFields(next), updatedAt: serverTimestamp() }, { merge: true });
     const eventRef = economyEventDoc(userId);
     if (eventRef) {
       transaction.set(eventRef, {
@@ -645,7 +607,7 @@ export async function updateStreakAfterPractice(userId = getActiveEconomyUserId(
     if (gap === 2 && current.lastPracticeDate && await consumeInventoryInTransaction(transaction, userId, 'streak-freeze')) {
       next = { ...current, streak: current.streak + 1, longestStreak: Math.max(current.longestStreak, current.streak + 1), lastPracticeDate: date };
     }
-    transaction.set(ref, { ...next, level: calculateLevelFromXP(next.typingXP), updatedAt: serverTimestamp() }, { merge: true });
+    transaction.set(ref, { ...economyFirestoreFields({ ...next, level: calculateLevelFromXP(next.typingXP) }), updatedAt: serverTimestamp() }, { merge: true });
     saveCachedEconomy(next, userId);
     return next;
   });
@@ -753,20 +715,36 @@ async function updateCurrency(userId: string, currency: 'coins' | 'gems' | 'typi
   });
 }
 
-export async function purchaseShopItem(userId: string, itemId: string) {
+type PurchaseShopItemOptions = {
+  priceOverride?: number;
+  source?: string;
+};
+
+function purchaseCost(item: ShopItem, options?: PurchaseShopItemOptions) {
+  const cost = options?.priceOverride ?? item.cost;
+  return Math.max(0, Math.floor(cleanNumber(cost, item.cost)));
+}
+
+function notEnoughCurrencyMessage(currency: ShopItem['currency']) {
+  return currency === 'coins' ? 'Not enough coins.' : 'Not enough gems.';
+}
+
+export async function purchaseShopItem(userId: string, itemId: string, options?: PurchaseShopItemOptions) {
+  const sourceItem = SHOP_ITEMS.find((shopItem) => shopItem.id === itemId);
+  if (sourceItem?.comingSoon) throw new Error('Coming soon.');
   const item = shopItems.find((shopItem) => shopItem.itemId === itemId);
   if (!item) throw new Error('Shop item not found.');
-  if (item.currency !== 'coins') throw new Error('Only coin purchases are active.');
+  const cost = purchaseCost(item, options);
 
   const userRef = userDoc(userId);
   const itemRef = inventoryDoc(userId, itemId);
   if (!userRef || !itemRef) {
     const current = loadCachedEconomy(userId);
-    if (current.coins < item.cost) throw new Error('Not enough coins.');
+    if (current[item.currency] < cost) throw new Error(notEnoughCurrencyMessage(item.currency));
     const inventory = loadCachedInventory(userId);
     const existing = inventory.find((entry) => entry.itemId === itemId);
     if (!item.consumable && existing?.owned === true) throw new Error('Already owned.');
-    applyLocalEconomy((state) => ({ ...state, coins: state.coins - item.cost }), userId);
+    applyLocalEconomy((state) => ({ ...state, [item.currency]: Math.max(0, state[item.currency] - cost) }), userId);
     const nextInventory = existing
       ? inventory.map((entry) => entry.itemId === itemId ? { ...entry, quantity: item.consumable ? entry.quantity + 1 : entry.quantity, owned: true, updatedAt: new Date().toISOString() } : entry)
       : [...inventory, { itemId, quantity: item.consumable ? 1 : 0, owned: true, updatedAt: new Date().toISOString() }];
@@ -777,7 +755,7 @@ export async function purchaseShopItem(userId: string, itemId: string) {
   const result = await runTransaction(db!, async (transaction) => {
     const userSnapshot = await transaction.get(userRef);
     const current = normalizeEconomy(userSnapshot.exists() ? userSnapshot.data() as Partial<EconomyState> : defaultEconomy);
-    if (current.coins < item.cost) throw new Error('Not enough coins.');
+    if (current[item.currency] < cost) throw new Error(notEnoughCurrencyMessage(item.currency));
 
     const inventorySnapshot = await transaction.get(itemRef);
     if (!item.consumable && inventorySnapshot.exists() && inventorySnapshot.data().owned === true) {
@@ -785,9 +763,9 @@ export async function purchaseShopItem(userId: string, itemId: string) {
     }
     const currentQuantity = inventorySnapshot.exists() ? cleanNumber(inventorySnapshot.data().quantity, 0) : 0;
     const nextQuantity = item.consumable ? currentQuantity + 1 : currentQuantity;
-    const nextEconomy = { ...current, coins: current.coins - item.cost };
+    const nextEconomy = { ...current, [item.currency]: Math.max(0, current[item.currency] - cost) };
 
-    transaction.set(userRef, { coins: nextEconomy.coins, updatedAt: serverTimestamp() }, { merge: true });
+    transaction.set(userRef, { [item.currency]: nextEconomy[item.currency], updatedAt: serverTimestamp() }, { merge: true });
     transaction.set(itemRef, {
       itemId,
       quantity: nextQuantity,
@@ -798,10 +776,10 @@ export async function purchaseShopItem(userId: string, itemId: string) {
     if (eventRef) {
       transaction.set(eventRef, {
         type: 'purchase',
-        amount: -item.cost,
-        currency: 'coins',
-        source: itemId,
-        metadata: { itemId },
+        amount: -cost,
+        currency: item.currency,
+        source: options?.source ?? itemId,
+        metadata: { itemId, listPrice: item.cost, paid: cost },
         createdAt: serverTimestamp(),
       });
     }
@@ -934,7 +912,7 @@ export async function claimEconomyReward(userId: string, claimId: string, reward
       level: calculateLevelFromXP(typingXP),
     };
 
-    transaction.set(userRef, { ...next, updatedAt: serverTimestamp() }, { merge: true });
+    transaction.set(userRef, { ...economyFirestoreFields(next), updatedAt: serverTimestamp() }, { merge: true });
     transaction.set(claimRef, { rewardId: claimId, rewardType, claimedAt: serverTimestamp() });
     const eventRef = economyEventDoc(userId);
     if (eventRef) {
@@ -982,7 +960,7 @@ export async function claimDailyQuestReward(userId: string, questId: string, rew
       level: calculateLevelFromXP(typingXP),
     };
 
-    transaction.set(userRef, { ...next, updatedAt: serverTimestamp() }, { merge: true });
+    transaction.set(userRef, { ...economyFirestoreFields(next), updatedAt: serverTimestamp() }, { merge: true });
     transaction.set(ref, {
       date,
       claimedRewards: [...claimedRewards, questId],
@@ -1177,7 +1155,7 @@ export async function saveCompletedResultToEconomy(result: StudentLessonResult, 
         updatedAt: serverTimestamp(),
       }, { merge: true });
     }
-    transaction.set(userRef, { ...next, updatedAt: serverTimestamp() }, { merge: true });
+    transaction.set(userRef, { ...economyFirestoreFields(next), updatedAt: serverTimestamp() }, { merge: true });
     transaction.set(resultRef, {
       lessonId: result.lessonId,
       mode: resultMode(result),
@@ -1274,7 +1252,7 @@ export async function prepareBossAttempt(userId = getActiveEconomyUserId(), atte
     if (!useRetryToken && current.hearts <= 0) throw new Error('Not enough hearts.');
 
     const next = useRetryToken ? current : { ...current, hearts: current.hearts - 1 };
-    transaction.set(userRef, { ...next, updatedAt: serverTimestamp() }, { merge: true });
+    transaction.set(userRef, { ...economyFirestoreFields(next), updatedAt: serverTimestamp() }, { merge: true });
 
     if (useRetryToken) {
       transaction.set(retryRef, {
