@@ -21,8 +21,16 @@ import {
   type AdventureLesson,
   type AdventureWorld,
 } from '../data/adventureWorlds';
-import { LESSON_PROGRESS_EVENT, resources, resetLessonProgressRecords } from '../data/mockData';
+import { LESSON_PROGRESS_EVENT, resetLessonProgressRecords } from '../data/mockData';
 import { loadStudentProgress, resetStudentProgress, STUDENT_PROGRESS_EVENT, type StudentProgress } from '../lib/studentProgress';
+import {
+  claimDailyQuestReward,
+  claimEconomyReward,
+  getActiveEconomyUserId,
+  purchaseShopItem,
+  shopItems,
+} from '../lib/economy';
+import { useEconomyState, useInventoryState } from '../lib/useEconomyState';
 import {
   AchievementsPanel,
   ComingSoonPanel,
@@ -38,7 +46,6 @@ import {
   buildTreasureRewards,
   claimDailyQuest,
   claimTreasureReward,
-  getWalletSummary,
   loadAppSettings,
   resetFeatureProgressState,
   saveAchievementSnapshot,
@@ -304,6 +311,10 @@ export default function WorldMapPage() {
   const [lockedWorldTitle, setLockedWorldTitle] = useState('');
   const [settings, setSettings] = useState(() => loadAppSettings());
   const [, setFeatureRevision] = useState(0);
+  const [featureMessage, setFeatureMessage] = useState('');
+  const [purchasingItemId, setPurchasingItemId] = useState<string | undefined>();
+  const economy = useEconomyState();
+  const inventory = useInventoryState();
   const activeWorld = worlds.find((world) => world.id === activeWorldId) ?? worlds[0];
   const firstCurrentLesson = activeWorld.lessons.find((lesson) => getLessonState(activeWorld, lesson) === 'current') ?? activeWorld.lessons[0];
   const [selectedId, setSelectedId] = useState<AdventureNodeId>(firstCurrentLesson.id);
@@ -312,7 +323,15 @@ export default function WorldMapPage() {
   const treasureRewards = buildTreasureRewards(studentProgress);
   const dailyQuests = buildDailyQuests(studentProgress);
   const achievements = buildAchievementProgress(studentProgress);
-  const wallet = getWalletSummary(studentProgress);
+  const earnedStars = studentProgress.lessonResults.reduce((total, result) => total + result.stars, 0);
+  const wallet = {
+    coins: economy.coins,
+    gems: economy.gems,
+    XP: economy.typingXP,
+    stars: earnedStars,
+    hearts: economy.hearts,
+    maxHearts: economy.maxHearts,
+  };
   const claimableQuestCount = dailyQuests.filter((quest) => quest.status === 'claimable').length;
 
   useEffect(() => {
@@ -372,6 +391,61 @@ export default function WorldMapPage() {
     setFeatureRevision((revision) => revision + 1);
   };
 
+  const handleTreasureClaim = async (rewardId: string) => {
+    const reward = treasureRewards.find((item) => item.id === rewardId);
+    if (!reward || reward.status === 'claimed') {
+      setFeatureMessage('Already claimed.');
+      return;
+    }
+    if (reward.status !== 'claimable') return;
+
+    try {
+      const userId = getActiveEconomyUserId();
+      if (userId) await claimEconomyReward(userId, reward.id, reward.reward, 'treasure');
+      claimTreasureReward(rewardId);
+      setFeatureMessage('Reward claimed!');
+      setFeatureRevision((revision) => revision + 1);
+    } catch (error) {
+      setFeatureMessage(error instanceof Error ? error.message : 'Saved locally. Sync will retry.');
+    }
+  };
+
+  const handleDailyQuestClaim = async (questId: string) => {
+    const quest = dailyQuests.find((item) => item.id === questId);
+    if (!quest || quest.status === 'claimed') {
+      setFeatureMessage('Already claimed.');
+      return;
+    }
+    if (quest.status !== 'claimable') return;
+
+    try {
+      const userId = getActiveEconomyUserId();
+      if (userId) await claimDailyQuestReward(userId, quest.id, quest.reward);
+      claimDailyQuest(questId);
+      setFeatureMessage('Reward claimed!');
+      setFeatureRevision((revision) => revision + 1);
+    } catch (error) {
+      setFeatureMessage(error instanceof Error ? error.message : 'Saved locally. Sync will retry.');
+    }
+  };
+
+  const handlePurchase = async (itemId: string) => {
+    const userId = getActiveEconomyUserId();
+    if (!userId) {
+      setFeatureMessage('Saved locally. Sync will retry.');
+      return;
+    }
+    setPurchasingItemId(itemId);
+    try {
+      await purchaseShopItem(userId, itemId);
+      setFeatureMessage('Purchased!');
+    } catch (error) {
+      setFeatureMessage(error instanceof Error ? error.message : 'Saved locally. Sync will retry.');
+    } finally {
+      setPurchasingItemId(undefined);
+    }
+  };
+
   return (
     <PageTransition>
       <GameScreen background={backgroundImages.worldMap} reference="/src/reference/world-map-reference.png" fit="stretch" className="font-sans text-[#1E2F58]" style={{ backgroundSize: '100% 100%' }}>
@@ -425,9 +499,9 @@ export default function WorldMapPage() {
         </div>
 
         <div className="absolute left-1/2 top-[24px] z-40 flex -translate-x-1/2 items-center gap-8">
-          <HudPill icon="heart" value={`${resources.hearts}/${resources.maxHearts}`} label="Full" onClick={() => setModal('resource')} />
-          <HudPill icon="zap" value={studentProgress.totalXP.toLocaleString()} label="Typing XP" onClick={() => navigate('/dashboard')} />
-          <HudPill icon="flame" value={`${studentProgress.currentStreak} day`} label="Streak" onClick={() => navigate('/dashboard')} />
+          <HudPill icon="heart" value={`${economy.hearts}/${economy.maxHearts}`} label="Full" onClick={() => setModal('resource')} />
+          <HudPill icon="zap" value={economy.typingXP.toLocaleString()} label="Typing XP" onClick={() => navigate('/dashboard')} />
+          <HudPill icon="flame" value={`${economy.streak} day`} label="Streak" onClick={() => navigate('/dashboard')} />
         </div>
 
         <div className="absolute right-[62px] top-[24px] z-40 flex items-center gap-3">
@@ -511,19 +585,23 @@ export default function WorldMapPage() {
           <TreasurePanel
             rewards={treasureRewards}
             wallet={wallet}
-            onClaim={(rewardId) => {
-              claimTreasureReward(rewardId);
-              setFeatureRevision((revision) => revision + 1);
-            }}
+            shopItems={shopItems}
+            inventory={inventory}
+            purchaseMessage={featureMessage}
+            purchasingItemId={purchasingItemId}
+            onClaim={handleTreasureClaim}
+            onPurchase={handlePurchase}
           />
         </ActionModal>
         <ActionModal open={modal === 'quests'} title="ភារកិច្ចប្រចាំថ្ងៃ" onClose={() => setModal(null)}>
+          {featureMessage && (
+            <div className="mb-3 rounded-[13px] border border-[#8ED47A] bg-[#ECFFD9] px-3 py-2 text-center text-sm font-black text-[#176D35]">
+              {featureMessage}
+            </div>
+          )}
           <DailyQuestsPanel
             quests={dailyQuests}
-            onClaim={(questId) => {
-              claimDailyQuest(questId);
-              setFeatureRevision((revision) => revision + 1);
-            }}
+            onClaim={handleDailyQuestClaim}
           />
         </ActionModal>
         <ActionModal open={modal === 'achievements' || modal === 'trophy'} title="សមិទ្ធផល" onClose={() => setModal(null)}>
@@ -533,7 +611,11 @@ export default function WorldMapPage() {
           <ComingSoonPanel title="សំបុត្រផ្សងព្រេងនឹងមានឆាប់ៗ" detail="មុខងារសារមិនទាន់ភ្ជាប់នៅឡើយ។ លទ្ធផលមេរៀន គ្រាប់ចុចខ្សោយ Badge និងមតិកែលម្អវឌ្ឍនភាព អាចមើលបាននៅ Dashboard និងផ្ទាំងសមិទ្ធផល។" />
         </ActionModal>
         <ActionModal open={modal === 'resource'} title="បេះដូង" onClose={() => setModal(null)}>
-          <ComingSoonPanel title="មុខងារបេះដូងនឹងមានឆាប់ៗ" detail="បេះដូងនៅពេលនេះជាការបង្ហាញស្ថានភាពប៉ុណ្ណោះ។ វឌ្ឍនភាពមេរៀន និងការទទួលរង្វាន់នៅតែរក្សាទុកធម្មតា។" />
+          <div className="space-y-2 font-black text-[#17325A]">
+            <p>បេះដូង៖ {economy.hearts}/{economy.maxHearts}</p>
+            <p>Boss Mode ប្រើបេះដូង 1 នៅពេលចាប់ផ្តើម។ មេរៀនធម្មតាមិនចំណាយបេះដូងទេ។</p>
+            <p>Not enough hearts. Practice normal lessons or wait for refill.</p>
+          </div>
         </ActionModal>
       </GameScreen>
     </PageTransition>

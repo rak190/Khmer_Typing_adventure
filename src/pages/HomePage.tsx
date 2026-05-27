@@ -27,13 +27,14 @@ import AccountMenu from '../components/layout/AccountMenu';
 import GameScreen from '../components/layout/GameScreen';
 import PageTransition from '../components/layout/PageTransition';
 import { backgroundImages, imageAssets, mapImages } from '../assets/assetManifest';
-import { achievements, resources } from '../data/mockData';
+import { achievements } from '../data/mockData';
+import { claimEconomyReward, getActiveEconomyUserId, purchaseShopItem, shopItems } from '../lib/economy';
+import { useEconomyState, useInventoryState } from '../lib/useEconomyState';
 import { loadStudentProgress } from '../lib/studentProgress';
 import {
   buildAchievementProgress,
   buildTreasureRewards,
   claimTreasureReward,
-  getWalletSummary,
   saveAchievementSnapshot,
 } from '../lib/playerFeatures';
 
@@ -67,6 +68,8 @@ const badgeVariants = ['newbie', 'rising-star', 'skilled', 'boss-slayer', 'legen
 const stageKhmerLabels = ['ព្យញ្ជនៈ', 'ស្រៈ', 'ពាក្យងាយ', 'ប្រយោគ', 'មេប្រយុទ្ធ', ''];
 
 function TopNav({ onOpenModal }: { onOpenModal: (modal: HomeModal) => void }) {
+  const economy = useEconomyState();
+
   return (
     <header className="absolute left-0 top-0 z-40 h-[92px] w-full rounded-b-[18px] bg-gradient-to-b from-[#075ED0] via-[#004AAE] to-[#003382] shadow-[0_9px_22px_rgba(0,35,105,.32)]">
       <Link to="/" className="pointer-events-auto absolute left-[46px] top-[-10px] h-[166px] w-[250px] cursor-pointer">
@@ -93,8 +96,8 @@ function TopNav({ onOpenModal }: { onOpenModal: (modal: HomeModal) => void }) {
       </nav>
 
       <div className="absolute right-[30px] top-[18px] flex items-center gap-3">
-        <GameHudCounter type="coins" value={resources.coins} showPlus onAdd={() => onOpenModal('coins')} className="h-[56px] min-h-0 min-w-[132px] rounded-[23px] px-3 py-2 text-[15px]" />
-        <GameHudCounter type="hearts" value={`${resources.hearts}/${resources.maxHearts}`} label="Full" className="h-[56px] min-h-0 min-w-[126px] rounded-[23px] px-3 py-2 text-[15px]" />
+        <GameHudCounter type="coins" value={economy.coins} showPlus onAdd={() => onOpenModal('coins')} className="h-[56px] min-h-0 min-w-[132px] rounded-[23px] px-3 py-2 text-[15px]" />
+        <GameHudCounter type="hearts" value={`${economy.hearts}/${economy.maxHearts}`} label="Full" className="h-[56px] min-h-0 min-w-[126px] rounded-[23px] px-3 py-2 text-[15px]" />
         <AccountMenu variant="home" />
       </div>
     </header>
@@ -138,13 +141,61 @@ export default function HomePage() {
   const [modal, setModal] = useState<HomeModal>(null);
   const [studentProgress] = useState(() => loadStudentProgress());
   const [, setFeatureRevision] = useState(0);
+  const [featureMessage, setFeatureMessage] = useState('');
+  const [purchasingItemId, setPurchasingItemId] = useState<string | undefined>();
+  const economy = useEconomyState();
+  const inventory = useInventoryState();
   const treasureRewards = buildTreasureRewards(studentProgress);
   const achievementProgress = buildAchievementProgress(studentProgress);
-  const wallet = getWalletSummary(studentProgress);
+  const earnedStars = studentProgress.lessonResults.reduce((total, result) => total + result.stars, 0);
+  const wallet = {
+    coins: economy.coins,
+    gems: economy.gems,
+    XP: economy.typingXP,
+    stars: earnedStars,
+    hearts: economy.hearts,
+    maxHearts: economy.maxHearts,
+  };
 
   useEffect(() => {
     if (modal === 'badges') saveAchievementSnapshot(studentProgress);
   }, [modal, studentProgress]);
+
+  const handleTreasureClaim = async (rewardId: string) => {
+    const reward = treasureRewards.find((item) => item.id === rewardId);
+    if (!reward || reward.status === 'claimed') {
+      setFeatureMessage('Already claimed.');
+      return;
+    }
+    if (reward.status !== 'claimable') return;
+
+    try {
+      const userId = getActiveEconomyUserId();
+      if (userId) await claimEconomyReward(userId, reward.id, reward.reward, 'treasure');
+      claimTreasureReward(rewardId);
+      setFeatureMessage('Reward claimed!');
+      setFeatureRevision((revision) => revision + 1);
+    } catch (error) {
+      setFeatureMessage(error instanceof Error ? error.message : 'Saved locally. Sync will retry.');
+    }
+  };
+
+  const handlePurchase = async (itemId: string) => {
+    const userId = getActiveEconomyUserId();
+    if (!userId) {
+      setFeatureMessage('Saved locally. Sync will retry.');
+      return;
+    }
+    setPurchasingItemId(itemId);
+    try {
+      await purchaseShopItem(userId, itemId);
+      setFeatureMessage('Purchased!');
+    } catch (error) {
+      setFeatureMessage(error instanceof Error ? error.message : 'Saved locally. Sync will retry.');
+    } finally {
+      setPurchasingItemId(undefined);
+    }
+  };
 
   return (
     <PageTransition>
@@ -183,9 +234,9 @@ export default function HomePage() {
           </div>
 
           <div className="pointer-events-none absolute right-[104px] top-[134px] z-30 flex w-[170px] flex-col items-center">
-            <GameLevelBadge level={12} size="lg" />
+            <GameLevelBadge level={economy.level} size="lg" />
             <div className="mt-3 w-[170px] rounded-full border-2 border-white bg-gradient-to-b from-[#4CDB73] to-[#20A74E] px-4 py-1 text-center text-[14px] font-black text-white shadow-button">
-              820 / 1,500 XP
+              {economy.typingXP.toLocaleString()} XP
             </div>
           </div>
 
@@ -341,10 +392,12 @@ export default function HomePage() {
           <TreasurePanel
             rewards={treasureRewards}
             wallet={wallet}
-            onClaim={(rewardId) => {
-              claimTreasureReward(rewardId);
-              setFeatureRevision((revision) => revision + 1);
-            }}
+            shopItems={shopItems}
+            inventory={inventory}
+            purchaseMessage={featureMessage}
+            purchasingItemId={purchasingItemId}
+            onClaim={handleTreasureClaim}
+            onPurchase={handlePurchase}
           />
         </ActionModal>
         <ActionModal open={modal === 'badges'} title="សមិទ្ធផល" onClose={() => setModal(null)}>

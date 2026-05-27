@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Flame, Gauge, Pause, Settings, Target, Trophy } from 'lucide-react';
 import { imageAssets } from '../../assets/assetManifest';
-import { resources } from '../../data/mockData';
+import { useEconomyState } from '../../lib/useEconomyState';
 
 type LessonHudProps = {
   score: number;
@@ -14,8 +14,9 @@ type LessonHudProps = {
 };
 
 export default function LessonHud({ score, streak, accuracy, cpm, xpEarned, onPause, onSettings }: LessonHudProps) {
-  const xp = resources.xp + xpEarned;
-  const xpPercent = Math.min(100, Math.round((xp / resources.nextXp) * 100));
+  const economy = useEconomyState();
+  const xp = economy.typingXP + xpEarned;
+  const xpPercent = Math.min(100, Math.round(((xp % 100) / 100) * 100));
 
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-40 h-[108px]">
@@ -53,7 +54,7 @@ export default function LessonHud({ score, streak, accuracy, cpm, xpEarned, onPa
 
       <section className="absolute left-[1110px] top-[20px] flex h-[68px] w-[282px] items-center gap-4 rounded-[18px] border-[2px] border-[#67C8FF] bg-gradient-to-b from-[#1475D8] to-[#074C9B] px-5 text-white shadow-[inset_0_2px_0_rgba(255,255,255,.24),0_10px_18px_rgba(0,53,121,.24)]">
         <div className="grid h-[52px] w-[52px] place-items-center rounded-[14px] border-[3px] border-[#FFD95B] bg-gradient-to-b from-[#8E62FF] to-[#5730B5] text-[21px] font-black shadow-[inset_0_2px_0_rgba(255,255,255,.3)]">
-          {resources.level}
+          {economy.level}
         </div>
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center justify-between text-[12px] font-black text-white/86">

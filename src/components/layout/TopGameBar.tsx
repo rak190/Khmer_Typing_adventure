@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { navItems, resources } from '../../data/mockData';
+import { navItems } from '../../data/mockData';
 import { cn } from '../../lib/cn';
+import { useEconomyState } from '../../lib/useEconomyState';
 import GameHudCounter from '../game-ui/GameHudCounter';
 import LevelBadge from '../game/LevelBadge';
 import Logo from '../game/Logo';
@@ -15,6 +16,16 @@ type TopGameBarProps = {
 
 export default function TopGameBar({ compactLogo = true, overlay = false, variant = 'default' }: TopGameBarProps) {
   const isLanding = variant === 'landing';
+  const economy = useEconomyState();
+  const resourceSnapshot = {
+    coins: economy.coins,
+    gems: economy.gems,
+    hearts: economy.hearts,
+    maxHearts: economy.maxHearts,
+    xp: economy.typingXP,
+    nextXp: Math.max(100, economy.typingXP + 100),
+    level: economy.level,
+  };
 
   return (
     <header
@@ -61,14 +72,14 @@ export default function TopGameBar({ compactLogo = true, overlay = false, varian
         <div className="ml-auto hidden items-center gap-2 md:flex">
           {isLanding ? (
             <>
-              <GameHudCounter type="coins" value={resources.coins} showPlus />
-              <GameHudCounter type="hearts" value={`${resources.hearts}/${resources.maxHearts}`} label="Full" />
+              <GameHudCounter type="coins" value={economy.coins} showPlus />
+              <GameHudCounter type="hearts" value={`${economy.hearts}/${economy.maxHearts}`} label="Full" />
             </>
           ) : (
-            <TopResources resources={resources} compact />
+            <TopResources resources={resourceSnapshot} compact />
           )}
           <AccountMenu variant="topbar" />
-          <LevelBadge level={12} size="sm" className="hidden 2xl:grid" />
+          <LevelBadge level={economy.level} size="sm" className="hidden 2xl:grid" />
         </div>
       </div>
     </header>

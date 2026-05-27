@@ -7,6 +7,7 @@ import {
   getStructuredLessons,
   type StructuredTypingLesson,
 } from '../data/typingProgression';
+import { calculateLevelFromXP, saveCompletedResultToEconomy } from './economy';
 import { normalizeKhmerText } from './khmerText';
 
 export const STUDENT_PROGRESS_STORAGE_KEY = 'khmer-typing-student-progress';
@@ -55,6 +56,10 @@ export type StudentLessonResult = {
   weakKeys: WeakKeySummary[];
   stars: number;
   XP: number;
+  coinsEarned?: number;
+  gemsEarned?: number;
+  rewardReasons?: string[];
+  mode?: 'lesson' | 'boss' | 'challenge';
   score: number;
   passed: boolean;
   completedAt: string;
@@ -185,6 +190,10 @@ function normalizeLessonResult(value: Partial<StudentLessonResult>): StudentLess
     weakKeys: Array.isArray(value.weakKeys) ? value.weakKeys.flatMap((weakKey) => normalizeWeakKey(weakKey) ?? []) : [],
     stars: Number(value.stars) || 0,
     XP: Number(value.XP) || 0,
+    coinsEarned: Number(value.coinsEarned) || 0,
+    gemsEarned: Number(value.gemsEarned) || 0,
+    rewardReasons: Array.isArray(value.rewardReasons) ? value.rewardReasons.filter((item): item is string => typeof item === 'string') : [],
+    mode: value.mode === 'boss' || value.mode === 'challenge' || value.mode === 'lesson' ? value.mode : undefined,
     score: Number(value.score) || 0,
     passed: value.passed === true,
     completedAt: typeof value.completedAt === 'string' ? value.completedAt : new Date().toISOString(),
@@ -289,7 +298,7 @@ export function subscribeStudentProgressFromFirebase(userId: string) {
 }
 
 export function calculateStudentLevel(totalXP: number) {
-  return Math.max(1, Math.floor(Math.max(0, totalXP) / 500) + 1);
+  return calculateLevelFromXP(totalXP);
 }
 
 export function getPracticeDate(date = new Date()) {
@@ -440,6 +449,11 @@ export function saveStudentLessonResult(result: StudentLessonResult, storage?: S
   };
 
   saveStudentProgress(nextProgress, storage);
+  if (!storage) {
+    void saveCompletedResultToEconomy(result).catch((error) => {
+      console.error('Unable to sync economy reward. Saved locally. Sync will retry.', error);
+    });
+  }
   return { progress: nextProgress, newBadges };
 }
 
