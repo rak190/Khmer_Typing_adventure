@@ -31,7 +31,8 @@ import {
   type TypingMetricResult,
 } from '../../lib/typingMetrics';
 import { loadAppSettings, resetFeatureProgressState, saveAppSettings } from '../../lib/playerFeatures';
-import { calculateRewards, loadCachedEconomy } from '../../lib/economy';
+import { calculateRewards } from '../../lib/economy';
+import { useEconomyState } from '../../lib/useEconomyState';
 import LessonHud from './LessonHud';
 import TypingTargetCard from './TypingTargetCard';
 import KhmerKeyboard from './KhmerKeyboard';
@@ -154,6 +155,7 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   const [settings, setSettings] = useState(() => loadAppSettings());
   const [initialProgress] = useState(() => loadStudentProgress());
   const [, setClockTick] = useState(0);
+  const economy = useEconomyState();
   const feedbackTimeoutRef = useRef<number | undefined>(undefined);
   const progressSavedRef = useRef(false);
 
@@ -178,7 +180,7 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
     passed: metrics.passed,
     score: metrics.finalScore,
     previousBestScore,
-    currentStreak: loadCachedEconomy().streak || initialProgress.currentStreak,
+    currentStreak: economy.streak || initialProgress.currentStreak,
     worldId: structuredLesson?.worldId ?? world.id,
     lessonId: resultLessonId,
   });

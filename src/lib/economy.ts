@@ -273,6 +273,30 @@ function writeCachedSet(key: string, values: Set<string>) {
   emitEconomyChange();
 }
 
+export function loadCachedRewardClaimIds(rewardType: string, userId = getActiveEconomyUserId()) {
+  return Array.from(readCachedSet(rewardClaimsCacheKey(userId)))
+    .filter((key) => key.startsWith(`${rewardType}:`))
+    .map((key) => key.slice(rewardType.length + 1));
+}
+
+function addCachedRewardClaim(userId: string, rewardType: string, claimId: string) {
+  const claims = readCachedSet(rewardClaimsCacheKey(userId));
+  claims.add(`${rewardType}:${claimId}`);
+  writeCachedSet(rewardClaimsCacheKey(userId), claims);
+}
+
+export function loadCachedDailyQuestClaimIds(date = toDateKey(), userId = getActiveEconomyUserId()) {
+  return Array.from(readCachedSet(dailyClaimsCacheKey(userId)))
+    .filter((key) => key.startsWith(`${date}:`))
+    .map((key) => key.slice(date.length + 1));
+}
+
+function addCachedDailyQuestClaim(userId: string, date: string, questId: string) {
+  const claims = readCachedSet(dailyClaimsCacheKey(userId));
+  claims.add(`${date}:${questId}`);
+  writeCachedSet(dailyClaimsCacheKey(userId), claims);
+}
+
 function userDoc(userId: string) {
   if (!db) return null;
   return doc(db, 'users', userId);
@@ -296,6 +320,11 @@ function lessonResultDoc(userId: string, resultId: string) {
 function rewardClaimDoc(userId: string, claimId: string) {
   if (!db) return null;
   return doc(db, 'users', userId, 'rewardClaims', claimId);
+}
+
+function bossAttemptDoc(userId: string, attemptId: string) {
+  if (!db) return null;
+  return doc(db, 'users', userId, 'bossAttempts', attemptId);
 }
 
 function dailyQuestDoc(userId: string, date: string) {
@@ -734,9 +763,10 @@ export async function purchaseShopItem(userId: string, itemId: string) {
   if (!userRef || !itemRef) {
     const current = loadCachedEconomy(userId);
     if (current.coins < item.cost) throw new Error('Not enough coins.');
-    applyLocalEconomy((state) => ({ ...state, coins: state.coins - item.cost }), userId);
     const inventory = loadCachedInventory(userId);
     const existing = inventory.find((entry) => entry.itemId === itemId);
+    if (!item.consumable && existing?.owned === true) throw new Error('Already owned.');
+    applyLocalEconomy((state) => ({ ...state, coins: state.coins - item.cost }), userId);
     const nextInventory = existing
       ? inventory.map((entry) => entry.itemId === itemId ? { ...entry, quantity: item.consumable ? entry.quantity + 1 : entry.quantity, owned: true, updatedAt: new Date().toISOString() } : entry)
       : [...inventory, { itemId, quantity: item.consumable ? 1 : 0, owned: true, updatedAt: new Date().toISOString() }];
@@ -750,6 +780,9 @@ export async function purchaseShopItem(userId: string, itemId: string) {
     if (current.coins < item.cost) throw new Error('Not enough coins.');
 
     const inventorySnapshot = await transaction.get(itemRef);
+    if (!item.consumable && inventorySnapshot.exists() && inventorySnapshot.data().owned === true) {
+      throw new Error('Already owned.');
+    }
     const currentQuantity = inventorySnapshot.exists() ? cleanNumber(inventorySnapshot.data().quantity, 0) : 0;
     const nextQuantity = item.consumable ? currentQuantity + 1 : currentQuantity;
     const nextEconomy = { ...current, coins: current.coins - item.cost };
@@ -808,10 +841,47 @@ async function refreshInventoryCache(userId: string) {
   return inventory;
 }
 
+async function refreshRewardClaimCache(userId: string) {
+  if (!db) return Array.from(readCachedSet(rewardClaimsCacheKey(userId)));
+  const snapshot = await getDocs(collection(db, 'users', userId, 'rewardClaims'));
+  const claims = new Set(snapshot.docs.map((item) => item.id));
+  writeCachedSet(rewardClaimsCacheKey(userId), claims);
+  return Array.from(claims);
+}
+
+async function refreshDailyQuestClaimCache(userId: string, date = toDateKey()) {
+  const ref = dailyQuestDoc(userId, date);
+  if (!ref) return loadCachedDailyQuestClaimIds(date, userId);
+  const snapshot = await getDoc(ref);
+  const data = snapshot.exists() ? snapshot.data() as { claimedRewards?: unknown } : {};
+  const claimedRewards = Array.isArray(data.claimedRewards)
+    ? data.claimedRewards.filter((item): item is string => typeof item === 'string')
+    : [];
+  const claims = readCachedSet(dailyClaimsCacheKey(userId));
+  Array.from(claims).forEach((key) => {
+    if (key.startsWith(`${date}:`)) claims.delete(key);
+  });
+  claimedRewards.forEach((questId) => claims.add(`${date}:${questId}`));
+  writeCachedSet(dailyClaimsCacheKey(userId), claims);
+  return claimedRewards;
+}
+
 export async function getInventory(userId = getActiveEconomyUserId()) {
   if (!userId) return [];
   if (!db) return loadCachedInventory(userId);
   return refreshInventoryCache(userId);
+}
+
+export async function getRewardClaimIds(rewardType: string, userId = getActiveEconomyUserId()) {
+  if (!userId) return [];
+  await refreshRewardClaimCache(userId);
+  return loadCachedRewardClaimIds(rewardType, userId);
+}
+
+export async function getDailyQuestClaimIds(date = toDateKey(), userId = getActiveEconomyUserId()) {
+  if (!userId) return [];
+  await refreshDailyQuestClaimCache(userId, date);
+  return loadCachedDailyQuestClaimIds(date, userId);
 }
 
 export async function consumeInventoryItem(userId: string, itemId: string) {
@@ -878,6 +948,7 @@ export async function claimEconomyReward(userId: string, claimId: string, reward
       });
     }
     saveCachedEconomy(next, userId);
+    addCachedRewardClaim(userId, rewardType, claimId);
     return next;
   });
 }
@@ -929,6 +1000,7 @@ export async function claimDailyQuestReward(userId: string, questId: string, rew
       });
     }
     saveCachedEconomy(next, userId);
+    addCachedDailyQuestClaim(userId, date, questId);
     return next;
   });
 }
@@ -1050,6 +1122,11 @@ export async function saveCompletedResultToEconomy(result: StudentLessonResult, 
   const date = toDateKey(new Date(result.completedAt));
 
   if (!userRef || !resultRef) {
+    const claims = readCachedSet(rewardClaimsCacheKey(userId));
+    const resultClaimKey = `result:${docId}`;
+    if (claims.has(resultClaimKey)) return loadCachedEconomy(userId);
+    claims.add(resultClaimKey);
+    writeCachedSet(rewardClaimsCacheKey(userId), claims);
     return applyLocalEconomy((state) => {
       const afterStreak = updateStreakFields(state, date);
       const typingXP = afterStreak.typingXP + result.XP;
@@ -1065,10 +1142,20 @@ export async function saveCompletedResultToEconomy(result: StudentLessonResult, 
 
   return runTransaction(db!, async (transaction) => {
     const userSnapshot = await transaction.get(userRef);
+    const resultSnapshot = await transaction.get(resultRef);
     const current = normalizeEconomy(userSnapshot.exists() ? userSnapshot.data() as Partial<EconomyState> : defaultEconomy);
+    if (resultSnapshot.exists()) {
+      saveCachedEconomy(current, userId);
+      return current;
+    }
+
     let next = updateStreakFields(current, date);
     const gap = current.lastPracticeDate ? differenceInDays(current.lastPracticeDate, date) : 1;
-    if (gap === 2 && current.lastPracticeDate && await consumeInventoryInTransaction(transaction, userId, 'streak-freeze')) {
+    const streakFreezeRef = gap === 2 && current.lastPracticeDate ? inventoryDoc(userId, 'streak-freeze') : null;
+    const streakFreezeSnapshot = streakFreezeRef ? await transaction.get(streakFreezeRef) : null;
+    const streakFreezeQuantity = streakFreezeSnapshot?.exists() ? cleanNumber(streakFreezeSnapshot.data().quantity, 0) : 0;
+    const usedStreakFreeze = streakFreezeQuantity > 0;
+    if (usedStreakFreeze) {
       const streak = current.streak + 1;
       next = { ...current, streak, longestStreak: Math.max(current.longestStreak, streak), lastPracticeDate: date };
     }
@@ -1082,6 +1169,14 @@ export async function saveCompletedResultToEconomy(result: StudentLessonResult, 
     };
     next = await unlockAchievementsForResult(transaction, userId, result, next);
 
+    if (streakFreezeRef && usedStreakFreeze) {
+      transaction.set(streakFreezeRef, {
+        itemId: 'streak-freeze',
+        quantity: streakFreezeQuantity - 1,
+        owned: streakFreezeQuantity - 1 > 0 || streakFreezeSnapshot?.data().owned === true,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    }
     transaction.set(userRef, { ...next, updatedAt: serverTimestamp() }, { merge: true });
     transaction.set(resultRef, {
       lessonId: result.lessonId,
@@ -1126,12 +1221,108 @@ export async function saveCompletedResultToEconomy(result: StudentLessonResult, 
   });
 }
 
-export async function prepareBossAttempt(userId = getActiveEconomyUserId()) {
+export async function prepareBossAttempt(userId = getActiveEconomyUserId(), attemptId?: string) {
   if (!userId) throw new Error('Not enough hearts.');
-  const usedRetryToken = await consumeInventoryItem(userId, 'retry-token');
-  if (usedRetryToken) return { usedRetryToken: true, economy: loadCachedEconomy(userId) };
-  const economy = await spendHeartForBoss(userId);
-  return { usedRetryToken: false, economy };
+  const attemptKey = attemptId ? `boss-attempt:${attemptId}` : undefined;
+  const attemptRetryKey = attemptId ? `boss-attempt-retry:${attemptId}` : undefined;
+  const userRef = userDoc(userId);
+  const retryRef = inventoryDoc(userId, 'retry-token');
+  const attemptRef = attemptId ? bossAttemptDoc(userId, attemptId) : null;
+
+  if (!userRef || !retryRef) {
+    if (attemptKey) {
+      const claims = readCachedSet(rewardClaimsCacheKey(userId));
+      if (claims.has(attemptKey)) return { usedRetryToken: attemptRetryKey ? claims.has(attemptRetryKey) : false, economy: loadCachedEconomy(userId) };
+    }
+
+    const usedRetryToken = await consumeInventoryItem(userId, 'retry-token');
+    if (usedRetryToken) {
+      if (attemptKey) {
+        const claims = readCachedSet(rewardClaimsCacheKey(userId));
+        claims.add(attemptKey);
+        if (attemptRetryKey) claims.add(attemptRetryKey);
+        writeCachedSet(rewardClaimsCacheKey(userId), claims);
+      }
+      return { usedRetryToken: true, economy: loadCachedEconomy(userId) };
+    }
+    const economy = await spendHeartForBoss(userId);
+    if (attemptKey) {
+      const claims = readCachedSet(rewardClaimsCacheKey(userId));
+      claims.add(attemptKey);
+      writeCachedSet(rewardClaimsCacheKey(userId), claims);
+    }
+    return { usedRetryToken: false, economy };
+  }
+
+  const result = await runTransaction(db!, async (transaction) => {
+    const attemptSnapshot = attemptRef ? await transaction.get(attemptRef) : null;
+    const userSnapshot = await transaction.get(userRef);
+    const retrySnapshot = await transaction.get(retryRef);
+    const current = applyHeartRefill(normalizeEconomy(userSnapshot.exists() ? userSnapshot.data() as Partial<EconomyState> : defaultEconomy));
+
+    if (attemptSnapshot?.exists()) {
+      return {
+        usedRetryToken: attemptSnapshot.data().usedRetryToken === true,
+        economy: current,
+        retryQuantity: retrySnapshot.exists() ? cleanNumber(retrySnapshot.data().quantity, 0) : 0,
+        consumedRetryToken: false,
+      };
+    }
+
+    const retryQuantity = retrySnapshot.exists() ? cleanNumber(retrySnapshot.data().quantity, 0) : 0;
+    const useRetryToken = retryQuantity > 0;
+    if (!useRetryToken && current.hearts <= 0) throw new Error('Not enough hearts.');
+
+    const next = useRetryToken ? current : { ...current, hearts: current.hearts - 1 };
+    transaction.set(userRef, { ...next, updatedAt: serverTimestamp() }, { merge: true });
+
+    if (useRetryToken) {
+      transaction.set(retryRef, {
+        itemId: 'retry-token',
+        quantity: retryQuantity - 1,
+        owned: retryQuantity - 1 > 0 || retrySnapshot.data()?.owned === true,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    }
+
+    if (attemptRef) {
+      transaction.set(attemptRef, {
+        attemptId,
+        usedRetryToken: useRetryToken,
+        spentHeart: !useRetryToken,
+        createdAt: serverTimestamp(),
+      });
+    }
+
+    const eventRef = economyEventDoc(userId);
+    if (eventRef) {
+      transaction.set(eventRef, {
+        type: useRetryToken ? 'consume' : 'spend',
+        amount: -1,
+        currency: useRetryToken ? 'retry-token' : 'hearts',
+        source: 'boss-attempt',
+        metadata: { attemptId, itemId: useRetryToken ? 'retry-token' : undefined },
+        createdAt: serverTimestamp(),
+      });
+    }
+
+    return {
+      usedRetryToken: useRetryToken,
+      economy: next,
+      retryQuantity: useRetryToken ? retryQuantity - 1 : retryQuantity,
+      consumedRetryToken: useRetryToken,
+    };
+  });
+
+  saveCachedEconomy(result.economy, userId);
+  if (result.consumedRetryToken) {
+    const inventory = loadCachedInventory(userId);
+    const nextInventory = inventory.some((item) => item.itemId === 'retry-token')
+      ? inventory.map((item) => item.itemId === 'retry-token' ? { ...item, quantity: result.retryQuantity, owned: result.retryQuantity > 0, updatedAt: new Date().toISOString() } : item)
+      : [{ itemId: 'retry-token', quantity: result.retryQuantity, owned: result.retryQuantity > 0, updatedAt: new Date().toISOString() }];
+    saveCachedInventory(nextInventory, userId);
+  }
+  return { usedRetryToken: result.usedRetryToken, economy: result.economy };
 }
 
 export function getInventoryQuantity(inventory: EconomyInventoryItem[], itemId: string) {
