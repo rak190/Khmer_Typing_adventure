@@ -15,7 +15,9 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
+import { collection, deleteDoc, doc, getDocs, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import type { Achievement, KeyboardKeyData, LessonStage, PowerUp, Quest, ResourceState, Student } from '../types/game';
+import { auth, db } from '../lib/firebase';
 
 export type LessonProgressRecord = {
   worldId: number;
@@ -34,8 +36,6 @@ export type LessonProgressRecord = {
   mistakes?: number;
   backspaces?: number;
 };
-
-const LESSON_PROGRESS_STORAGE_KEY = 'khmer-typing-lesson-progress';
 
 export const LESSON_PROGRESS_EVENT = 'khmer-lesson-progress-change';
 
@@ -98,26 +98,8 @@ function normalizeStoredProgress(value: unknown): LessonProgressRecord[] {
   });
 }
 
-function readProgressFromStorage() {
-  if (typeof window === 'undefined') return [];
-
-  try {
-    const saved = window.localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY);
-    return saved ? normalizeStoredProgress(JSON.parse(saved)) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeProgressToStorage(progress: LessonProgressRecord[]) {
-  if (typeof window === 'undefined') return;
-
-  try {
-    window.localStorage.setItem(LESSON_PROGRESS_STORAGE_KEY, JSON.stringify(progress));
-    window.dispatchEvent(new Event(LESSON_PROGRESS_EVENT));
-  } catch {
-    // Local progress is a convenience layer; the lesson still completes if storage is unavailable.
-  }
+function emitLessonProgressChange() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(LESSON_PROGRESS_EVENT));
 }
 
 function mergeProgressRecords(records: LessonProgressRecord[]) {
@@ -137,12 +119,13 @@ function mergeProgressRecords(records: LessonProgressRecord[]) {
   });
 }
 
-function syncMockLessonProgress(records: LessonProgressRecord[]) {
+function syncMockLessonProgress(records: LessonProgressRecord[], notify = false) {
   mockLessonProgress.splice(0, mockLessonProgress.length, ...records);
+  if (notify) emitLessonProgressChange();
 }
 
 export function getLessonProgressRecords() {
-  const records = mergeProgressRecords([...mockLessonProgress, ...readProgressFromStorage()]);
+  const records = mergeProgressRecords([...mockLessonProgress]);
   syncMockLessonProgress(records);
   return records;
 }
@@ -159,14 +142,47 @@ export function saveMockLessonProgress(progress: LessonProgressRecord) {
   }
 
   const mergedRecords = mergeProgressRecords(records);
-  syncMockLessonProgress(mergedRecords);
-  writeProgressToStorage(mergedRecords);
+  syncMockLessonProgress(mergedRecords, true);
   return savedProgress;
 }
 
+export async function resetLessonProgressRecords() {
+  syncMockLessonProgress([], true);
+
+  const userId = auth?.currentUser?.uid;
+  if (!db || !userId) return;
+
+  const snapshot = await getDocs(collection(db, 'students', userId, 'lessonProgress'));
+  await Promise.all(snapshot.docs.map((item) => deleteDoc(item.ref)));
+}
+
 export async function saveLessonProgressToFirebase(progress: LessonProgressRecord) {
-  // Firebase persistence will be connected here after auth/user progress schema is ready.
+  const userId = auth?.currentUser?.uid;
+  if (!db || !userId) {
+    console.warn('Firebase user is not ready. Lesson progress was kept in memory only.');
+    return progress;
+  }
+
+  await setDoc(
+    doc(db, 'students', userId, 'lessonProgress', getProgressId(progress)),
+    { ...progress, updatedAt: serverTimestamp() },
+  );
   return progress;
+}
+
+export function subscribeLessonProgressFromFirebase(userId: string) {
+  if (!db) {
+    syncMockLessonProgress([]);
+    return () => undefined;
+  }
+
+  return onSnapshot(collection(db, 'students', userId, 'lessonProgress'), (snapshot) => {
+    const records = normalizeStoredProgress(snapshot.docs.map((item) => item.data()));
+    syncMockLessonProgress(mergeProgressRecords(records), true);
+  }, (error) => {
+    console.error('Unable to sync lesson progress from Firebase.', error);
+    syncMockLessonProgress([], true);
+  });
 }
 
 export const resources: ResourceState = {

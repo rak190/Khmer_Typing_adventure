@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -17,15 +17,25 @@ import {
 } from 'lucide-react';
 import LizardMascot from '../components/characters/LizardMascot';
 import ActionModal from '../components/game-ui/ActionModal';
+import { AchievementsPanel, TreasurePanel } from '../components/game-ui/FeaturePanels';
 import GameBadge from '../components/game-ui/GameBadge';
 import GameButton from '../components/game-ui/GameButton';
 import GameHudCounter from '../components/game-ui/GameHudCounter';
 import GameIcon from '../components/game-ui/GameIcon';
 import GameLevelBadge from '../components/game-ui/GameLevelBadge';
+import AccountMenu from '../components/layout/AccountMenu';
 import GameScreen from '../components/layout/GameScreen';
 import PageTransition from '../components/layout/PageTransition';
 import { backgroundImages, imageAssets, mapImages } from '../assets/assetManifest';
 import { achievements, resources } from '../data/mockData';
+import { loadStudentProgress } from '../lib/studentProgress';
+import {
+  buildAchievementProgress,
+  buildTreasureRewards,
+  claimTreasureReward,
+  getWalletSummary,
+  saveAchievementSnapshot,
+} from '../lib/playerFeatures';
 
 const navItems = [
   { label: 'ទំព័រដើម', to: '/', icon: Home, active: true },
@@ -85,19 +95,7 @@ function TopNav({ onOpenModal }: { onOpenModal: (modal: HomeModal) => void }) {
       <div className="absolute right-[30px] top-[18px] flex items-center gap-3">
         <GameHudCounter type="coins" value={resources.coins} showPlus onAdd={() => onOpenModal('coins')} className="h-[56px] min-h-0 min-w-[132px] rounded-[23px] px-3 py-2 text-[15px]" />
         <GameHudCounter type="hearts" value={`${resources.hearts}/${resources.maxHearts}`} label="Full" className="h-[56px] min-h-0 min-w-[126px] rounded-[23px] px-3 py-2 text-[15px]" />
-        <Link
-          to="/dashboard"
-          className="pointer-events-auto flex h-[58px] w-[176px] cursor-pointer items-center gap-2 rounded-[23px] border-2 border-white/35 bg-gradient-to-b from-[#78E0FF]/85 to-[#1472D8]/90 px-3 text-white shadow-[inset_0_-5px_0_rgba(0,38,91,.25),0_9px_16px_rgba(0,36,97,.24)]"
-        >
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-white/75 bg-gradient-to-b from-[#D6FFF7] to-[#30BE69]">
-            <Users size={25} />
-          </div>
-          <div className="leading-tight">
-            <div className="text-[16px] font-black">Sophea</div>
-            <div className="text-[11px] font-extrabold text-white/90">Level 12</div>
-          </div>
-          <ChevronDown className="ml-auto shrink-0" size={18} />
-        </Link>
+        <AccountMenu variant="home" />
       </div>
     </header>
   );
@@ -138,6 +136,15 @@ type HomeModal = 'coins' | 'badges' | null;
 
 export default function HomePage() {
   const [modal, setModal] = useState<HomeModal>(null);
+  const [studentProgress] = useState(() => loadStudentProgress());
+  const [, setFeatureRevision] = useState(0);
+  const treasureRewards = buildTreasureRewards(studentProgress);
+  const achievementProgress = buildAchievementProgress(studentProgress);
+  const wallet = getWalletSummary(studentProgress);
+
+  useEffect(() => {
+    if (modal === 'badges') saveAchievementSnapshot(studentProgress);
+  }, [modal, studentProgress]);
 
   return (
     <PageTransition>
@@ -330,11 +337,18 @@ export default function HomePage() {
           </footer>
         </main>
 
-        <ActionModal open={modal === 'coins'} title="Coins Coming Soon" onClose={() => setModal(null)}>
-          Coin purchases and bonus coin actions are coming soon. For now, coins are earned by completing typing lessons and boss challenges.
+        <ActionModal open={modal === 'coins'} title="រង្វាន់" onClose={() => setModal(null)}>
+          <TreasurePanel
+            rewards={treasureRewards}
+            wallet={wallet}
+            onClaim={(rewardId) => {
+              claimTreasureReward(rewardId);
+              setFeatureRevision((revision) => revision + 1);
+            }}
+          />
         </ActionModal>
-        <ActionModal open={modal === 'badges'} title="Badges" onClose={() => setModal(null)}>
-          Open the dashboard to review earned badges, locked badges, weak keys, and recent lesson results.
+        <ActionModal open={modal === 'badges'} title="សមិទ្ធផល" onClose={() => setModal(null)}>
+          <AchievementsPanel achievements={achievementProgress} />
         </ActionModal>
       </GameScreen>
     </PageTransition>

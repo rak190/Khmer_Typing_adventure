@@ -20,9 +20,19 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-export const firebaseEnabled = Object.values(firebaseConfig).every(Boolean);
+const requiredFirebaseConfig = [
+  firebaseConfig.apiKey,
+  firebaseConfig.authDomain,
+  firebaseConfig.projectId,
+  firebaseConfig.storageBucket,
+  firebaseConfig.messagingSenderId,
+  firebaseConfig.appId,
+];
+
+export const firebaseEnabled = requiredFirebaseConfig.every(Boolean);
 
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
@@ -36,8 +46,8 @@ if (firebaseEnabled) {
 
 export { app, auth, db };
 
-const DEMO_USER_KEY = 'khmer-typing-demo-user';
 const DEMO_SESSION_EVENT = 'khmer-demo-session-change';
+let inMemoryDemoUserId: string | undefined;
 
 export type AppSession = {
   mode: 'firebase' | 'demo';
@@ -45,23 +55,12 @@ export type AppSession = {
   user?: User | null;
 };
 
-function getLocalStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 export function getDemoSession(): AppSession | null {
-  const demoUserId = getLocalStorage()?.getItem(DEMO_USER_KEY);
-  return demoUserId ? { mode: 'demo', userId: demoUserId, user: null } : null;
+  return inMemoryDemoUserId ? { mode: 'demo', userId: inMemoryDemoUserId, user: null } : null;
 }
 
 function setDemoSession(userId: string) {
-  getLocalStorage()?.setItem(DEMO_USER_KEY, userId);
+  inMemoryDemoUserId = userId;
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event(DEMO_SESSION_EVENT));
   }
@@ -72,10 +71,8 @@ export function subscribeToSession(onChange: (session: AppSession | null) => voi
     onChange(getDemoSession());
     const updateDemoSession = () => onChange(getDemoSession());
     window.addEventListener(DEMO_SESSION_EVENT, updateDemoSession);
-    window.addEventListener('storage', updateDemoSession);
     return () => {
       window.removeEventListener(DEMO_SESSION_EVENT, updateDemoSession);
-      window.removeEventListener('storage', updateDemoSession);
     };
   }
 
@@ -130,7 +127,7 @@ export async function signInAsGuest() {
 }
 
 export async function signOutSession() {
-  getLocalStorage()?.removeItem(DEMO_USER_KEY);
+  inMemoryDemoUserId = undefined;
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event(DEMO_SESSION_EVENT));
   }

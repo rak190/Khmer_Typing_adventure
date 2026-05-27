@@ -9,6 +9,7 @@ import Logo from '../components/game/Logo';
 import ProgressBar from '../components/game/ProgressBar';
 import StatPill from '../components/game/StatPill';
 import ActionModal from '../components/game-ui/ActionModal';
+import { ComingSoonPanel, SettingsPanel } from '../components/game-ui/FeaturePanels';
 import PageTransition from '../components/layout/PageTransition';
 import GameIcon from '../components/game-ui/GameIcon';
 import { backgroundImages } from '../assets/assetManifest';
@@ -16,6 +17,7 @@ import { getCurriculumLevel, getCurriculumWorld, lessonCurriculum } from '../dat
 import { getStructuredLessonByRoute } from '../data/typingProgression';
 import {
   getLessonProgressRecords,
+  resetLessonProgressRecords,
   resources,
   saveLessonProgressToFirebase,
   saveMockLessonProgress,
@@ -28,6 +30,7 @@ import {
   classifyWeakKey,
   getBestScoreForLesson,
   loadStudentProgress,
+  resetStudentProgress,
   saveStudentLessonResult,
   summarizeWeakKeyStats,
   type StudentBadge,
@@ -43,6 +46,7 @@ import {
   calculateWpm,
   formatElapsedTime,
 } from '../lib/typingMetrics';
+import { loadAppSettings, resetFeatureProgressState, saveAppSettings } from '../lib/playerFeatures';
 
 type BossRunStats = {
   correctInputs: number;
@@ -185,6 +189,7 @@ export default function BattlePage() {
   const [stats, setStats] = useState<BossRunStats>(() => getInitialStats());
   const [newBadges, setNewBadges] = useState<StudentBadge[]>([]);
   const [modal, setModal] = useState<BossModal>(null);
+  const [settings, setSettings] = useState(() => loadAppSettings());
   const [initialProgress] = useState(() => loadStudentProgress());
   const [initialLessonProgress] = useState(() => getLessonProgressRecords());
   const progressSavedRef = useRef(false);
@@ -465,6 +470,13 @@ export default function BattlePage() {
     progressSavedRef.current = false;
   };
 
+  const handleResetProgress = () => {
+    resetStudentProgress();
+    resetFeatureProgressState();
+    void resetLessonProgressRecords().catch((error) => console.error('Unable to reset lesson progress records.', error));
+    retryBattle();
+  };
+
   return (
     <PageTransition className="h-screen overflow-hidden text-white">
       <div
@@ -693,7 +705,7 @@ export default function BattlePage() {
         </div>
 
         <div className="boss-keyboard-dock relative z-10">
-          <KhmerKeyboard onKeyPress={handlePress} activeKey={activeKey} compact />
+          <KhmerKeyboard onKeyPress={handlePress} activeKey={settings.keyboardHintsEnabled ? activeKey : ''} compact />
         </div>
 
         {battleFinished && (
@@ -790,19 +802,26 @@ export default function BattlePage() {
           </div>
         )}
 
-        <ActionModal open={modal === 'help'} title="How to Play" onClose={() => setModal(null)}>
-          <p>Choose a lesson or Boss challenge, then type the Khmer text exactly as shown.</p>
-          <p>Accuracy is more important than speed for beginners. CPM means characters per minute.</p>
-          <p>Use the keyboard and hand hints. Boss mode requires finishing the prompts while meeting the accuracy and CPM target.</p>
+        <ActionModal open={modal === 'help'} title="របៀបលេង" onClose={() => setModal(null)}>
+          <p>ជ្រើសមេរៀន ឬ Boss challenge បន្ទាប់មកវាយអត្ថបទខ្មែរឲ្យដូចដែលបានបង្ហាញ។</p>
+          <p>សម្រាប់អ្នកចាប់ផ្តើម ភាពត្រឹមត្រូវសំខាន់ជាងល្បឿន។ CPM មានន័យថាចំនួនតួអក្សរក្នុងមួយនាទី។</p>
+          <p>ប្រើជំនួយក្តារចុច និងជំនួយម្រាមដៃ។ Boss mode ត្រូវការវាយចប់ និងឈានដល់គោលដៅភាពត្រឹមត្រូវ/CPM។</p>
         </ActionModal>
-        <ActionModal open={modal === 'settings'} title="Settings" onClose={() => setModal(null)}>
-          Settings will be available soon. Sound and music controls are not active in this boss build yet.
+        <ActionModal open={modal === 'settings'} title="ការកំណត់" onClose={() => setModal(null)}>
+          <SettingsPanel
+            settings={settings}
+            onChange={(nextSettings) => setSettings(saveAppSettings(nextSettings))}
+            onResetProgress={handleResetProgress}
+          />
         </ActionModal>
-        <ActionModal open={modal === 'sound'} title="Audio Coming Soon" onClose={() => setModal(null)}>
-          Word audio is coming soon. Use the highlighted Khmer key and hand hints for this prompt.
+        <ActionModal open={modal === 'sound'} title="សំឡេង" onClose={() => setModal(null)}>
+          <ComingSoonPanel
+            title={settings.soundEnabled ? 'សំឡេងពាក្យនឹងមានឆាប់ៗ' : 'សំឡេងត្រូវបានបិទ'}
+            detail={settings.soundEnabled ? 'សំឡេងពាក្យមិនទាន់ភ្ជាប់នៅឡើយ។ សូមប្រើអត្ថបទ និងជំនួយក្តារចុចសម្រាប់ឃ្លា Boss នេះ។' : 'បើកសំឡេងក្នុងការកំណត់ នៅពេលមុខងារហាត់សំឡេងរួចរាល់។'}
+          />
         </ActionModal>
-        <ActionModal open={modal === 'continueLocked'} title="Boss Not Passed Yet" onClose={() => setModal(null)}>
-          Continue unlocks after the Boss is defeated with at least {bossTargets.minimumAccuracy}% accuracy. Try again and focus on careful Khmer input first.
+        <ActionModal open={modal === 'continueLocked'} title="មិនទាន់ឆ្លង Boss" onClose={() => setModal(null)}>
+          បន្តបានបន្ទាប់ពីឈ្នះ Boss ដោយមានភាពត្រឹមត្រូវយ៉ាងតិច {bossTargets.minimumAccuracy}%។ សូមសាកម្តងទៀត ហើយផ្តោតលើការវាយអក្សរខ្មែរឲ្យត្រឹមត្រូវជាមុន។
         </ActionModal>
       </div>
     </PageTransition>

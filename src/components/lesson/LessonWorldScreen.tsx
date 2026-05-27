@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import GameScreen from '../layout/GameScreen';
 import PageTransition from '../layout/PageTransition';
 import ActionModal from '../game-ui/ActionModal';
+import { SettingsPanel } from '../game-ui/FeaturePanels';
 import { backgroundImages } from '../../assets/assetManifest';
-import { saveLessonProgressToFirebase, saveMockLessonProgress } from '../../data/mockData';
+import { resetLessonProgressRecords, saveLessonProgressToFirebase, saveMockLessonProgress } from '../../data/mockData';
 import { findKhmerKeyByCode, getKhmerKeyboardInput } from '../../data/keyboardMap';
 import type { CurriculumLevel, CurriculumWorld } from '../../data/lessonCurriculum';
 import { getStructuredLessonByRoute } from '../../data/typingProgression';
@@ -17,6 +18,7 @@ import {
   getBestScoreForLesson,
   getProgressRecommendation,
   loadStudentProgress,
+  resetStudentProgress,
   saveStudentLessonResult,
   summarizeWeakKeyStats,
   type StudentBadge,
@@ -29,6 +31,7 @@ import {
   getLessonSpeedTargetCpm,
   type TypingMetricResult,
 } from '../../lib/typingMetrics';
+import { loadAppSettings, resetFeatureProgressState, saveAppSettings } from '../../lib/playerFeatures';
 import LessonHud from './LessonHud';
 import TypingTargetCard from './TypingTargetCard';
 import KhmerKeyboard from './KhmerKeyboard';
@@ -148,6 +151,7 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [newBadges, setNewBadges] = useState<StudentBadge[]>([]);
   const [modal, setModal] = useState<'pause' | 'settings' | 'continueLocked' | null>(null);
+  const [settings, setSettings] = useState(() => loadAppSettings());
   const [initialProgress] = useState(() => loadStudentProgress());
   const [, setClockTick] = useState(0);
   const feedbackTimeoutRef = useRef<number | undefined>(undefined);
@@ -190,6 +194,8 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
         shiftRequired: false,
       };
   const handHint = fingerGuidance.label;
+  const visibleKeyHint = settings.keyboardHintsEnabled ? keyHint : 'ជំនួយក្តារចុចត្រូវបានបិទក្នុងការកំណត់។';
+  const visibleHandHint = settings.handHintsEnabled ? handHint : 'ជំនួយម្រាមដៃត្រូវបានបិទក្នុងការកំណត់។';
 
   function showFeedback(nextFeedback: Feedback) {
     window.clearTimeout(feedbackTimeoutRef.current);
@@ -211,6 +217,13 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
     setFeedback(null);
     setNewBadges([]);
     progressSavedRef.current = false;
+  }
+
+  function handleResetProgress() {
+    resetStudentProgress();
+    resetFeatureProgressState();
+    void resetLessonProgressRecords().catch((error) => console.error('Unable to reset lesson progress records.', error));
+    resetLesson();
   }
 
   function handleBackspace() {
@@ -407,8 +420,8 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
           targetText={plan.targetText}
           typedText={typedText}
           currentText={currentTargetText}
-          keyHint={keyHint}
-          handHint={handHint}
+          keyHint={visibleKeyHint}
+          handHint={visibleHandHint}
           metrics={metrics}
           speedTargetCpm={speedTargetCpm}
           minimumAccuracy={minimumAccuracy}
@@ -416,12 +429,12 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
           feedbackMessage={feedback?.message}
         />
 
-        <TypingHands guidance={fingerGuidance} />
+        {settings.handHintsEnabled && <TypingHands guidance={fingerGuidance} />}
 
         <KhmerKeyboard
-          activeCode={activeTarget.key.code}
-          shiftRequired={shiftRequired}
-          feedbackCode={feedback?.code}
+          activeCode={settings.keyboardHintsEnabled ? activeTarget.key.code : ''}
+          shiftRequired={settings.keyboardHintsEnabled && shiftRequired}
+          feedbackCode={settings.keyboardHintsEnabled ? feedback?.code : undefined}
           feedbackState={feedback?.state}
           activeHand={fingerGuidance.activeHand}
           activeFinger={fingerGuidance.activeFinger}
@@ -435,8 +448,8 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
           progress={runState.completedInputCount}
           total={targetUnits.length}
           nextKey={visibleKey(activeTarget.value)}
-          keyHint={keyHint}
-          handHint={handHint}
+          keyHint={visibleKeyHint}
+          handHint={visibleHandHint}
           stages={questStages}
           stars={metrics.stars}
           xp={displayedXpEarned}
@@ -479,14 +492,18 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
           />
         )}
 
-        <ActionModal open={modal === 'pause'} title="Lesson Paused" onClose={() => setModal(null)}>
-          Close this dialog to continue typing. Progress for this run is saved when the lesson result is complete.
+        <ActionModal open={modal === 'pause'} title="មេរៀនបានផ្អាក" onClose={() => setModal(null)}>
+          បិទផ្ទាំងនេះដើម្បីបន្តវាយ។ វឌ្ឍនភាពនឹងរក្សាទុកនៅពេលលទ្ធផលមេរៀនបញ្ចប់។
         </ActionModal>
-        <ActionModal open={modal === 'settings'} title="Settings" onClose={() => setModal(null)}>
-          Settings will be available soon. Sound and music controls are not active in this lesson build yet.
+        <ActionModal open={modal === 'settings'} title="ការកំណត់" onClose={() => setModal(null)}>
+          <SettingsPanel
+            settings={settings}
+            onChange={(nextSettings) => setSettings(saveAppSettings(nextSettings))}
+            onResetProgress={handleResetProgress}
+          />
         </ActionModal>
-        <ActionModal open={modal === 'continueLocked'} title="Accuracy Needed" onClose={() => setModal(null)}>
-          Continue unlocks after passing the lesson. Replay and focus on careful Khmer typing until accuracy reaches {minimumAccuracy}%.
+        <ActionModal open={modal === 'continueLocked'} title="ត្រូវការភាពត្រឹមត្រូវ" onClose={() => setModal(null)}>
+          បន្តបានបន្ទាប់ពីឆ្លងមេរៀន។ សូមលេងម្តងទៀត និងផ្តោតលើការវាយអក្សរខ្មែរឲ្យត្រឹមត្រូវ រហូតដល់ភាពត្រឹមត្រូវ {minimumAccuracy}%។
         </ActionModal>
       </GameScreen>
     </PageTransition>

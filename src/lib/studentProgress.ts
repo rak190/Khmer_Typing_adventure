@@ -1,5 +1,8 @@
 import type { CurriculumLevel } from '../data/lessonCurriculum';
+import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { auth, db } from './firebase';
 import {
+  isStructuredLessonUnlocked,
   getNextStructuredLesson,
   getStructuredLessons,
   type StructuredTypingLesson,
@@ -10,6 +13,7 @@ export const STUDENT_PROGRESS_STORAGE_KEY = 'khmer-typing-student-progress';
 export const STUDENT_PROGRESS_EVENT = 'khmer-student-progress-change';
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+type StudentProgressDocument = StudentProgress & { updatedAt?: unknown };
 
 export type WeakKeyCategory = 'character' | 'vowel' | 'coeng' | 'mark' | 'key';
 
@@ -129,14 +133,14 @@ export function createEmptyStudentProgress(): StudentProgress {
   };
 }
 
-function getStorage(storage?: StorageLike): StorageLike | null {
-  if (storage) return storage;
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
+let cachedStudentProgress = createEmptyStudentProgress();
+
+function emitStudentProgressChange() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(STUDENT_PROGRESS_EVENT));
+}
+
+function studentProgressDocRef(userId = auth?.currentUser?.uid) {
+  return db && userId ? doc(db, 'students', userId, 'progress', 'summary') : null;
 }
 
 function normalizeBadge(value: Partial<StudentBadge>): StudentBadge | null {
@@ -187,58 +191,101 @@ function normalizeLessonResult(value: Partial<StudentLessonResult>): StudentLess
   };
 }
 
+function normalizeStudentProgress(parsed: Partial<StudentProgress>): StudentProgress {
+  const progress = createEmptyStudentProgress();
+  const badgesById = new Map(progress.badges.map((badge) => [badge.badgeId, badge]));
+
+  return {
+    studentName: typeof parsed.studentName === 'string' ? parsed.studentName : undefined,
+    totalXP: Number(parsed.totalXP) || 0,
+    currentLevel: Number(parsed.currentLevel) || 1,
+    currentWorld: typeof parsed.currentWorld === 'string' ? parsed.currentWorld : progress.currentWorld,
+    completedLessons: Array.isArray(parsed.completedLessons) ? parsed.completedLessons.filter((item): item is string => typeof item === 'string') : [],
+    lessonResults: Array.isArray(parsed.lessonResults) ? parsed.lessonResults.flatMap((result) => normalizeLessonResult(result) ?? []) : [],
+    weakKeyHistory: Object.fromEntries(
+      Object.values(parsed.weakKeyHistory ?? {})
+        .flatMap((weakKey) => normalizeWeakKey(weakKey) ?? [])
+        .map((weakKey) => [weakKey.value, weakKey]),
+    ),
+    badges: [
+      ...progress.badges.map((badge) => {
+        const savedBadge = Array.isArray(parsed.badges) ? parsed.badges.flatMap((item) => normalizeBadge(item) ?? []).find((item) => item.badgeId === badge.badgeId) : null;
+        badgesById.set(badge.badgeId, savedBadge ?? badge);
+        return savedBadge ?? badge;
+      }),
+    ],
+    currentStreak: Number(parsed.currentStreak) || 0,
+    longestStreak: Number(parsed.longestStreak) || 0,
+    lastPracticeDate: typeof parsed.lastPracticeDate === 'string' ? parsed.lastPracticeDate : undefined,
+  };
+}
+
 export function loadStudentProgress(storage?: StorageLike): StudentProgress {
-  const resolvedStorage = getStorage(storage);
-  if (!resolvedStorage) return createEmptyStudentProgress();
+  if (!storage) return cachedStudentProgress;
 
   try {
-    const saved = resolvedStorage.getItem(STUDENT_PROGRESS_STORAGE_KEY);
+    const saved = storage.getItem(STUDENT_PROGRESS_STORAGE_KEY);
     if (!saved) return createEmptyStudentProgress();
     const parsed = JSON.parse(saved) as Partial<StudentProgress>;
-    const progress = createEmptyStudentProgress();
-    const badgesById = new Map(progress.badges.map((badge) => [badge.badgeId, badge]));
-
-    return {
-      studentName: typeof parsed.studentName === 'string' ? parsed.studentName : undefined,
-      totalXP: Number(parsed.totalXP) || 0,
-      currentLevel: Number(parsed.currentLevel) || 1,
-      currentWorld: typeof parsed.currentWorld === 'string' ? parsed.currentWorld : progress.currentWorld,
-      completedLessons: Array.isArray(parsed.completedLessons) ? parsed.completedLessons.filter((item): item is string => typeof item === 'string') : [],
-      lessonResults: Array.isArray(parsed.lessonResults) ? parsed.lessonResults.flatMap((result) => normalizeLessonResult(result) ?? []) : [],
-      weakKeyHistory: Object.fromEntries(
-        Object.values(parsed.weakKeyHistory ?? {})
-          .flatMap((weakKey) => normalizeWeakKey(weakKey) ?? [])
-          .map((weakKey) => [weakKey.value, weakKey]),
-      ),
-      badges: [
-        ...progress.badges.map((badge) => {
-          const savedBadge = Array.isArray(parsed.badges) ? parsed.badges.flatMap((item) => normalizeBadge(item) ?? []).find((item) => item.badgeId === badge.badgeId) : null;
-          badgesById.set(badge.badgeId, savedBadge ?? badge);
-          return savedBadge ?? badge;
-        }),
-      ],
-      currentStreak: Number(parsed.currentStreak) || 0,
-      longestStreak: Number(parsed.longestStreak) || 0,
-      lastPracticeDate: typeof parsed.lastPracticeDate === 'string' ? parsed.lastPracticeDate : undefined,
-    };
+    return normalizeStudentProgress(parsed);
   } catch {
     return createEmptyStudentProgress();
   }
 }
 
 export function saveStudentProgress(progress: StudentProgress, storage?: StorageLike) {
-  const resolvedStorage = getStorage(storage);
-  if (!resolvedStorage) return progress;
-  resolvedStorage.setItem(STUDENT_PROGRESS_STORAGE_KEY, JSON.stringify(progress));
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event(STUDENT_PROGRESS_EVENT));
+  if (storage) {
+    storage.setItem(STUDENT_PROGRESS_STORAGE_KEY, JSON.stringify(progress));
+    return progress;
+  }
+
+  cachedStudentProgress = progress;
+  emitStudentProgressChange();
+
+  const progressRef = studentProgressDocRef();
+  if (progressRef) {
+    void setDoc(progressRef, { ...progress, updatedAt: serverTimestamp() } satisfies StudentProgressDocument);
+  } else {
+    console.warn('Firebase user is not ready. Student progress was kept in memory only.');
+  }
+
   return progress;
 }
 
 export function resetStudentProgress(storage?: StorageLike) {
-  const resolvedStorage = getStorage(storage);
-  if (!resolvedStorage) return;
-  resolvedStorage.removeItem(STUDENT_PROGRESS_STORAGE_KEY);
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event(STUDENT_PROGRESS_EVENT));
+  if (storage) {
+    storage.removeItem(STUDENT_PROGRESS_STORAGE_KEY);
+    return;
+  }
+
+  const emptyProgress = createEmptyStudentProgress();
+  cachedStudentProgress = emptyProgress;
+  emitStudentProgressChange();
+
+  const progressRef = studentProgressDocRef();
+  if (progressRef) {
+    void setDoc(progressRef, { ...emptyProgress, updatedAt: serverTimestamp() } satisfies StudentProgressDocument);
+  }
+}
+
+export function subscribeStudentProgressFromFirebase(userId: string) {
+  const progressRef = studentProgressDocRef(userId);
+  if (!progressRef) {
+    cachedStudentProgress = createEmptyStudentProgress();
+    emitStudentProgressChange();
+    return () => undefined;
+  }
+
+  return onSnapshot(progressRef, (snapshot) => {
+    cachedStudentProgress = snapshot.exists()
+      ? normalizeStudentProgress(snapshot.data() as Partial<StudentProgress>)
+      : createEmptyStudentProgress();
+    emitStudentProgressChange();
+  }, (error) => {
+    console.error('Unable to sync student progress from Firebase.', error);
+    cachedStudentProgress = createEmptyStudentProgress();
+    emitStudentProgressChange();
+  });
 }
 
 export function calculateStudentLevel(totalXP: number) {

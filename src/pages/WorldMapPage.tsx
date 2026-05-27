@@ -21,12 +21,33 @@ import {
   type AdventureLesson,
   type AdventureWorld,
 } from '../data/adventureWorlds';
-import { LESSON_PROGRESS_EVENT, resources } from '../data/mockData';
-import { loadStudentProgress, STUDENT_PROGRESS_EVENT, type StudentProgress } from '../lib/studentProgress';
+import { LESSON_PROGRESS_EVENT, resources, resetLessonProgressRecords } from '../data/mockData';
+import { loadStudentProgress, resetStudentProgress, STUDENT_PROGRESS_EVENT, type StudentProgress } from '../lib/studentProgress';
+import {
+  AchievementsPanel,
+  ComingSoonPanel,
+  DailyQuestsPanel,
+  GuidePanel,
+  SettingsPanel,
+  TreasurePanel,
+} from '../components/game-ui/FeaturePanels';
+import {
+  PLAYER_FEATURES_EVENT,
+  buildAchievementProgress,
+  buildDailyQuests,
+  buildTreasureRewards,
+  claimDailyQuest,
+  claimTreasureReward,
+  getWalletSummary,
+  loadAppSettings,
+  resetFeatureProgressState,
+  saveAchievementSnapshot,
+  saveAppSettings,
+} from '../lib/playerFeatures';
 
 const sideActions = [
   { khmer: 'រង្វាន់', title: 'Treasure', icon: 'treasure' as const },
-  { khmer: 'ភារកិច្ច', title: 'Daily Quests', icon: 'quests' as const, badge: '2' },
+  { khmer: 'ភារកិច្ច', title: 'Daily Quests', icon: 'quests' as const },
   { khmer: 'សមិទ្ធផល', title: 'Achievements', icon: 'achievements' as const },
   { khmer: 'ណែនាំ', title: 'Guide', icon: 'guide' as const },
 ];
@@ -133,7 +154,7 @@ function MissionPanel({ selected, world, state }: { selected: AdventureLesson; w
   const isBoss = selected.id === 'boss';
   const title = isBoss ? 'បេសកកម្ម Boss' : `កម្រិត ${selected.id}`;
   const progress = selected.id === 'boss' && state !== 'completed' ? 0 : selected.progress;
-  const stateLabel = state === 'completed' ? 'Complete' : state === 'locked' ? 'Locked' : state === 'current' ? 'Current' : 'Ready';
+  const stateLabel = state === 'completed' ? 'បានបញ្ចប់' : state === 'locked' ? 'ជាប់សោ' : state === 'current' ? 'កំពុងរៀន' : 'រួចរាល់';
 
   return (
     <aside className="absolute right-[22px] top-[252px] z-40 w-[340px] text-white">
@@ -179,7 +200,7 @@ function MissionPanel({ selected, world, state }: { selected: AdventureLesson; w
               <div className="khmer-body mt-1 line-clamp-3 text-[13px] font-normal leading-snug text-[#4E4234]">{selected.objective}</div>
               {state === 'locked' && (
                 <div className="mt-2 rounded-[12px] border border-[#C99A55]/55 bg-white/68 px-3 py-2 text-[12px] font-bold leading-snug text-[#70420A]">
-                  Locked until the earlier lesson is passed.
+                  ជាប់សោរហូតដល់ឆ្លងមេរៀនមុន។
                 </div>
               )}
             </div>
@@ -201,7 +222,7 @@ function MissionPanel({ selected, world, state }: { selected: AdventureLesson; w
         </section>
 
         <section className="relative mt-4 rounded-[20px] border-[2px] border-[#F7D080]/70 bg-[#FFF7D2] p-3 text-[#563414] shadow-[inset_0_2px_0_rgba(255,255,255,.7),inset_0_-5px_0_rgba(126,79,26,.12)]">
-          <div className="khmer-body mb-2 text-[14px] font-bold">រង្វាន់ Rewards</div>
+          <div className="khmer-body mb-2 text-[14px] font-bold">រង្វាន់</div>
           <div className="grid grid-cols-3 gap-3">
             {[
               { icon: 'coin' as const, value: '200' },
@@ -267,7 +288,7 @@ function RewardsPanel({ world, onViewRewards }: { world: AdventureWorld; onViewR
         <div className="truncate text-[16px] font-bold leading-tight">{world.title}</div>
         <div className="line-clamp-2 text-[11px] font-bold leading-snug text-white/86">{world.id < 6 ? `បញ្ចប់ 8 មេរៀន និង Boss ដើម្បីបើក World ${world.id + 1}។` : 'ឈ្នះ Boss ចុងក្រោយ ដើម្បីបញ្ចប់ Adventure។'}</div>
         <GameButton variant="gold" size="lg" className="mt-2 h-[36px] min-w-[148px] rounded-[18px] text-[13px]" onClick={onViewRewards}>
-          View Rewards
+          មើលរង្វាន់
         </GameButton>
       </div>
     </div>
@@ -281,11 +302,18 @@ export default function WorldMapPage() {
   const [activeWorldId, setActiveWorldId] = useState(1);
   const [modal, setModal] = useState<MapModal>(null);
   const [lockedWorldTitle, setLockedWorldTitle] = useState('');
+  const [settings, setSettings] = useState(() => loadAppSettings());
+  const [, setFeatureRevision] = useState(0);
   const activeWorld = worlds.find((world) => world.id === activeWorldId) ?? worlds[0];
   const firstCurrentLesson = activeWorld.lessons.find((lesson) => getLessonState(activeWorld, lesson) === 'current') ?? activeWorld.lessons[0];
   const [selectedId, setSelectedId] = useState<AdventureNodeId>(firstCurrentLesson.id);
   const selected = activeWorld.lessons.find((lesson) => lesson.id === selectedId) ?? firstCurrentLesson;
   const selectedState = getLessonState(activeWorld, selected);
+  const treasureRewards = buildTreasureRewards(studentProgress);
+  const dailyQuests = buildDailyQuests(studentProgress);
+  const achievements = buildAchievementProgress(studentProgress);
+  const wallet = getWalletSummary(studentProgress);
+  const claimableQuestCount = dailyQuests.filter((quest) => quest.status === 'claimable').length;
 
   useEffect(() => {
     const refreshWorlds = () => {
@@ -293,16 +321,28 @@ export default function WorldMapPage() {
       setStudentProgress(loadStudentProgress());
     };
 
-    window.addEventListener('storage', refreshWorlds);
     window.addEventListener(LESSON_PROGRESS_EVENT, refreshWorlds);
     window.addEventListener(STUDENT_PROGRESS_EVENT, refreshWorlds);
 
     return () => {
-      window.removeEventListener('storage', refreshWorlds);
       window.removeEventListener(LESSON_PROGRESS_EVENT, refreshWorlds);
       window.removeEventListener(STUDENT_PROGRESS_EVENT, refreshWorlds);
     };
   }, []);
+
+  useEffect(() => {
+    const refreshFeatures = () => {
+      setSettings(loadAppSettings());
+      setFeatureRevision((revision) => revision + 1);
+    };
+
+    window.addEventListener(PLAYER_FEATURES_EVENT, refreshFeatures);
+    return () => window.removeEventListener(PLAYER_FEATURES_EVENT, refreshFeatures);
+  }, []);
+
+  useEffect(() => {
+    if (modal === 'achievements' || modal === 'trophy') saveAchievementSnapshot(studentProgress);
+  }, [modal, studentProgress]);
 
   const selectWorld = (world: AdventureWorld) => {
     const nextLesson = world.lessons.find((lesson) => getLessonState(world, lesson) === 'current') ?? world.lessons[0];
@@ -320,8 +360,17 @@ export default function WorldMapPage() {
   };
 
   const lockedReason = selected.id === 'boss'
-    ? 'Complete all 8 lessons in this world before starting the Boss challenge.'
-    : `Complete Level ${Math.max(1, Number(selected.id) - 1)} before starting this lesson.`;
+    ? 'សូមបញ្ចប់មេរៀនទាំង 8 ក្នុងពិភពនេះ មុនចាប់ផ្តើម Boss challenge។'
+    : `សូមបញ្ចប់ Level ${Math.max(1, Number(selected.id) - 1)} មុនចាប់ផ្តើមមេរៀននេះ។`;
+
+  const handleResetProgress = () => {
+    resetStudentProgress();
+    resetFeatureProgressState();
+    void resetLessonProgressRecords().catch((error) => console.error('Unable to reset lesson progress records.', error));
+    setWorlds(buildAdventureWorlds([]));
+    setStudentProgress(loadStudentProgress());
+    setFeatureRevision((revision) => revision + 1);
+  };
 
   return (
     <PageTransition>
@@ -364,6 +413,7 @@ export default function WorldMapPage() {
             <SideMenuCard
               key={item.title}
               {...item}
+              badge={item.title === 'Daily Quests' && claimableQuestCount > 0 ? String(claimableQuestCount) : undefined}
               onClick={() => {
                 if (item.title === 'Treasure') setModal('treasure');
                 if (item.title === 'Daily Quests') setModal('quests');
@@ -435,40 +485,55 @@ export default function WorldMapPage() {
             <span className="pointer-events-none absolute left-[14px] right-[14px] top-[7px] h-[27px] rounded-full bg-white/42" />
             <span className="relative flex items-center justify-center gap-3 drop-shadow-[0_2px_1px_rgba(0,101,45,.55)]">
               <span className="khmer-body text-[25px] font-bold leading-none">{selectedState === 'locked' ? 'ជាប់សោ' : selected.id === 'boss' ? 'ចាប់ផ្តើម Boss' : 'ចាប់ផ្តើម'}</span>
-              <span className="text-[25px] leading-none">{selectedState === 'locked' ? 'Locked' : selected.id === 'boss' ? '' : `Level ${selected.id}`}</span>
+              <span className="text-[25px] leading-none">{selectedState === 'locked' ? 'ជាប់សោ' : selected.id === 'boss' ? '' : `Level ${selected.id}`}</span>
               {selectedState !== 'locked' && <ArrowLeft className="rotate-180" size={34} strokeWidth={3.2} />}
             </span>
           </button>
         </div>
 
-        <ActionModal open={modal === 'settings'} title="Settings" onClose={() => setModal(null)}>
-          Settings will be available soon. Progress is currently saved automatically after lesson and boss completion.
+        <ActionModal open={modal === 'settings'} title="ការកំណត់" onClose={() => setModal(null)}>
+          <SettingsPanel
+            settings={settings}
+            onChange={(nextSettings) => setSettings(saveAppSettings(nextSettings))}
+            onResetProgress={handleResetProgress}
+          />
         </ActionModal>
-        <ActionModal open={modal === 'guide'} title="How to Play" onClose={() => setModal(null)}>
-          <p>Choose an unlocked lesson, then type the Khmer text exactly as shown.</p>
-          <p>Accuracy matters more than speed for beginners. CPM means characters per minute.</p>
-          <p>Use the keyboard and hand hints, complete lessons to unlock harder stages, and beat Boss mode by reaching the accuracy and CPM target.</p>
+        <ActionModal open={modal === 'guide'} title="របៀបលេង" onClose={() => setModal(null)}>
+          <GuidePanel />
         </ActionModal>
-        <ActionModal open={modal === 'locked'} title="Locked Lesson" onClose={() => setModal(null)}>
+        <ActionModal open={modal === 'locked'} title="មេរៀនជាប់សោ" onClose={() => setModal(null)}>
           {lockedReason}
         </ActionModal>
-        <ActionModal open={modal === 'worldLocked'} title="Locked World" onClose={() => setModal(null)}>
-          {lockedWorldTitle || 'This world'} is locked. Complete the previous world, including its Boss challenge, to unlock it.
+        <ActionModal open={modal === 'worldLocked'} title="ពិភពជាប់សោ" onClose={() => setModal(null)}>
+          {lockedWorldTitle || 'ពិភពនេះ'} ជាប់សោ។ សូមបញ្ចប់ពិភពមុន រួមទាំង Boss challenge ដើម្បីបើកវា។
         </ActionModal>
-        <ActionModal open={modal === 'rewards' || modal === 'treasure'} title="Rewards" onClose={() => setModal(null)}>
-          Rewards are earned after lessons and Boss battles. Complete this world to unlock the treasure for the next adventure path.
+        <ActionModal open={modal === 'rewards' || modal === 'treasure'} title="រង្វាន់" onClose={() => setModal(null)}>
+          <TreasurePanel
+            rewards={treasureRewards}
+            wallet={wallet}
+            onClaim={(rewardId) => {
+              claimTreasureReward(rewardId);
+              setFeatureRevision((revision) => revision + 1);
+            }}
+          />
         </ActionModal>
-        <ActionModal open={modal === 'quests'} title="Daily Quests" onClose={() => setModal(null)}>
-          Daily missions are coming soon. Today, the best mission is to complete the current unlocked lesson with high accuracy.
+        <ActionModal open={modal === 'quests'} title="ភារកិច្ចប្រចាំថ្ងៃ" onClose={() => setModal(null)}>
+          <DailyQuestsPanel
+            quests={dailyQuests}
+            onClaim={(questId) => {
+              claimDailyQuest(questId);
+              setFeatureRevision((revision) => revision + 1);
+            }}
+          />
         </ActionModal>
-        <ActionModal open={modal === 'achievements' || modal === 'trophy'} title="Achievements" onClose={() => setModal(null)}>
-          Open the dashboard to see earned badges, locked badges, recent lesson results, weak keys, and progress toward the next lesson.
+        <ActionModal open={modal === 'achievements' || modal === 'trophy'} title="សមិទ្ធផល" onClose={() => setModal(null)}>
+          <AchievementsPanel achievements={achievements} />
         </ActionModal>
-        <ActionModal open={modal === 'mail'} title="Mail" onClose={() => setModal(null)}>
-          Adventure mail is coming soon. Lesson results and progress feedback are available on the dashboard.
+        <ActionModal open={modal === 'mail'} title="សំបុត្រ" onClose={() => setModal(null)}>
+          <ComingSoonPanel title="សំបុត្រផ្សងព្រេងនឹងមានឆាប់ៗ" detail="មុខងារសារមិនទាន់ភ្ជាប់នៅឡើយ។ លទ្ធផលមេរៀន គ្រាប់ចុចខ្សោយ Badge និងមតិកែលម្អវឌ្ឍនភាព អាចមើលបាននៅ Dashboard និងផ្ទាំងសមិទ្ធផល។" />
         </ActionModal>
-        <ActionModal open={modal === 'resource'} title="Hearts" onClose={() => setModal(null)}>
-          Hearts are a status display in this version. More heart actions will be available later.
+        <ActionModal open={modal === 'resource'} title="បេះដូង" onClose={() => setModal(null)}>
+          <ComingSoonPanel title="មុខងារបេះដូងនឹងមានឆាប់ៗ" detail="បេះដូងនៅពេលនេះជាការបង្ហាញស្ថានភាពប៉ុណ្ណោះ។ វឌ្ឍនភាពមេរៀន និងការទទួលរង្វាន់នៅតែរក្សាទុកធម្មតា។" />
         </ActionModal>
       </GameScreen>
     </PageTransition>
