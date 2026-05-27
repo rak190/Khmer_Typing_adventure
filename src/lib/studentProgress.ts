@@ -2,6 +2,7 @@ import type { CurriculumLevel } from '../data/lessonCurriculum';
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import {
+  isStructuredLessonUnlocked,
   getNextStructuredLesson,
   getStructuredLessons,
   type StructuredTypingLesson,

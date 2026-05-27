@@ -60,7 +60,7 @@ export default function App() {
   const location = useLocation();
   const [session, setSession] = useState<AppSession | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
-  const isPublicRoute = location.pathname === '/dashboard' || location.pathname === '/design-system';
+  const isPublicRoute = location.pathname === '/design-system';
 
   useEffect(() => {
     try {
@@ -111,7 +111,7 @@ export default function App() {
             <Route path="/map" element={<ProtectedRoute session={session}><WorldMapPage /></ProtectedRoute>} />
             <Route path="/lesson" element={<ProtectedRoute session={session}><LessonPage /></ProtectedRoute>} />
             <Route path="/battle" element={<ProtectedRoute session={session}><BattlePage /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<ProtectedRoute session={session}><DashboardPage /></ProtectedRoute>} />
             <Route path="/design-system" element={<DesignSystemPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -2,8 +2,20 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { BookOpen, Crown, Gamepad2, Gift, Home, Map, Settings, ShieldCheck } from 'lucide-react';
 import ActionModal from '../game-ui/ActionModal';
+import { SettingsPanel, TreasurePanel } from '../game-ui/FeaturePanels';
 import Logo from '../game/Logo';
 import CharacterPlaceholder from '../characters/CharacterPlaceholder';
+import AccountMenu from './AccountMenu';
+import { resetLessonProgressRecords } from '../../data/mockData';
+import { loadStudentProgress, resetStudentProgress } from '../../lib/studentProgress';
+import {
+  buildTreasureRewards,
+  claimTreasureReward,
+  getWalletSummary,
+  loadAppSettings,
+  resetFeatureProgressState,
+  saveAppSettings,
+} from '../../lib/playerFeatures';
 
 const items = [
   { label: 'Dashboard', khmer: 'ផ្ទាំងគ្រប់គ្រង', to: '/dashboard', icon: Home },
@@ -18,10 +30,26 @@ const items = [
 
 export default function Sidebar() {
   const [modal, setModal] = useState<'rewards' | 'settings' | null>(null);
+  const [settings, setSettings] = useState(() => loadAppSettings());
+  const [progress, setProgress] = useState(() => loadStudentProgress());
+  const [, setFeatureRevision] = useState(0);
+  const rewards = buildTreasureRewards(progress);
+  const wallet = getWalletSummary(progress);
+
+  const handleResetProgress = () => {
+    resetStudentProgress();
+    resetFeatureProgressState();
+    void resetLessonProgressRecords().catch((error) => console.error('Unable to reset lesson progress records.', error));
+    setProgress(loadStudentProgress());
+    setFeatureRevision((revision) => revision + 1);
+  };
 
   return (
     <aside className="hidden h-screen w-64 shrink-0 overflow-y-auto bg-gradient-to-b from-[#12A9F0] to-[#78E3FF] px-4 py-5 shadow-2xl lg:block">
       <Logo compact className="mb-5 scale-90 origin-left" />
+      <div className="mb-4">
+        <AccountMenu variant="topbar" />
+      </div>
       <nav className="space-y-2">
         {items.map((item) => {
           const Icon = item.icon;
@@ -63,11 +91,22 @@ export default function Sidebar() {
       <div className="mt-8 grid place-items-center">
         <CharacterPlaceholder type="elephant" className="-mb-20 scale-[0.56]" />
       </div>
-      <ActionModal open={modal === 'rewards'} title="Rewards" onClose={() => setModal(null)}>
-        Rewards are earned after lessons and Boss battles. Open the dashboard to review badges and saved progress.
+      <ActionModal open={modal === 'rewards'} title="រង្វាន់" onClose={() => setModal(null)}>
+        <TreasurePanel
+          rewards={rewards}
+          wallet={wallet}
+          onClaim={(rewardId) => {
+            claimTreasureReward(rewardId);
+            setFeatureRevision((revision) => revision + 1);
+          }}
+        />
       </ActionModal>
-      <ActionModal open={modal === 'settings'} title="Settings" onClose={() => setModal(null)}>
-        Settings will be available soon. Progress is saved automatically after completed lessons and boss runs.
+      <ActionModal open={modal === 'settings'} title="ការកំណត់" onClose={() => setModal(null)}>
+        <SettingsPanel
+          settings={settings}
+          onChange={(nextSettings) => setSettings(saveAppSettings(nextSettings))}
+          onResetProgress={handleResetProgress}
+        />
       </ActionModal>
     </aside>
   );

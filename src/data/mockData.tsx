@@ -15,7 +15,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import { collection, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import type { Achievement, KeyboardKeyData, LessonStage, PowerUp, Quest, ResourceState, Student } from '../types/game';
 import { auth, db } from '../lib/firebase';
 
@@ -144,6 +144,16 @@ export function saveMockLessonProgress(progress: LessonProgressRecord) {
   const mergedRecords = mergeProgressRecords(records);
   syncMockLessonProgress(mergedRecords, true);
   return savedProgress;
+}
+
+export async function resetLessonProgressRecords() {
+  syncMockLessonProgress([], true);
+
+  const userId = auth?.currentUser?.uid;
+  if (!db || !userId) return;
+
+  const snapshot = await getDocs(collection(db, 'students', userId, 'lessonProgress'));
+  await Promise.all(snapshot.docs.map((item) => deleteDoc(item.ref)));
 }
 
 export async function saveLessonProgressToFirebase(progress: LessonProgressRecord) {

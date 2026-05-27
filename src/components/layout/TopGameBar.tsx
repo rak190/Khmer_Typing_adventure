@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { ChevronDown, UserRound } from 'lucide-react';
 import { navItems, resources } from '../../data/mockData';
 import { cn } from '../../lib/cn';
 import GameHudCounter from '../game-ui/GameHudCounter';
 import LevelBadge from '../game/LevelBadge';
 import Logo from '../game/Logo';
 import { TopResources } from '../game/ResourceCounters';
+import AccountMenu from './AccountMenu';
 
 type TopGameBarProps = {
   compactLogo?: boolean;
@@ -67,23 +67,7 @@ export default function TopGameBar({ compactLogo = true, overlay = false, varian
           ) : (
             <TopResources resources={resources} compact />
           )}
-          <div
-            className={cn(
-              'flex items-center gap-3 text-white',
-              isLanding
-                ? 'min-w-48 rounded-[18px] border border-white/25 bg-white/12 px-3 py-2 shadow-[inset_0_-4px_0_rgba(0,0,0,.18),0_7px_16px_rgba(0,19,57,.2)]'
-                : 'min-w-44 rounded-2xl border border-white/25 bg-white/12 px-3 py-2 shadow-inner',
-            )}
-          >
-            <div className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-b from-mint to-primary shadow">
-              <UserRound size={23} />
-            </div>
-            <div className="leading-tight">
-              <div className="font-black">Sophea</div>
-              <div className="text-xs font-bold text-sky">Level 12</div>
-            </div>
-            <ChevronDown size={18} className="ml-auto" />
-          </div>
+          <AccountMenu variant="topbar" />
           <LevelBadge level={12} size="sm" className="hidden 2xl:grid" />
         </div>
       </div>
