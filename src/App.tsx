@@ -13,6 +13,7 @@ const LessonPage = lazy(() => import('./pages/LessonPage'));
 const BattlePage = lazy(() => import('./pages/BattlePage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ShopPage = lazy(() => import('./pages/ShopPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const DesignSystemPage = lazy(() => import('./pages/DesignSystemPage'));
 
 function ProtectedRoute({ session, children }: { session: AppSession | null; children: ReactNode }) {
@@ -118,6 +119,7 @@ export default function App() {
             <Route path="/battle" element={<ProtectedRoute session={session}><BattlePage /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute session={session}><DashboardPage /></ProtectedRoute>} />
             <Route path="/shop" element={<ProtectedRoute session={session}><ShopPage /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute session={session}><ProfilePage /></ProtectedRoute>} />
             <Route path="/design-system" element={<DesignSystemPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

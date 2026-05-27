@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Settings, Trophy } from 'lucide-react';
+import { ArrowLeft, Mail, Settings, Trophy, UserRound } from 'lucide-react';
 import ActionModal from '../components/game-ui/ActionModal';
 import GameButton from '../components/game-ui/GameButton';
 import GameIcon, { type GameIconName } from '../components/game-ui/GameIcon';
@@ -507,6 +507,7 @@ export default function WorldMapPage() {
         </div>
 
         <div className="absolute right-[62px] top-[24px] z-40 flex items-center gap-3">
+          <RoundHudButton icon={<UserRound size={31} />} label="Profile" onClick={() => navigate('/profile')} />
           <RoundHudButton icon={<Mail size={31} />} badge="3" label="Mail" onClick={() => setModal('mail')} />
           <RoundHudButton icon={<Trophy size={31} />} label="Trophy" onClick={() => setModal('trophy')} />
           <RoundHudButton icon={<Settings size={31} />} label="Settings" onClick={() => setModal('settings')} />
