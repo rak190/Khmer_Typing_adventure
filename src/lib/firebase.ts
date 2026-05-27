@@ -77,7 +77,7 @@ export function subscribeToSession(onChange: (session: AppSession | null) => voi
   }
 
   return onAuthStateChanged(auth, (user) => {
-    onChange(user ? { mode: 'firebase', userId: user.uid, user } : getDemoSession());
+    onChange(user ? { mode: 'firebase', userId: user.uid, user } : null);
   });
 }
 
@@ -137,14 +137,9 @@ export async function signOutSession() {
 }
 
 export async function ensureFirebaseSession() {
-  if (!auth || auth.currentUser) {
-    return { mode: firebaseEnabled ? 'firebase' : 'demo', userId: auth?.currentUser?.uid };
+  if (auth?.currentUser) {
+    return { mode: 'firebase' as const, userId: auth.currentUser.uid, user: auth.currentUser };
   }
 
-  try {
-    const credential = await signInAnonymously(auth);
-    return { mode: 'firebase', userId: credential.user.uid };
-  } catch {
-    return { mode: 'demo', userId: undefined };
-  }
+  return getDemoSession();
 }
