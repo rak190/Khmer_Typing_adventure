@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { BookOpen, Crown, Gamepad2, Gift, Home, Map, Settings, ShieldCheck } from 'lucide-react';
+import { BookOpen, Crown, Gamepad2, Gift, Home, Map, Settings, ShieldCheck, ShoppingBag } from 'lucide-react';
 import ActionModal from '../game-ui/ActionModal';
 import { SettingsPanel, TreasurePanel } from '../game-ui/FeaturePanels';
 import Logo from '../game/Logo';
@@ -8,7 +8,7 @@ import CharacterPlaceholder from '../characters/CharacterPlaceholder';
 import AccountMenu from './AccountMenu';
 import { resetLessonProgressRecords } from '../../data/mockData';
 import { claimEconomyReward, getActiveEconomyUserId, purchaseShopItem, shopItems } from '../../lib/economy';
-import { useEconomyState, useInventoryState } from '../../lib/useEconomyState';
+import { useEconomyState, useInventoryState, useRewardClaimIds } from '../../lib/useEconomyState';
 import { loadStudentProgress, resetStudentProgress } from '../../lib/studentProgress';
 import {
   buildTreasureRewards,
@@ -25,6 +25,7 @@ const items = [
   { label: 'Mini-Games', khmer: 'ល្បែង', to: '/battle', icon: Gamepad2 },
   { label: 'Challenges', khmer: 'ប្រកួត', to: '/battle', icon: ShieldCheck },
   { label: 'Rewards', khmer: 'រង្វាន់', action: 'rewards' as const, icon: Gift },
+  { label: 'Shop', khmer: 'ហាង', to: '/shop', icon: ShoppingBag },
   { label: 'Leaderboards', khmer: 'ចំណាត់ថ្នាក់', to: '/dashboard', icon: Crown },
   { label: 'Settings', khmer: 'កំណត់', action: 'settings' as const, icon: Settings },
 ];
@@ -38,7 +39,8 @@ export default function Sidebar() {
   const [purchasingItemId, setPurchasingItemId] = useState<string | undefined>();
   const economy = useEconomyState();
   const inventory = useInventoryState();
-  const rewards = buildTreasureRewards(progress);
+  const treasureClaimIds = useRewardClaimIds('treasure');
+  const rewards = buildTreasureRewards(progress, treasureClaimIds);
   const earnedStars = progress.lessonResults.reduce((total, result) => total + result.stars, 0);
   const wallet = {
     coins: economy.coins,

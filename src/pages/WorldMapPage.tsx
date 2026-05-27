@@ -30,7 +30,7 @@ import {
   purchaseShopItem,
   shopItems,
 } from '../lib/economy';
-import { useEconomyState, useInventoryState } from '../lib/useEconomyState';
+import { useDailyQuestClaimIds, useEconomyState, useInventoryState, useRewardClaimIds } from '../lib/useEconomyState';
 import {
   AchievementsPanel,
   ComingSoonPanel,
@@ -315,13 +315,15 @@ export default function WorldMapPage() {
   const [purchasingItemId, setPurchasingItemId] = useState<string | undefined>();
   const economy = useEconomyState();
   const inventory = useInventoryState();
+  const treasureClaimIds = useRewardClaimIds('treasure');
+  const dailyQuestClaimIds = useDailyQuestClaimIds();
   const activeWorld = worlds.find((world) => world.id === activeWorldId) ?? worlds[0];
   const firstCurrentLesson = activeWorld.lessons.find((lesson) => getLessonState(activeWorld, lesson) === 'current') ?? activeWorld.lessons[0];
   const [selectedId, setSelectedId] = useState<AdventureNodeId>(firstCurrentLesson.id);
   const selected = activeWorld.lessons.find((lesson) => lesson.id === selectedId) ?? firstCurrentLesson;
   const selectedState = getLessonState(activeWorld, selected);
-  const treasureRewards = buildTreasureRewards(studentProgress);
-  const dailyQuests = buildDailyQuests(studentProgress);
+  const treasureRewards = buildTreasureRewards(studentProgress, treasureClaimIds);
+  const dailyQuests = buildDailyQuests(studentProgress, undefined, dailyQuestClaimIds);
   const achievements = buildAchievementProgress(studentProgress);
   const earnedStars = studentProgress.lessonResults.reduce((total, result) => total + result.stars, 0);
   const wallet = {

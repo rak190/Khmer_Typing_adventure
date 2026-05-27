@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Medal,
   Shield,
+  ShoppingBag,
   Sparkles,
   Star,
   Swords,
@@ -200,6 +201,7 @@ export const navItems = [
   { label: 'Lessons', khmer: 'មេរៀន', to: '/lesson', icon: GraduationCap },
   { label: 'Mini-Games', khmer: 'ល្បែង', to: '/battle', icon: Gamepad2 },
   { label: 'Boss Battles', khmer: 'ប្រយុទ្ធ', to: '/battle', icon: Swords },
+  { label: 'Shop', khmer: 'ហាង', to: '/shop', icon: ShoppingBag },
   { label: 'Leaderboard', khmer: 'ចំណាត់ថ្នាក់', to: '/dashboard', icon: Trophy },
   { label: 'For Teachers', khmer: 'គ្រូបង្រៀន', to: '/dashboard', icon: Users },
 ];

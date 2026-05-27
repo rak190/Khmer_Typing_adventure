@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Award, CheckCircle2, Clock, Flame, Gauge, Gem, HelpCircle, RotateCcw, Settings, ShieldAlert, Sparkles, Swords, Target, Trophy, Volume2, XCircle } from 'lucide-react';
 import CharacterPlaceholder from '../components/characters/CharacterPlaceholder';
@@ -159,6 +159,7 @@ function getPerformanceFeedback(accuracy: number, cpm: number, targetCPM: number
 
 export default function BattlePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const requestedWorldId = Number(searchParams.get('world') ?? 1);
   const world = getCurriculumWorld(Number.isFinite(requestedWorldId) ? requestedWorldId : 1) ?? lessonCurriculum[0];
@@ -233,6 +234,10 @@ export default function BattlePage() {
   }, [bossDefeated, bossTargets.minimumAccuracy, bossTargets.targetCPM, elapsedMs, stats.backspaces, stats.bestStreak, stats.correctInputs, stats.correctWords, stats.mistakes]);
 
   const resultLessonId = structuredBossLesson?.lessonId ?? `curriculum-w${world.id}-boss`;
+  const bossAttemptId = useMemo(
+    () => `boss:${location.key}:${world.id}:${resultLessonId}:${attemptNonce}`,
+    [attemptNonce, location.key, resultLessonId, world.id],
+  );
   const previousBestScore = Math.max(
     getBestScoreForLesson(initialProgress, resultLessonId),
     initialLessonProgress.find((record) => record.worldId === world.id && record.lessonId === 'boss')?.score ?? 0,
@@ -411,7 +416,7 @@ export default function BattlePage() {
 
   useEffect(() => {
     let cancelled = false;
-    void prepareBossAttempt().then(({ usedRetryToken }) => {
+    void prepareBossAttempt(undefined, bossAttemptId).then(({ usedRetryToken }) => {
       if (cancelled) return;
       setBossReady(true);
       setBossEntryMessage(usedRetryToken ? 'បានប្រើ Retry Token សម្រាប់ Boss នេះ។' : 'បានចំណាយបេះដូង 1 សម្រាប់ Boss នេះ។');
@@ -425,7 +430,7 @@ export default function BattlePage() {
     return () => {
       cancelled = true;
     };
-  }, [attemptNonce]);
+  }, [bossAttemptId]);
 
   useEffect(() => {
     if (!battleFinished || progressSavedRef.current) return;

@@ -29,7 +29,7 @@ import PageTransition from '../components/layout/PageTransition';
 import { backgroundImages, imageAssets, mapImages } from '../assets/assetManifest';
 import { achievements } from '../data/mockData';
 import { claimEconomyReward, getActiveEconomyUserId, purchaseShopItem, shopItems } from '../lib/economy';
-import { useEconomyState, useInventoryState } from '../lib/useEconomyState';
+import { useEconomyState, useInventoryState, useRewardClaimIds } from '../lib/useEconomyState';
 import { loadStudentProgress } from '../lib/studentProgress';
 import {
   buildAchievementProgress,
@@ -145,7 +145,8 @@ export default function HomePage() {
   const [purchasingItemId, setPurchasingItemId] = useState<string | undefined>();
   const economy = useEconomyState();
   const inventory = useInventoryState();
-  const treasureRewards = buildTreasureRewards(studentProgress);
+  const treasureClaimIds = useRewardClaimIds('treasure');
+  const treasureRewards = buildTreasureRewards(studentProgress, treasureClaimIds);
   const achievementProgress = buildAchievementProgress(studentProgress);
   const earnedStars = studentProgress.lessonResults.reduce((total, result) => total + result.stars, 0);
   const wallet = {

@@ -176,8 +176,8 @@ function passedResults(progress: StudentProgress) {
   return progress.lessonResults.filter((result) => result.passed);
 }
 
-export function buildTreasureRewards(progress: StudentProgress): TreasureReward[] {
-  const claimedIds = loadTreasureClaimState().claimedRewardIds;
+export function buildTreasureRewards(progress: StudentProgress, claimedRewardIds?: string[]): TreasureReward[] {
+  const claimedIds = claimedRewardIds ?? loadTreasureClaimState().claimedRewardIds;
   const passed = passedResults(progress);
   const bestAccuracy = progress.lessonResults.reduce((best, result) => Math.max(best, result.accuracy), 0);
   const totalStars = progress.lessonResults.reduce((total, result) => total + result.stars, 0);
@@ -255,8 +255,9 @@ export function getClaimedRewardTotals(progress: StudentProgress): Required<Rewa
     );
 }
 
-export function buildDailyQuests(progress: StudentProgress, date = todayKey()): DailyQuest[] {
+export function buildDailyQuests(progress: StudentProgress, date = todayKey(), claimedQuestIds?: string[]): DailyQuest[] {
   const state = loadDailyQuestState(date);
+  const claimedIds = claimedQuestIds ?? state.claimedQuestIds;
   const todaysResults = progress.lessonResults.filter((result) => result.completedAt.startsWith(date));
   const todaysPassed = todaysResults.filter((result) => result.passed);
   const typedCharacters = todaysResults.reduce((total, result) => total + countKhmerCharacters(result.targetText), 0);
@@ -304,7 +305,7 @@ export function buildDailyQuests(progress: StudentProgress, date = todayKey()): 
 
   return definitions.map((item) => {
     const completed = item.progress >= item.total;
-    const claimed = state.claimedQuestIds.includes(item.id);
+    const claimed = claimedIds.includes(item.id);
     return {
       ...item,
       progress: clampProgress(item.progress, item.total),
