@@ -373,6 +373,9 @@ export function subscribeUserEconomy(userId: string) {
   return onSnapshot(ref, (snapshot) => {
     const economy = snapshot.exists() ? normalizeEconomy(snapshot.data() as Partial<EconomyState>) : defaultEconomy;
     saveCachedEconomy(economy, userId);
+  }, (error) => {
+    console.error('Unable to sync user economy from Firebase.', error);
+    saveCachedEconomy(loadCachedEconomy(userId), userId);
   });
 }
 
@@ -1274,12 +1277,17 @@ export async function prepareBossAttempt(userId = getActiveEconomyUserId(), atte
 
     const eventRef = economyEventDoc(userId);
     if (eventRef) {
+      const metadata = attemptId
+        ? useRetryToken
+          ? { attemptId, itemId: 'retry-token' }
+          : { attemptId }
+        : {};
       transaction.set(eventRef, {
         type: useRetryToken ? 'consume' : 'spend',
         amount: -1,
         currency: useRetryToken ? 'retry-token' : 'hearts',
         source: 'boss-attempt',
-        metadata: { attemptId, itemId: useRetryToken ? 'retry-token' : undefined },
+        metadata,
         createdAt: serverTimestamp(),
       });
     }

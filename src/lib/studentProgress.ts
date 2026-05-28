@@ -144,8 +144,36 @@ function emitStudentProgressChange() {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(STUDENT_PROGRESS_EVENT));
 }
 
+function getStorage(): StorageLike | null {
+  return typeof window !== 'undefined' ? window.localStorage : null;
+}
+
 function studentProgressDocRef(userId = auth?.currentUser?.uid) {
   return db && userId ? doc(db, 'students', userId, 'progress', 'summary') : null;
+}
+
+function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => stripUndefined(item)) as T;
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, item]) => item !== undefined)
+        .map(([key, item]) => [key, stripUndefined(item)]),
+    ) as T;
+  }
+
+  return value;
+}
+
+function cacheStudentProgress(progress: StudentProgress, storage = getStorage()) {
+  try {
+    storage?.setItem(STUDENT_PROGRESS_STORAGE_KEY, JSON.stringify(stripUndefined(progress)));
+  } catch {
+    // Cache failures should never block lesson completion.
+  }
 }
 
 function normalizeBadge(value: Partial<StudentBadge>): StudentBadge | null {
@@ -230,30 +258,31 @@ function normalizeStudentProgress(parsed: Partial<StudentProgress>): StudentProg
 }
 
 export function loadStudentProgress(storage?: StorageLike): StudentProgress {
-  if (!storage) return cachedStudentProgress;
+  const activeStorage = storage ?? getStorage();
 
   try {
-    const saved = storage.getItem(STUDENT_PROGRESS_STORAGE_KEY);
-    if (!saved) return createEmptyStudentProgress();
+    const saved = activeStorage?.getItem(STUDENT_PROGRESS_STORAGE_KEY);
+    if (!saved) return cachedStudentProgress;
     const parsed = JSON.parse(saved) as Partial<StudentProgress>;
     return normalizeStudentProgress(parsed);
   } catch {
-    return createEmptyStudentProgress();
+    return cachedStudentProgress;
   }
 }
 
 export function saveStudentProgress(progress: StudentProgress, storage?: StorageLike) {
   if (storage) {
-    storage.setItem(STUDENT_PROGRESS_STORAGE_KEY, JSON.stringify(progress));
+    cacheStudentProgress(progress, storage);
     return progress;
   }
 
   cachedStudentProgress = progress;
+  cacheStudentProgress(progress);
   emitStudentProgressChange();
 
   const progressRef = studentProgressDocRef();
   if (progressRef) {
-    void setDoc(progressRef, { ...progress, updatedAt: serverTimestamp() } satisfies StudentProgressDocument);
+    void setDoc(progressRef, { ...stripUndefined(progress), updatedAt: serverTimestamp() } satisfies StudentProgressDocument);
   } else {
     console.warn('Firebase user is not ready. Student progress was kept in memory only.');
   }
@@ -269,11 +298,16 @@ export function resetStudentProgress(storage?: StorageLike) {
 
   const emptyProgress = createEmptyStudentProgress();
   cachedStudentProgress = emptyProgress;
+  try {
+    getStorage()?.removeItem(STUDENT_PROGRESS_STORAGE_KEY);
+  } catch {
+    // Ignore cache cleanup failures.
+  }
   emitStudentProgressChange();
 
   const progressRef = studentProgressDocRef();
   if (progressRef) {
-    void setDoc(progressRef, { ...emptyProgress, updatedAt: serverTimestamp() } satisfies StudentProgressDocument);
+    void setDoc(progressRef, { ...stripUndefined(emptyProgress), updatedAt: serverTimestamp() } satisfies StudentProgressDocument);
   }
 }
 
@@ -288,11 +322,12 @@ export function subscribeStudentProgressFromFirebase(userId: string) {
   return onSnapshot(progressRef, (snapshot) => {
     cachedStudentProgress = snapshot.exists()
       ? normalizeStudentProgress(snapshot.data() as Partial<StudentProgress>)
-      : createEmptyStudentProgress();
+      : loadStudentProgress();
+    cacheStudentProgress(cachedStudentProgress);
     emitStudentProgressChange();
   }, (error) => {
     console.error('Unable to sync student progress from Firebase.', error);
-    cachedStudentProgress = createEmptyStudentProgress();
+    cachedStudentProgress = loadStudentProgress();
     emitStudentProgressChange();
   });
 }
