@@ -39,8 +39,13 @@ export type LessonProgressRecord = {
 };
 
 export const LESSON_PROGRESS_EVENT = 'khmer-lesson-progress-change';
+export const LESSON_PROGRESS_STORAGE_KEY = 'khmer-lesson-progress-records';
 
 export const mockLessonProgress: LessonProgressRecord[] = [];
+
+function getStorage(): Storage | null {
+  return typeof window !== 'undefined' ? window.localStorage : null;
+}
 
 function getProgressId(progress: Pick<LessonProgressRecord, 'worldId' | 'lessonId'>) {
   return `${progress.worldId}:${progress.lessonId}`;
@@ -103,6 +108,23 @@ function emitLessonProgressChange() {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(LESSON_PROGRESS_EVENT));
 }
 
+function loadCachedLessonProgressRecords() {
+  try {
+    const saved = getStorage()?.getItem(LESSON_PROGRESS_STORAGE_KEY);
+    return saved ? normalizeStoredProgress(JSON.parse(saved) as unknown) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCachedLessonProgressRecords(records: LessonProgressRecord[]) {
+  try {
+    getStorage()?.setItem(LESSON_PROGRESS_STORAGE_KEY, JSON.stringify(records));
+  } catch {
+    // Cache failures should not block lesson completion.
+  }
+}
+
 function mergeProgressRecords(records: LessonProgressRecord[]) {
   const progressById = new Map<string, LessonProgressRecord>();
 
@@ -122,10 +144,14 @@ function mergeProgressRecords(records: LessonProgressRecord[]) {
 
 function syncMockLessonProgress(records: LessonProgressRecord[], notify = false) {
   mockLessonProgress.splice(0, mockLessonProgress.length, ...records);
+  saveCachedLessonProgressRecords(mockLessonProgress);
   if (notify) emitLessonProgressChange();
 }
 
 export function getLessonProgressRecords() {
+  if (mockLessonProgress.length === 0) {
+    syncMockLessonProgress(loadCachedLessonProgressRecords());
+  }
   const records = mergeProgressRecords([...mockLessonProgress]);
   syncMockLessonProgress(records);
   return records;
@@ -149,6 +175,11 @@ export function saveMockLessonProgress(progress: LessonProgressRecord) {
 
 export async function resetLessonProgressRecords() {
   syncMockLessonProgress([], true);
+  try {
+    getStorage()?.removeItem(LESSON_PROGRESS_STORAGE_KEY);
+  } catch {
+    // Ignore cache cleanup failures.
+  }
 
   const userId = auth?.currentUser?.uid;
   if (!db || !userId) return;
@@ -166,7 +197,7 @@ export async function saveLessonProgressToFirebase(progress: LessonProgressRecor
 
   await setDoc(
     doc(db, 'students', userId, 'lessonProgress', getProgressId(progress)),
-    { ...progress, updatedAt: serverTimestamp() },
+    { ...normalizeStoredProgress([progress])[0], updatedAt: serverTimestamp() },
   );
   return progress;
 }
@@ -182,7 +213,7 @@ export function subscribeLessonProgressFromFirebase(userId: string) {
     syncMockLessonProgress(mergeProgressRecords(records), true);
   }, (error) => {
     console.error('Unable to sync lesson progress from Firebase.', error);
-    syncMockLessonProgress([], true);
+    syncMockLessonProgress(loadCachedLessonProgressRecords(), true);
   });
 }
 

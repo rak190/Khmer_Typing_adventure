@@ -554,9 +554,9 @@ export default function WorldMapPage() {
         <div className="absolute bottom-[46px] right-[48px] z-40">
           <button
             type="button"
-            className="pointer-events-auto relative h-[82px] w-[320px] cursor-pointer overflow-hidden rounded-[32px] border-[4px] border-[#0C8B39] bg-gradient-to-b from-[#7CFF61] via-[#33D94F] to-[#15A947] px-7 text-[26px] font-bold text-white shadow-[inset_0_-11px_0_rgba(0,91,50,.34),0_6px_0_rgba(0,103,60,.72),0_16px_22px_rgba(0,43,74,.36)] transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:grayscale"
+            className={`pointer-events-auto relative h-[82px] w-[320px] cursor-pointer overflow-hidden rounded-[32px] border-[4px] border-[#0C8B39] bg-gradient-to-b from-[#7CFF61] via-[#33D94F] to-[#15A947] px-7 text-[26px] font-bold text-white shadow-[inset_0_-11px_0_rgba(0,91,50,.34),0_6px_0_rgba(0,103,60,.72),0_16px_22px_rgba(0,43,74,.36)] transition hover:-translate-y-1 ${selectedState === 'locked' ? 'cursor-not-allowed grayscale' : ''}`}
             onClick={startSelectedLesson}
-            disabled={selectedState === 'locked'}
+            aria-disabled={selectedState === 'locked'}
             title={selectedState === 'locked' ? lockedReason : undefined}
           >
             <span className="pointer-events-none absolute left-[14px] right-[14px] top-[7px] h-[27px] rounded-full bg-white/42" />
