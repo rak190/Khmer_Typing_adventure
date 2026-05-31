@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { signOutSession, subscribeToSession, type AppSession } from '../../lib/firebase';
 import { loadStudentProgress, type StudentProgress } from '../../lib/studentProgress';
 import { USER_PROFILE_EVENT, getSessionDisplayName } from '../../lib/userProfile';
-import { PROFILE_AVATARS } from '../../data/avatars';
 import { PLAYER_TITLES } from '../../data/playerTitles';
 import { getUserProfile, loadCachedGameProfile, type GameProfile } from '../../services/profileService';
 import { cn } from '../../lib/cn';
+import GeneratedAvatar from '../profile/GeneratedAvatar';
 
 type AccountMenuProps = {
   variant?: 'home' | 'topbar';
@@ -20,7 +20,6 @@ export default function AccountMenu({ variant = 'home' }: AccountMenuProps) {
   const [progress, setProgress] = useState<StudentProgress>(() => loadStudentProgress());
   const [profile, setProfile] = useState<GameProfile>(() => loadCachedGameProfile());
   const displayName = profile.displayName || getSessionDisplayName(session, progress);
-  const avatar = PROFILE_AVATARS.find((item) => item.id === profile.equippedAvatarId) ?? PROFILE_AVATARS[0];
   const title = PLAYER_TITLES.find((item) => item.id === profile.equippedTitleId) ?? PLAYER_TITLES[0];
   const level = progress.currentLevel || 1;
 
@@ -68,11 +67,15 @@ export default function AccountMenu({ variant = 'home' }: AccountMenuProps) {
     <div className="pointer-events-auto relative">
       <button type="button" className={buttonClass} onClick={() => setOpen((value) => !value)} aria-label="គណនីអ្នកលេង">
         <span className={avatarClass}>
-          {session?.user?.photoURL && !profile.equippedAvatarId ? (
-            <img src={session.user.photoURL} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-          ) : (
-            <img src={avatar.image} alt="" className="h-full w-full object-cover" />
-          )}
+          <GeneratedAvatar
+            avatarId={profile.equippedAvatarId}
+            skinStyleId={profile.equippedSkinId}
+            themeId={profile.equippedThemeId}
+            frameId={profile.equippedFrameId}
+            level={level}
+            size="100%"
+            ariaLabel={`${displayName} avatar`}
+          />
         </span>
         <span className="min-w-0 flex-1 text-left leading-tight">
           <span className={cn('block truncate font-black', variant === 'home' ? 'text-[16px]' : '')}>{displayName}</span>

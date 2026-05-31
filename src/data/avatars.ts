@@ -1,13 +1,14 @@
-import { imageAssets } from '../assets/assetManifest';
-
 export type ProfileRarity = 'common' | 'rare' | 'epic' | 'legendary';
 export type UnlockType = 'default' | 'achievement' | 'shop' | 'streak' | 'progress';
+export type AvatarCategory = 'heroes' | 'guardians' | 'spirits' | 'scholars';
+export type AvatarShapeType = 'elephant' | 'student' | 'jungle' | 'guardian' | 'medal' | 'spirit' | 'monk';
 
 export type AvatarConfig = {
   id: string;
   name: string;
   khmerName: string;
-  image: string;
+  category: AvatarCategory;
+  shapeType: AvatarShapeType;
   rarity: ProfileRarity;
   unlockType: UnlockType;
   unlockRequirement: string;
@@ -43,7 +44,8 @@ export const PROFILE_AVATARS: AvatarConfig[] = [
     id: 'sophea_elephant',
     name: 'Sophea Elephant',
     khmerName: 'ដំរី សុភា',
-    image: imageAssets.elephantGuide,
+    category: 'guardians',
+    shapeType: 'elephant',
     rarity: 'common',
     unlockType: 'default',
     unlockRequirement: 'Unlocked by default.',
@@ -54,7 +56,8 @@ export const PROFILE_AVATARS: AvatarConfig[] = [
     id: 'temple_student',
     name: 'Temple Student',
     khmerName: 'សិស្សប្រាសាទ',
-    image: imageAssets.lizardMascot,
+    category: 'scholars',
+    shapeType: 'student',
     rarity: 'common',
     unlockType: 'default',
     unlockRequirement: 'Unlocked by default.',
@@ -65,7 +68,8 @@ export const PROFILE_AVATARS: AvatarConfig[] = [
     id: 'jungle_typist',
     name: 'Jungle Typist',
     khmerName: 'អ្នកវាយព្រៃ',
-    image: imageAssets.map.world1,
+    category: 'heroes',
+    shapeType: 'jungle',
     rarity: 'rare',
     unlockType: 'progress',
     unlockRequirement: 'Complete at least 1 lesson.',
@@ -76,7 +80,8 @@ export const PROFILE_AVATARS: AvatarConfig[] = [
     id: 'guardian_apprentice',
     name: 'Guardian Apprentice',
     khmerName: 'សិស្សអាណាព្យាបាល',
-    image: imageAssets.stoneGuardian,
+    category: 'guardians',
+    shapeType: 'guardian',
     rarity: 'rare',
     unlockType: 'progress',
     unlockRequirement: 'Complete 3 lessons.',
@@ -87,7 +92,8 @@ export const PROFILE_AVATARS: AvatarConfig[] = [
     id: 'boss_victor_elephant',
     name: 'Boss Victor Elephant',
     khmerName: 'ដំរីឈ្នះ Boss',
-    image: imageAssets.elephantGuide,
+    category: 'guardians',
+    shapeType: 'elephant',
     rarity: 'epic',
     unlockType: 'achievement',
     unlockRequirement: 'Unlock by passing your first Boss.',
@@ -98,7 +104,8 @@ export const PROFILE_AVATARS: AvatarConfig[] = [
     id: 'golden_typing_hero',
     name: 'Golden Typing Hero',
     khmerName: 'វីរបុរសមាស',
-    image: imageAssets.medal,
+    category: 'heroes',
+    shapeType: 'medal',
     rarity: 'legendary',
     unlockType: 'progress',
     unlockRequirement: 'Earn 30 stars.',
@@ -109,7 +116,8 @@ export const PROFILE_AVATARS: AvatarConfig[] = [
     id: 'jungle_master',
     name: 'Jungle Master',
     khmerName: 'ម្ចាស់ព្រៃ',
-    image: imageAssets.map.world4,
+    category: 'spirits',
+    shapeType: 'spirit',
     rarity: 'epic',
     unlockType: 'streak',
     unlockRequirement: 'Reach a 7-day streak.',
@@ -120,7 +128,8 @@ export const PROFILE_AVATARS: AvatarConfig[] = [
     id: 'accuracy_monk_avatar',
     name: 'Accuracy Monk',
     khmerName: 'អ្នកថែភាពត្រឹមត្រូវ',
-    image: imageAssets.star,
+    category: 'scholars',
+    shapeType: 'monk',
     rarity: 'epic',
     unlockType: 'achievement',
     unlockRequirement: 'Reach 95% accuracy in a lesson.',

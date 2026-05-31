@@ -11,6 +11,7 @@ import {
   Heart,
   Lock,
   Medal,
+  Palette,
   Pencil,
   Save,
   ShoppingBag,
@@ -24,9 +25,12 @@ import {
 import { imageAssets } from '../assets/assetManifest';
 import { PROFILE_AVATARS, PROFILE_COSMETICS, PROFILE_FRAMES, type AvatarConfig, type ProfileFrameConfig } from '../data/avatars';
 import { PLAYER_TITLES, type PlayerTitleConfig } from '../data/playerTitles';
+import { PROFILE_SKINS, type ProfileSkinConfig } from '../data/profileSkins';
+import { PROFILE_THEMES, type ProfileThemeConfig } from '../data/profileThemes';
 import AppLayout from '../components/layout/AppLayout';
 import PageTransition from '../components/layout/PageTransition';
 import GameButton from '../components/game-ui/GameButton';
+import GeneratedAvatar from '../components/profile/GeneratedAvatar';
 import { subscribeToSession, type AppSession } from '../lib/firebase';
 import { getActiveEconomyUserId, type EconomyInventoryItem } from '../lib/economy';
 import { buildAchievementProgress } from '../lib/playerFeatures';
@@ -39,6 +43,8 @@ import {
   updateDisplayName,
   updateEquippedAvatar,
   updateEquippedFrame,
+  updateEquippedSkin,
+  updateEquippedTheme,
   updateEquippedTitle,
   type GameProfile,
 } from '../services/profileService';
@@ -154,6 +160,13 @@ function frameUnlockState(frame: ProfileFrameConfig, profile: GameProfile, progr
   return { unlocked: false, reason: frame.unlockRequirement };
 }
 
+function themeUnlockState(theme: ProfileThemeConfig, profile: GameProfile, progress: StudentProgress): UnlockState {
+  if (theme.defaultUnlocked || profile.unlockedThemes.includes(theme.id)) return { unlocked: true, reason: 'Unlocked' };
+  if (theme.id === 'jade_palace' && Math.max(progress.currentStreak, progress.longestStreak) >= 7) return { unlocked: true, reason: 'Streak unlocked' };
+  if (theme.id === 'storm_citadel' && bossPasses(progress) >= 1) return { unlocked: true, reason: 'Boss unlocked' };
+  return { unlocked: false, reason: theme.unlockRequirement };
+}
+
 function messageClass(tone: ProfileMessage['tone']) {
   if (tone === 'success') return 'border-[#8ED47A] bg-[#123F25] text-[#DFFFD4]';
   if (tone === 'error') return 'border-[#FF7A66] bg-[#4A1712] text-[#FFD7D1]';
@@ -178,7 +191,6 @@ export default function ProfilePage() {
   const achievements = useMemo(() => buildAchievementProgress(progress), [progress]);
   const avatar = PROFILE_AVATARS.find((item) => item.id === profile.equippedAvatarId) ?? PROFILE_AVATARS[0];
   const title = PLAYER_TITLES.find((item) => item.id === profile.equippedTitleId) ?? PLAYER_TITLES[0];
-  const frame = PROFILE_FRAMES.find((item) => item.id === profile.equippedFrameId) ?? PROFILE_FRAMES[0];
   const xp = Math.max(economy.typingXP, stats.totalXP);
   const level = Math.max(economy.level, stats.currentLevel);
   const levelProgress = levelXP(xp, level);
@@ -240,11 +252,45 @@ export default function ProfilePage() {
       showMessage('info', state.reason);
       return;
     }
+    const previousProfile = profile;
+    setProfile({ ...profile, equippedAvatarId: item.id });
     try {
       const nextProfile = await updateEquippedAvatar(userId, item.id);
       setProfile(nextProfile);
       showMessage('success', 'Avatar equipped!');
     } catch {
+      setProfile(previousProfile);
+      showMessage('error', 'Could not save. Try again.');
+    }
+  };
+
+  const equipSkin = async (item: ProfileSkinConfig) => {
+    const previousProfile = profile;
+    setProfile({ ...profile, equippedSkinId: item.id });
+    try {
+      const nextProfile = await updateEquippedSkin(userId, item.id);
+      setProfile(nextProfile);
+      showMessage('success', 'Skin style equipped!');
+    } catch {
+      setProfile(previousProfile);
+      showMessage('error', 'Could not save. Try again.');
+    }
+  };
+
+  const equipTheme = async (item: ProfileThemeConfig) => {
+    const state = themeUnlockState(item, profile, progress);
+    if (!state.unlocked) {
+      showMessage('info', state.reason);
+      return;
+    }
+    const previousProfile = profile;
+    setProfile({ ...profile, equippedThemeId: item.id });
+    try {
+      const nextProfile = await updateEquippedTheme(userId, item.id);
+      setProfile(nextProfile);
+      showMessage('success', 'Profile theme equipped!');
+    } catch {
+      setProfile(previousProfile);
       showMessage('error', 'Could not save. Try again.');
     }
   };
@@ -312,8 +358,17 @@ export default function ProfilePage() {
 
             <section className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
               <Panel className="xl:sticky xl:top-5 xl:self-start">
-                <div className={`mx-auto grid h-64 w-64 place-items-center overflow-hidden rounded-[32px] border-[6px] bg-[#052D34]/90 ${frame.className}`}>
-                  <img src={avatar.image} alt={avatar.name} className="h-full w-full object-contain drop-shadow-[0_20px_18px_rgba(0,0,0,.36)]" />
+                <div className="mx-auto h-64 w-64">
+                  <GeneratedAvatar
+                    avatarId={profile.equippedAvatarId}
+                    skinStyleId={profile.equippedSkinId}
+                    themeId={profile.equippedThemeId}
+                    frameId={profile.equippedFrameId}
+                    level={level}
+                    size="100%"
+                    showLevelBadge
+                    ariaLabel={`${avatar.name} profile avatar`}
+                  />
                 </div>
 
                 <div className="mt-4 text-center">
@@ -380,7 +435,16 @@ export default function ProfilePage() {
                       return (
                         <article key={item.id} className={`rounded-[18px] border-2 p-3 ${equipped ? 'border-[#FFE17B] bg-[#113F2B]' : 'border-[#4DBAA6]/65 bg-[#083F46]/88'}`}>
                           <div className="grid h-28 place-items-center rounded-[14px] bg-black/20">
-                            <img src={item.image} alt={item.name} className={`h-full w-full object-contain ${unlock.unlocked ? '' : 'grayscale opacity-50'}`} />
+                            <GeneratedAvatar
+                              avatarId={item.id}
+                              skinStyleId={profile.equippedSkinId}
+                              themeId={profile.equippedThemeId}
+                              frameId={profile.equippedFrameId}
+                              level={level}
+                              size={96}
+                              className={unlock.unlocked ? '' : 'grayscale opacity-50'}
+                              ariaLabel={`${item.name} avatar option`}
+                            />
                           </div>
                           <h3 className="mt-3 truncate font-black text-[#FFE6A6]">{item.khmerName}</h3>
                           <p className="truncate text-sm font-bold text-white">{item.name}</p>
@@ -397,6 +461,62 @@ export default function ProfilePage() {
                             {equipped ? 'Equipped' : unlock.unlocked ? 'Equip' : 'Locked'}
                           </GameButton>
                         </article>
+                      );
+                    })}
+                  </div>
+                </Panel>
+
+                <Panel title="Skin Style" icon={<Palette size={24} />}>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {PROFILE_SKINS.map((item) => {
+                      const equipped = item.id === profile.equippedSkinId;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => equipSkin(item)}
+                          aria-label={`Equip ${item.name} skin style`}
+                          className={`rounded-[16px] border-2 p-3 text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 ${equipped ? 'border-[#FFE17B] bg-[#113F2B]' : 'border-[#4DBAA6]/65 bg-[#083F46]/88 hover:-translate-y-0.5'}`}
+                        >
+                          <span className="flex items-center gap-3">
+                            <span className="h-12 w-12 shrink-0 rounded-[12px] border-2 border-white/50 shadow-inner" style={{ background: item.gradient }} />
+                            <span className="min-w-0">
+                              <span className="block font-black text-[#FFE6A6]">{item.name}</span>
+                              <span className="block text-xs font-bold text-[#C9F5E8]">{equipped ? 'Selected' : 'Changes avatar colors'}</span>
+                            </span>
+                            {equipped && <CheckCircle2 className="ml-auto shrink-0 text-[#7FE35E]" size={20} />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Panel>
+
+                <Panel title="Profile Theme" icon={<Sparkles size={24} />}>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {PROFILE_THEMES.map((item) => {
+                      const unlock = themeUnlockState(item, profile, progress);
+                      const equipped = item.id === profile.equippedThemeId;
+                      const swatch = `linear-gradient(135deg, ${item.colors.sky} 0%, ${item.colors.horizon} 52%, ${item.colors.ground} 100%)`;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => equipTheme(item)}
+                          aria-label={`${equipped ? 'Selected' : 'Equip'} ${item.name} profile theme`}
+                          className={`rounded-[16px] border-2 p-3 text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 ${equipped ? 'border-[#FFE17B] bg-[#113F2B]' : unlock.unlocked ? 'border-[#4DBAA6]/65 bg-[#083F46]/88 hover:-translate-y-0.5' : 'border-white/15 bg-black/24 opacity-75'}`}
+                        >
+                          <span className="flex items-center gap-3">
+                            <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[12px] border-2 border-white/50 shadow-inner" style={{ background: swatch }}>
+                              <span className="absolute bottom-2 left-2 h-2 w-8 rounded-full" style={{ backgroundColor: item.colors.accent }} />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block font-black text-[#FFE6A6]">{item.name}</span>
+                              <span className="block text-xs font-bold text-[#C9F5E8]">{unlock.unlocked ? equipped ? 'Selected' : 'Changes preview world' : unlock.reason}</span>
+                            </span>
+                            {equipped ? <CheckCircle2 className="ml-auto shrink-0 text-[#7FE35E]" size={20} /> : unlock.unlocked ? null : <Lock className="ml-auto shrink-0 text-white/54" size={20} />}
+                          </span>
+                        </button>
                       );
                     })}
                   </div>
