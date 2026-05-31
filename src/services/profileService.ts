@@ -1,6 +1,8 @@
 import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
 import { DEFAULT_AVATAR_ID, DEFAULT_FRAME_ID } from '../data/avatars';
 import { DEFAULT_TITLE_ID } from '../data/playerTitles';
+import { DEFAULT_SKIN_ID } from '../data/profileSkins';
+import { DEFAULT_THEME_ID, PROFILE_THEMES } from '../data/profileThemes';
 import { db } from '../lib/firebase';
 import { getActiveEconomyUserId, loadCachedInventory, type EconomyInventoryItem } from '../lib/economy';
 import { USER_PROFILE_EVENT, USER_PROFILE_STORAGE_KEY } from '../lib/userProfile';
@@ -10,22 +12,28 @@ export const GAME_PROFILE_CACHE_KEY = 'khmer-typing-game-profile';
 export type GameProfile = {
   displayName: string;
   equippedAvatarId: string;
+  equippedSkinId: string;
+  equippedThemeId: string;
   equippedTitleId: string;
   equippedFrameId: string;
   unlockedAvatars: string[];
   unlockedTitles: string[];
   unlockedFrames: string[];
+  unlockedThemes: string[];
   updatedAt?: string;
 };
 
 const defaultGameProfile: GameProfile = {
   displayName: 'អ្នកលេង Guest',
   equippedAvatarId: DEFAULT_AVATAR_ID,
+  equippedSkinId: DEFAULT_SKIN_ID,
+  equippedThemeId: DEFAULT_THEME_ID,
   equippedTitleId: DEFAULT_TITLE_ID,
   equippedFrameId: DEFAULT_FRAME_ID,
   unlockedAvatars: [DEFAULT_AVATAR_ID],
   unlockedTitles: [DEFAULT_TITLE_ID],
   unlockedFrames: [DEFAULT_FRAME_ID],
+  unlockedThemes: PROFILE_THEMES.filter((theme) => theme.defaultUnlocked).map((theme) => theme.id),
 };
 
 function getStorage(): Storage | null {
@@ -63,11 +71,14 @@ export function normalizeGameProfile(value: Partial<GameProfile> = {}): GameProf
   const profile = {
     displayName: cleanString(value.displayName, defaultGameProfile.displayName),
     equippedAvatarId: cleanString(value.equippedAvatarId, defaultGameProfile.equippedAvatarId),
+    equippedSkinId: cleanString(value.equippedSkinId, defaultGameProfile.equippedSkinId),
+    equippedThemeId: cleanString(value.equippedThemeId, defaultGameProfile.equippedThemeId),
     equippedTitleId: cleanString(value.equippedTitleId, defaultGameProfile.equippedTitleId),
     equippedFrameId: cleanString(value.equippedFrameId, defaultGameProfile.equippedFrameId),
     unlockedAvatars: cleanStringArray(value.unlockedAvatars, defaultGameProfile.unlockedAvatars),
     unlockedTitles: cleanStringArray(value.unlockedTitles, defaultGameProfile.unlockedTitles),
     unlockedFrames: cleanStringArray(value.unlockedFrames, defaultGameProfile.unlockedFrames),
+    unlockedThemes: cleanStringArray(value.unlockedThemes, defaultGameProfile.unlockedThemes),
     updatedAt: timestampToIso(value.updatedAt),
   };
 
@@ -76,6 +87,7 @@ export function normalizeGameProfile(value: Partial<GameProfile> = {}): GameProf
     unlockedAvatars: Array.from(new Set([...defaultGameProfile.unlockedAvatars, ...profile.unlockedAvatars])),
     unlockedTitles: Array.from(new Set([...defaultGameProfile.unlockedTitles, ...profile.unlockedTitles])),
     unlockedFrames: Array.from(new Set([...defaultGameProfile.unlockedFrames, ...profile.unlockedFrames])),
+    unlockedThemes: Array.from(new Set([...defaultGameProfile.unlockedThemes, ...profile.unlockedThemes])),
   };
 }
 
@@ -98,6 +110,8 @@ function saveCachedGameProfile(profile: GameProfile, uid = getActiveEconomyUserI
   storage?.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify({
     displayName: normalized.displayName,
     avatar: normalized.equippedAvatarId,
+    skin: normalized.equippedSkinId,
+    theme: normalized.equippedThemeId,
   }));
   emitProfileChange();
   return normalized;
@@ -149,6 +163,14 @@ export async function updateDisplayName(uid: string | undefined, name: string) {
 
 export function updateEquippedAvatar(uid: string | undefined, avatarId: string) {
   return updateProfileFields(uid, { equippedAvatarId: avatarId });
+}
+
+export function updateEquippedSkin(uid: string | undefined, skinId: string) {
+  return updateProfileFields(uid, { equippedSkinId: skinId });
+}
+
+export function updateEquippedTheme(uid: string | undefined, themeId: string) {
+  return updateProfileFields(uid, { equippedThemeId: themeId });
 }
 
 export function updateEquippedTitle(uid: string | undefined, titleId: string) {

@@ -25,7 +25,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { imageAssets } from '../assets/assetManifest';
-import { PROFILE_AVATARS } from '../data/avatars';
 import { PLAYER_TITLES } from '../data/playerTitles';
 import { resetLessonProgressRecords } from '../data/mockData';
 import {
@@ -38,6 +37,7 @@ import GameButton from '../components/game-ui/GameButton';
 import { AchievementsPanel, DailyQuestsPanel, SettingsPanel } from '../components/game-ui/FeaturePanels';
 import AppLayout from '../components/layout/AppLayout';
 import PageTransition from '../components/layout/PageTransition';
+import GeneratedAvatar from '../components/profile/GeneratedAvatar';
 import { claimDailyQuestReward, getActiveEconomyUserId } from '../lib/economy';
 import {
   buildAchievementProgress,
@@ -467,7 +467,6 @@ export default function DashboardPage() {
   const longestStreak = Math.max(economy.longestStreak, stats.longestStreak);
   const unlockedAchievements = achievements.filter((achievement) => achievement.unlocked).length;
   const resetCountdown = formatResetCountdown(now);
-  const profileAvatar = PROFILE_AVATARS.find((item) => item.id === profile.equippedAvatarId) ?? PROFILE_AVATARS[0];
   const profileTitle = PLAYER_TITLES.find((item) => item.id === profile.equippedTitleId) ?? PLAYER_TITLES[0];
 
   useEffect(() => {
@@ -815,7 +814,15 @@ export default function DashboardPage() {
               >
                 <div className="flex items-center gap-3">
                   <span className="grid h-12 w-12 overflow-hidden rounded-full border-2 border-[#FFE17B] bg-[#0B4A50] text-[#FFE17B]">
-                    <img src={profileAvatar.image} alt="" className="h-full w-full object-cover" />
+                    <GeneratedAvatar
+                      avatarId={profile.equippedAvatarId}
+                      skinStyleId={profile.equippedSkinId}
+                      themeId={profile.equippedThemeId}
+                      frameId={profile.equippedFrameId}
+                      level={displayLevel}
+                      size="100%"
+                      ariaLabel={`${profile.displayName || progress.studentName || 'Typing Hero'} avatar`}
+                    />
                   </span>
                   <div className="min-w-0">
                     <div className="khmer-body font-black text-[#FFE6A6]">{profile.displayName || progress.studentName || 'Typing Hero'}</div>

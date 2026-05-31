@@ -7,7 +7,6 @@ import Logo from '../game/Logo';
 import CharacterPlaceholder from '../characters/CharacterPlaceholder';
 import AccountMenu from './AccountMenu';
 import { resetLessonProgressRecords } from '../../data/mockData';
-import { PROFILE_AVATARS } from '../../data/avatars';
 import { PLAYER_TITLES } from '../../data/playerTitles';
 import { claimDailyQuestReward, claimEconomyReward, getActiveEconomyUserId, purchaseShopItem, shopItems } from '../../lib/economy';
 import { useDailyQuestClaimIds, useEconomyState, useInventoryState, useRewardClaimIds } from '../../lib/useEconomyState';
@@ -24,6 +23,7 @@ import {
   resetFeatureProgressState,
   saveAppSettings,
 } from '../../lib/playerFeatures';
+import GeneratedAvatar from '../profile/GeneratedAvatar';
 
 const items = [
   { label: 'Dashboard', khmer: 'ផ្ទាំងគ្រប់គ្រង', to: '/dashboard', icon: Home },
@@ -58,7 +58,6 @@ export default function Sidebar() {
   const playerXPGoal = Math.max(100, playerLevel * 100);
   const playerXPInLevel = playerXP % playerXPGoal;
   const playerXPPercent = Math.round((playerXPInLevel / playerXPGoal) * 100);
-  const playerAvatar = PROFILE_AVATARS.find((item) => item.id === profile.equippedAvatarId) ?? PROFILE_AVATARS[0];
   const playerTitle = PLAYER_TITLES.find((item) => item.id === profile.equippedTitleId) ?? PLAYER_TITLES[0];
   const wallet = {
     coins: economy.coins,
@@ -201,7 +200,15 @@ export default function Sidebar() {
       >
         <div className="flex items-center gap-3">
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[16px] border-2 border-[#C89438] bg-[#0A3A42]">
-            <img src={playerAvatar.image} alt="" className="h-full w-full object-contain" />
+            <GeneratedAvatar
+              avatarId={profile.equippedAvatarId}
+              skinStyleId={profile.equippedSkinId}
+              themeId={profile.equippedThemeId}
+              frameId={profile.equippedFrameId}
+              level={playerLevel}
+              size="100%"
+              ariaLabel={`${profile.displayName} avatar`}
+            />
           </div>
           <div className="min-w-0 text-left">
             <div className="khmer-body truncate text-sm font-black text-[#FFE7A6]">{profile.displayName}</div>
