@@ -2,30 +2,19 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  Award,
-  BadgeCheck,
   BookOpen,
   CheckCircle2,
   Flame,
-  Gem,
-  Heart,
   Lock,
-  Medal,
-  Palette,
-  Pencil,
   Save,
-  ShoppingBag,
   Sparkles,
-  Star,
-  Swords,
   Target,
   Trophy,
   Zap,
 } from 'lucide-react';
 import { imageAssets } from '../assets/assetManifest';
-import { PROFILE_AVATARS, PROFILE_COSMETICS, PROFILE_FRAMES, type AvatarConfig, type ProfileFrameConfig } from '../data/avatars';
+import { PROFILE_AVATARS, type AvatarCategory, type AvatarConfig } from '../data/avatars';
 import { PLAYER_TITLES, type PlayerTitleConfig } from '../data/playerTitles';
-import { PROFILE_SKINS, type ProfileSkinConfig } from '../data/profileSkins';
 import { PROFILE_THEMES, type ProfileThemeConfig } from '../data/profileThemes';
 import AppLayout from '../components/layout/AppLayout';
 import PageTransition from '../components/layout/PageTransition';
@@ -33,19 +22,13 @@ import GameButton from '../components/game-ui/GameButton';
 import GeneratedAvatar from '../components/profile/GeneratedAvatar';
 import { subscribeToSession, type AppSession } from '../lib/firebase';
 import { getActiveEconomyUserId, type EconomyInventoryItem } from '../lib/economy';
-import { buildAchievementProgress } from '../lib/playerFeatures';
 import { getStudentDashboardStats, loadStudentProgress, STUDENT_PROGRESS_EVENT, type StudentProgress } from '../lib/studentProgress';
 import { useEconomyState, useInventoryState } from '../lib/useEconomyState';
 import { USER_PROFILE_EVENT } from '../lib/userProfile';
 import {
   getUserProfile,
   loadCachedGameProfile,
-  updateDisplayName,
-  updateEquippedAvatar,
-  updateEquippedFrame,
-  updateEquippedSkin,
-  updateEquippedTheme,
-  updateEquippedTitle,
+  saveProfile,
   type GameProfile,
 } from '../services/profileService';
 
@@ -59,34 +42,50 @@ type UnlockState = {
   reason: string;
 };
 
-function Panel({ children, className = '', title, icon }: { children: ReactNode; className?: string; title?: string; icon?: ReactNode }) {
-  return (
-    <section className={`rounded-[22px] border-[3px] border-[#C99031] bg-[#062F35]/90 p-4 text-white shadow-[0_18px_40px_rgba(0,0,0,.34),inset_0_2px_0_rgba(255,255,255,.12)] ${className}`}>
-      {title && (
-        <div className="mb-4 flex items-center gap-3">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-[#FFCC57] bg-[#0B4B50] text-[#FFE68A] shadow-inner">
-            {icon}
-          </span>
-          <h2 className="khmer-body text-xl font-black text-[#FFE6A6]">{title}</h2>
-        </div>
-      )}
-      {children}
-    </section>
-  );
+type ProfileDraft = Pick<GameProfile, 'displayName' | 'equippedAvatarId' | 'equippedSkinId' | 'equippedThemeId' | 'equippedTitleId'>;
+
+type AvatarTab = {
+  id: AvatarCategory;
+  label: string;
+  icon: ReactNode;
+};
+
+const avatarTabs: AvatarTab[] = [
+  { id: 'heroes', label: 'Heroes', icon: <Trophy size={17} /> },
+  { id: 'creatures', label: 'Creatures', icon: <Sparkles size={17} /> },
+  { id: 'spirits', label: 'Spirits', icon: <Flame size={17} /> },
+  { id: 'scholars', label: 'Scholars', icon: <BookOpen size={17} /> },
+];
+
+const visibleThemes = PROFILE_THEMES.filter((theme) => theme.id !== 'jade_palace');
+
+const titleLabels: Record<string, string> = {
+  typing_hero: 'Temple Scribe',
+  first_steps: 'Jungle Typist',
+  speed_runner: 'Speed Runner',
+  accuracy_monk: 'Accuracy Monk',
+  boss_victor: 'Boss Victor',
+  streak_starter: 'Legendary Writer',
+  no_mistake_warrior: 'Glyph Master',
+  khmer_master: 'Ancient Sage',
+};
+
+function makeDraft(profile: GameProfile): ProfileDraft {
+  return {
+    displayName: profile.displayName,
+    equippedAvatarId: profile.equippedAvatarId,
+    equippedSkinId: profile.equippedSkinId,
+    equippedThemeId: profile.equippedThemeId,
+    equippedTitleId: profile.equippedTitleId,
+  };
 }
 
-function StatTile({ icon, label, value }: { icon: ReactNode; label: string; value: string | number }) {
-  return (
-    <div className="rounded-[16px] border border-[#70D4C2]/45 bg-[#052D34]/86 px-4 py-3">
-      <div className="flex items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#0E5960] text-[#FFE6A6]">{icon}</span>
-        <span className="min-w-0">
-          <span className="block text-xs font-black uppercase text-[#9FDFD3]">{label}</span>
-          <span className="block truncate text-xl font-black text-white">{typeof value === 'number' ? value.toLocaleString() : value}</span>
-        </span>
-      </div>
-    </div>
-  );
+function draftsEqual(a: ProfileDraft, b: ProfileDraft) {
+  return a.displayName === b.displayName
+    && a.equippedAvatarId === b.equippedAvatarId
+    && a.equippedSkinId === b.equippedSkinId
+    && a.equippedThemeId === b.equippedThemeId
+    && a.equippedTitleId === b.equippedTitleId;
 }
 
 function xpThresholdForLevel(level: number) {
@@ -129,41 +128,31 @@ function inventoryOwns(inventory: EconomyInventoryItem[], itemId?: string) {
 function avatarUnlockState(avatar: AvatarConfig, profile: GameProfile, progress: StudentProgress, inventory: EconomyInventoryItem[], stats: ReturnType<typeof getStudentDashboardStats>): UnlockState {
   if (avatar.ownedByDefault || profile.unlockedAvatars.includes(avatar.id)) return { unlocked: true, reason: 'Unlocked' };
   if (avatar.shopItemId && inventoryOwns(inventory, avatar.shopItemId)) return { unlocked: true, reason: 'Owned from Shop' };
-  if (avatar.id === 'jungle_typist' && stats.totalLessonsCompleted >= 1) return { unlocked: true, reason: 'Lesson unlocked' };
-  if (avatar.id === 'guardian_apprentice' && stats.totalLessonsCompleted >= 3) return { unlocked: true, reason: 'Progress unlocked' };
-  if (avatar.id === 'boss_victor_elephant' && bossPasses(progress) >= 1) return { unlocked: true, reason: 'Boss unlocked' };
-  if (avatar.id === 'golden_typing_hero' && earnedStars(progress) >= 30) return { unlocked: true, reason: 'Stars unlocked' };
-  if (avatar.id === 'jungle_master' && Math.max(progress.currentStreak, progress.longestStreak) >= 7) return { unlocked: true, reason: 'Streak unlocked' };
-  if (avatar.id === 'accuracy_monk_avatar' && stats.bestAccuracy >= 95) return { unlocked: true, reason: 'Accuracy unlocked' };
+  if (avatar.id === 'jungle_typist' && stats.totalLessonsCompleted >= 1) return { unlocked: true, reason: 'Complete 1 lesson' };
+  if (avatar.id === 'guardian_apprentice' && stats.totalLessonsCompleted >= 3) return { unlocked: true, reason: 'Complete 3 lessons' };
+  if (avatar.id === 'boss_victor_elephant' && bossPasses(progress) >= 1) return { unlocked: true, reason: 'Pass 1 Boss' };
+  if (avatar.id === 'golden_typing_hero' && earnedStars(progress) >= 30) return { unlocked: true, reason: 'Earn 30 stars' };
+  if (avatar.id === 'jungle_master' && Math.max(progress.currentStreak, progress.longestStreak) >= 7) return { unlocked: true, reason: 'Reach a 7-day streak' };
+  if (avatar.id === 'accuracy_monk_avatar' && stats.bestAccuracy >= 95) return { unlocked: true, reason: 'Reach 95% accuracy' };
   return { unlocked: false, reason: avatar.unlockRequirement };
 }
 
 function titleUnlockState(title: PlayerTitleConfig, profile: GameProfile, progress: StudentProgress, stats: ReturnType<typeof getStudentDashboardStats>): UnlockState {
   if (title.ownedByDefault || profile.unlockedTitles.includes(title.id)) return { unlocked: true, reason: 'Unlocked' };
-  if (title.id === 'first_steps' && stats.totalLessonsCompleted >= 1) return { unlocked: true, reason: 'Lesson unlocked' };
-  if (title.id === 'accuracy_monk' && stats.bestAccuracy >= 95) return { unlocked: true, reason: 'Accuracy unlocked' };
-  if (title.id === 'speed_runner' && progress.lessonResults.some((result) => result.passed && result.CPM >= result.targetCPM)) return { unlocked: true, reason: 'CPM unlocked' };
-  if (title.id === 'boss_victor' && bossPasses(progress) >= 1) return { unlocked: true, reason: 'Boss unlocked' };
-  if (title.id === 'streak_starter' && Math.max(progress.currentStreak, progress.longestStreak) >= 3) return { unlocked: true, reason: 'Streak unlocked' };
-  if (title.id === 'no_mistake_warrior' && progress.lessonResults.some((result) => result.passed && result.accuracy === 100 && result.mistakes === 0)) return { unlocked: true, reason: 'No mistake unlocked' };
-  if (title.id === 'khmer_master' && stats.totalLessons > 0 && stats.totalLessonsCompleted >= stats.totalLessons) return { unlocked: true, reason: 'Path complete' };
+  if (title.id === 'first_steps' && stats.totalLessonsCompleted >= 1) return { unlocked: true, reason: 'Complete 1 lesson' };
+  if (title.id === 'accuracy_monk' && stats.bestAccuracy >= 95) return { unlocked: true, reason: 'Reach 95% accuracy' };
+  if (title.id === 'speed_runner' && progress.lessonResults.some((result) => result.passed && result.CPM >= result.targetCPM)) return { unlocked: true, reason: 'Meet a CPM target' };
+  if (title.id === 'boss_victor' && bossPasses(progress) >= 1) return { unlocked: true, reason: 'Pass 1 Boss' };
+  if (title.id === 'streak_starter' && Math.max(progress.currentStreak, progress.longestStreak) >= 3) return { unlocked: true, reason: 'Reach a 3-day streak' };
+  if (title.id === 'no_mistake_warrior' && progress.lessonResults.some((result) => result.passed && result.accuracy === 100 && result.mistakes === 0)) return { unlocked: true, reason: '100% accuracy, 0 mistakes' };
+  if (title.id === 'khmer_master' && stats.totalLessons > 0 && stats.totalLessonsCompleted >= stats.totalLessons) return { unlocked: true, reason: 'Complete all lessons' };
   return { unlocked: false, reason: title.unlockRequirement };
-}
-
-function frameUnlockState(frame: ProfileFrameConfig, profile: GameProfile, progress: StudentProgress, inventory: EconomyInventoryItem[], stats: ReturnType<typeof getStudentDashboardStats>): UnlockState {
-  if (frame.ownedByDefault || profile.unlockedFrames.includes(frame.id)) return { unlocked: true, reason: 'Unlocked' };
-  if (frame.shopItemId && inventoryOwns(inventory, frame.shopItemId)) return { unlocked: true, reason: 'Owned from Shop' };
-  if (frame.id === 'bronze_learner_frame' && stats.totalLessonsCompleted >= 1) return { unlocked: true, reason: 'Lesson unlocked' };
-  if (frame.id === 'gold_accuracy_frame' && stats.bestAccuracy >= 95) return { unlocked: true, reason: 'Accuracy unlocked' };
-  if (frame.id === 'boss_victor_frame' && bossPasses(progress) >= 1) return { unlocked: true, reason: 'Boss unlocked' };
-  if (frame.id === 'seven_day_streak_frame' && Math.max(progress.currentStreak, progress.longestStreak) >= 7) return { unlocked: true, reason: 'Streak unlocked' };
-  return { unlocked: false, reason: frame.unlockRequirement };
 }
 
 function themeUnlockState(theme: ProfileThemeConfig, profile: GameProfile, progress: StudentProgress): UnlockState {
   if (theme.defaultUnlocked || profile.unlockedThemes.includes(theme.id)) return { unlocked: true, reason: 'Unlocked' };
-  if (theme.id === 'jade_palace' && Math.max(progress.currentStreak, progress.longestStreak) >= 7) return { unlocked: true, reason: 'Streak unlocked' };
-  if (theme.id === 'storm_citadel' && bossPasses(progress) >= 1) return { unlocked: true, reason: 'Boss unlocked' };
+  if (theme.id === 'jade_palace' && Math.max(progress.currentStreak, progress.longestStreak) >= 7) return { unlocked: true, reason: 'Reach a 7-day streak' };
+  if (theme.id === 'storm_citadel' && bossPasses(progress) >= 1) return { unlocked: true, reason: 'Pass 1 Boss Battle' };
   return { unlocked: false, reason: theme.unlockRequirement };
 }
 
@@ -173,28 +162,57 @@ function messageClass(tone: ProfileMessage['tone']) {
   return 'border-[#70D4C2] bg-[#0B3C43] text-[#DDF8EF]';
 }
 
+function StepPanel({ number, title, children, className = '' }: { number: number; title: string; children: ReactNode; className?: string }) {
+  return (
+    <section className={`relative rounded-[16px] border border-[#A9772F] bg-[#051927]/88 p-3 shadow-[inset_0_1px_0_rgba(255,232,154,.16),0_14px_28px_rgba(0,0,0,.28)] ${className}`}>
+      <div className="mb-2 flex items-center gap-3">
+        <span className="grid h-10 w-10 shrink-0 rotate-45 place-items-center border-2 border-[#C58A34] bg-[#082239] text-[#FFE39C] shadow-[0_0_14px_rgba(255,188,73,.25)]">
+          <span className="-rotate-45 font-black">{number}</span>
+        </span>
+        <h2 className="text-xl font-black text-[#F4D18A]">{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function PreviewStat({ icon, label, value, tone }: { icon: ReactNode; label: string; value: string | number; tone: string }) {
+  return (
+    <div className="flex min-h-[78px] items-center gap-3 border border-[#9D6E2C]/70 bg-[#061B29]/80 px-4 py-3 shadow-inner">
+      <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${tone}`}>{icon}</span>
+      <span className="min-w-0">
+        <span className="block text-sm font-black text-[#F5D79B]">{label}</span>
+        <span className="block truncate text-2xl font-black text-white">{value}</span>
+      </span>
+    </div>
+  );
+}
+
+function titleName(titleId: string) {
+  return titleLabels[titleId] ?? PLAYER_TITLES.find((item) => item.id === titleId)?.name ?? 'Temple Scribe';
+}
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const economy = useEconomyState();
   const inventory = useInventoryState();
   const [session, setSession] = useState<AppSession | null>(null);
   const [profile, setProfile] = useState<GameProfile>(() => loadCachedGameProfile());
+  const [draft, setDraft] = useState<ProfileDraft>(() => makeDraft(loadCachedGameProfile()));
   const [progress, setProgress] = useState<StudentProgress>(() => loadStudentProgress());
-  const [editName, setEditName] = useState(false);
-  const [nameDraft, setNameDraft] = useState(profile.displayName);
   const [message, setMessage] = useState<ProfileMessage | null>(null);
   const [saving, setSaving] = useState(false);
-  const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<AvatarCategory>('heroes');
 
   const userId = session?.userId ?? getActiveEconomyUserId();
   const stats = useMemo(() => getStudentDashboardStats(progress), [progress]);
-  const achievements = useMemo(() => buildAchievementProgress(progress), [progress]);
-  const avatar = PROFILE_AVATARS.find((item) => item.id === profile.equippedAvatarId) ?? PROFILE_AVATARS[0];
-  const title = PLAYER_TITLES.find((item) => item.id === profile.equippedTitleId) ?? PLAYER_TITLES[0];
   const xp = Math.max(economy.typingXP, stats.totalXP);
   const level = Math.max(economy.level, stats.currentLevel);
   const levelProgress = levelXP(xp, level);
-  const selectedBadge = achievements.find((item) => item.badgeId === selectedBadgeId);
+  const hasChanges = !draftsEqual(draft, makeDraft(profile));
+  const activeTheme = PROFILE_THEMES.find((item) => item.id === draft.equippedThemeId) ?? PROFILE_THEMES[0];
+  const visibleAvatars = PROFILE_AVATARS.filter((item) => item.category === activeCategory);
+  const currentAvatar = PROFILE_AVATARS.find((item) => item.id === draft.equippedAvatarId) ?? PROFILE_AVATARS[0];
 
   useEffect(() => subscribeToSession(setSession), []);
 
@@ -203,7 +221,9 @@ export default function ProfilePage() {
     void getUserProfile(userId).then((nextProfile) => {
       if (!active) return;
       setProfile(nextProfile);
-      setNameDraft(nextProfile.displayName);
+      setDraft(makeDraft(nextProfile));
+      const nextAvatar = PROFILE_AVATARS.find((item) => item.id === nextProfile.equippedAvatarId);
+      if (nextAvatar) setActiveCategory(nextAvatar.category);
     }).catch(() => undefined);
     return () => {
       active = false;
@@ -212,7 +232,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const refresh = () => {
-      setProfile(loadCachedGameProfile(userId));
+      const nextProfile = loadCachedGameProfile(userId);
+      setProfile(nextProfile);
+      setDraft(makeDraft(nextProfile));
       setProgress(loadStudentProgress());
     };
     window.addEventListener(USER_PROFILE_EVENT, refresh);
@@ -225,103 +247,55 @@ export default function ProfilePage() {
 
   const showMessage = (tone: ProfileMessage['tone'], text: string) => setMessage({ tone, text });
 
-  const saveName = async () => {
-    const clean = nameDraft.trim().replace(/\s+/g, ' ');
-    if (clean.length < 2 || clean.length > 20) {
+  const updateDraft = (fields: Partial<ProfileDraft>) => {
+    setDraft((current) => ({ ...current, ...fields }));
+    setMessage(null);
+  };
+
+  const selectAvatar = (item: AvatarConfig) => {
+    const state = avatarUnlockState(item, profile, progress, inventory, stats);
+    if (!state.unlocked) {
+      showMessage('info', state.reason);
+      return;
+    }
+    updateDraft({ equippedAvatarId: item.id });
+  };
+
+  const selectTitle = (item: PlayerTitleConfig) => {
+    const state = titleUnlockState(item, profile, progress, stats);
+    if (!state.unlocked) {
+      showMessage('info', state.reason);
+      return;
+    }
+    updateDraft({ equippedTitleId: item.id });
+  };
+
+  const selectTheme = (item: ProfileThemeConfig) => {
+    const state = themeUnlockState(item, profile, progress);
+    if (!state.unlocked) {
+      showMessage('info', state.reason);
+      return;
+    }
+    updateDraft({ equippedThemeId: item.id });
+  };
+
+  const handleSave = async () => {
+    const cleanName = draft.displayName.trim().replace(/\s+/g, ' ');
+    if (cleanName.length < 2 || cleanName.length > 20) {
       showMessage('error', 'Name must be 2-20 characters.');
       return;
     }
 
     setSaving(true);
     try {
-      const nextProfile = await updateDisplayName(userId, clean);
+      const nextProfile = await saveProfile(userId, { ...draft, displayName: cleanName });
       setProfile(nextProfile);
-      setNameDraft(nextProfile.displayName);
-      setEditName(false);
-      showMessage('success', 'Name updated!');
+      setDraft(makeDraft(nextProfile));
+      showMessage('success', 'Profile saved!');
     } catch {
-      showMessage('error', 'Could not save. Try again.');
+      showMessage('error', 'Could not save profile. Try again.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const equipAvatar = async (item: AvatarConfig) => {
-    const state = avatarUnlockState(item, profile, progress, inventory, stats);
-    if (!state.unlocked) {
-      showMessage('info', state.reason);
-      return;
-    }
-    const previousProfile = profile;
-    setProfile({ ...profile, equippedAvatarId: item.id });
-    try {
-      const nextProfile = await updateEquippedAvatar(userId, item.id);
-      setProfile(nextProfile);
-      showMessage('success', 'Avatar equipped!');
-    } catch {
-      setProfile(previousProfile);
-      showMessage('error', 'Could not save. Try again.');
-    }
-  };
-
-  const equipSkin = async (item: ProfileSkinConfig) => {
-    const previousProfile = profile;
-    setProfile({ ...profile, equippedSkinId: item.id });
-    try {
-      const nextProfile = await updateEquippedSkin(userId, item.id);
-      setProfile(nextProfile);
-      showMessage('success', 'Skin style equipped!');
-    } catch {
-      setProfile(previousProfile);
-      showMessage('error', 'Could not save. Try again.');
-    }
-  };
-
-  const equipTheme = async (item: ProfileThemeConfig) => {
-    const state = themeUnlockState(item, profile, progress);
-    if (!state.unlocked) {
-      showMessage('info', state.reason);
-      return;
-    }
-    const previousProfile = profile;
-    setProfile({ ...profile, equippedThemeId: item.id });
-    try {
-      const nextProfile = await updateEquippedTheme(userId, item.id);
-      setProfile(nextProfile);
-      showMessage('success', 'Profile theme equipped!');
-    } catch {
-      setProfile(previousProfile);
-      showMessage('error', 'Could not save. Try again.');
-    }
-  };
-
-  const equipTitle = async (item: PlayerTitleConfig) => {
-    const state = titleUnlockState(item, profile, progress, stats);
-    if (!state.unlocked) {
-      showMessage('info', state.reason);
-      return;
-    }
-    try {
-      const nextProfile = await updateEquippedTitle(userId, item.id);
-      setProfile(nextProfile);
-      showMessage('success', 'Title equipped!');
-    } catch {
-      showMessage('error', 'Could not save. Try again.');
-    }
-  };
-
-  const equipFrame = async (item: ProfileFrameConfig) => {
-    const state = frameUnlockState(item, profile, progress, inventory, stats);
-    if (!state.unlocked) {
-      showMessage('info', state.reason);
-      return;
-    }
-    try {
-      const nextProfile = await updateEquippedFrame(userId, item.id);
-      setProfile(nextProfile);
-      showMessage('success', 'Frame equipped!');
-    } catch {
-      showMessage('error', 'Could not save. Try again.');
     }
   };
 
@@ -329,300 +303,219 @@ export default function ProfilePage() {
     <PageTransition>
       <AppLayout>
         <main
-          className="relative min-h-screen overflow-x-hidden px-4 py-5 text-white xl:px-6"
+          className="relative min-h-screen overflow-x-hidden px-3 py-4 text-white lg:px-5"
           style={{
-            backgroundImage: `linear-gradient(90deg, rgba(3, 22, 25, .9), rgba(5, 45, 53, .48) 45%, rgba(3, 24, 28, .92)), linear-gradient(180deg, rgba(4, 31, 39, .1), rgba(3, 18, 21, .96)), url(${imageAssets.backgrounds.worldMap})`,
+            backgroundImage: `linear-gradient(90deg, rgba(2, 13, 17, .96), rgba(3, 25, 35, .82) 46%, rgba(2, 13, 17, .96)), linear-gradient(180deg, rgba(6, 28, 35, .22), rgba(1, 10, 12, .96)), url(${imageAssets.backgrounds.worldMap})`,
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
             backgroundSize: 'cover',
           }}
         >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,232,119,.2),transparent_24%),radial-gradient(circle_at_90%_80%,rgba(74,204,92,.22),transparent_20%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_4%,rgba(255,206,100,.18),transparent_20%),radial-gradient(circle_at_85%_70%,rgba(50,190,210,.12),transparent_22%)]" />
 
-          <div className="relative z-10 mx-auto max-w-[1540px] space-y-5">
-            <header className="flex flex-wrap items-center justify-between gap-3">
+          <div className="relative z-10 mx-auto max-w-[1560px]">
+            <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
               <GameButton variant="blue" size="sm" leftIcon={<ArrowLeft size={18} />} onClick={() => navigate(-1)}>
                 Back
               </GameButton>
-              <div className="text-right">
-                <h1 className="khmer-body text-[34px] font-black leading-tight text-[#FFE6A6]">ប្រវត្តិអ្នកលេង / Profile</h1>
-                <p className="font-bold text-[#D6F6EE]">Choose your avatar, title, frame, and show your Khmer typing progress.</p>
+              <div className="text-center">
+                <h1 className="text-[34px] font-black leading-none text-[#FFD66D] drop-shadow-[0_3px_0_rgba(38,19,0,.9)] lg:text-[44px]">Character Profile</h1>
+                <div className="mx-auto mt-2 h-px max-w-[320px] bg-gradient-to-r from-transparent via-[#D49A3B] to-transparent" />
               </div>
+              <GameButton
+                variant="gold"
+                size="sm"
+                leftIcon={<Save size={18} />}
+                disabled={saving}
+                onClick={handleSave}
+                aria-label="Save profile changes"
+              >
+                {saving ? 'Saving' : 'Save Changes'}
+              </GameButton>
             </header>
 
             {message && (
-              <div className={`rounded-[16px] border px-4 py-3 text-center font-black ${messageClass(message.tone)}`}>
+              <div className={`mt-3 rounded-[12px] border px-4 py-2 text-center font-black ${messageClass(message.tone)}`}>
                 {message.text}
               </div>
             )}
 
-            <section className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
-              <Panel className="xl:sticky xl:top-5 xl:self-start">
-                <div className="mx-auto h-64 w-64">
-                  <GeneratedAvatar
-                    avatarId={profile.equippedAvatarId}
-                    skinStyleId={profile.equippedSkinId}
-                    themeId={profile.equippedThemeId}
-                    frameId={profile.equippedFrameId}
-                    level={level}
-                    size="100%"
-                    showLevelBadge
-                    ariaLabel={`${avatar.name} profile avatar`}
-                  />
+            <section className="mt-4 grid gap-4 xl:grid-cols-[430px_minmax(0,1fr)] 2xl:grid-cols-[470px_minmax(0,1fr)]">
+              <aside className="relative overflow-hidden rounded-[18px] border-2 border-[#B77A2B] bg-[#041723]/92 p-3 shadow-[0_22px_44px_rgba(0,0,0,.45),inset_0_0_0_1px_rgba(255,223,145,.18)]">
+                <div className="pointer-events-none absolute inset-2 rounded-[14px] border border-[#644319]" />
+                <div className="relative overflow-hidden rounded-[14px] border border-[#7D5724] bg-gradient-to-b from-[#082943] via-[#08333A] to-[#04141C] px-4 pt-5">
+                  <img src={activeTheme.artwork} alt="" className="absolute inset-0 h-full w-full scale-105 object-cover opacity-[.82]" draggable={false} />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-[#031827]/16 to-[#020B10]/74" />
+                  <div className="absolute inset-0 opacity-75 mix-blend-screen" style={{ background: `radial-gradient(circle at 48% 18%, ${activeTheme.colors.glow}4d, transparent 28%), linear-gradient(135deg, transparent, ${activeTheme.colors.sky}66 62%, ${activeTheme.colors.ground}99)` }} />
+                  <div className="absolute left-8 top-7 h-28 w-28 rounded-full border border-[#D9F3FF]/40 bg-[#D9F3FF]/10 blur-[1px]" />
+                  <div className="absolute bottom-7 left-8 right-8 h-12 rounded-[50%] bg-black/30 blur-sm" />
+                  <div className="relative mx-auto h-[265px] w-[265px] lg:h-[300px] lg:w-[300px]">
+                    <GeneratedAvatar
+                      avatarId={draft.equippedAvatarId}
+                      skinStyleId={draft.equippedSkinId}
+                      themeId={draft.equippedThemeId}
+                      frameId={profile.equippedFrameId}
+                      titleId={draft.equippedTitleId}
+                      artStyle="illustration"
+                      level={level}
+                      size="100%"
+                      showLevelBadge
+                      ariaLabel={`${currentAvatar.name} generated character avatar`}
+                    />
+                  </div>
                 </div>
 
-                <div className="mt-4 text-center">
-                  {editName ? (
-                    <div className="space-y-3">
-                      <label className="block text-left text-sm font-black text-[#FFE6A6]" htmlFor="profile-name">Display name</label>
-                      <input
-                        id="profile-name"
-                        value={nameDraft}
-                        maxLength={20}
-                        onChange={(event) => setNameDraft(event.target.value)}
-                        className="h-12 w-full rounded-[16px] border-2 border-[#DDBD70] bg-white/95 px-4 text-lg font-black text-[#17325A] outline-none focus:border-[#248CEC]"
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <GameButton variant="white" size="sm" onClick={() => { setEditName(false); setNameDraft(profile.displayName); }}>Cancel</GameButton>
-                        <GameButton variant="green" size="sm" leftIcon={<Save size={16} />} disabled={saving} onClick={saveName}>
-                          Save
-                        </GameButton>
-                      </div>
+                <div className="relative px-4 py-4 text-center">
+                  <h2 className="truncate text-[30px] font-black text-white drop-shadow">{draft.displayName.trim() || 'Typing Hero'}</h2>
+                  <div className="mx-auto mt-1 inline-flex min-w-[190px] items-center justify-center rounded-full border border-[#C68B34] bg-[#061A28] px-5 py-1 text-lg font-black text-[#FFD766] shadow-[0_0_16px_rgba(255,202,82,.22)]">
+                    {titleName(draft.equippedTitleId)}
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="mb-1 flex items-center justify-between text-sm font-black">
+                      <span className="text-[#4ED3FF]">XP</span>
+                      <span>{levelProgress.current.toLocaleString()} / {levelProgress.target.toLocaleString()}</span>
                     </div>
-                  ) : (
-                    <>
-                      <h2 className="khmer-body text-3xl font-black text-white">{profile.displayName}</h2>
-                      <p className="mt-1 text-lg font-black text-[#FFE6A6]">{title.khmerName} / {title.name}</p>
-                      <GameButton variant="gold" size="sm" className="mt-4" leftIcon={<Pencil size={16} />} onClick={() => setEditName(true)}>
-                        Edit Profile
-                      </GameButton>
-                    </>
-                  )}
-                </div>
-
-                <div className="mt-5 rounded-[18px] border border-[#70D4C2]/45 bg-[#052D34]/86 p-4">
-                  <div className="flex items-center justify-between font-black">
-                    <span>Level {level}</span>
-                    <span>{levelProgress.current}/{levelProgress.target} XP</span>
+                    <div className="h-3 overflow-hidden rounded-full border border-[#65A6B6]/40 bg-black/45">
+                      <div className="h-full rounded-full bg-gradient-to-r from-[#189CDE] to-[#34E4E4]" style={{ width: `${levelProgress.percent}%` }} />
+                    </div>
                   </div>
-                  <div className="mt-2 h-4 overflow-hidden rounded-full bg-black/35 shadow-inner">
-                    <div className="h-full rounded-full bg-gradient-to-r from-[#6DE24D] to-[#F7E55B]" style={{ width: `${levelProgress.percent}%` }} />
+
+                  <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-[14px] border border-[#9D6E2C]/80">
+                    <PreviewStat icon={<Zap size={28} />} label="Best CPM" value={stats.bestCPM || stats.averageCPM} tone="bg-[#173F36] text-[#A4EF69]" />
+                    <PreviewStat icon={<Target size={28} />} label="Accuracy" value={`${stats.bestAccuracy || stats.averageAccuracy}%`} tone="bg-[#301D4A] text-[#C77DFF]" />
+                    <PreviewStat icon={<Flame size={28} />} label="Streak" value={`${Math.max(economy.streak, stats.currentStreak)} Days`} tone="bg-[#4B2515] text-[#FF9D37]" />
+                    <PreviewStat icon={<BookOpen size={28} />} label="Lessons" value={stats.totalLessonsCompleted} tone="bg-[#143454] text-[#45B9FF]" />
                   </div>
                 </div>
-              </Panel>
+              </aside>
 
-              <div className="space-y-5">
-                <Panel title="Stats" icon={<Trophy size={24} />}>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatTile icon={<Heart size={22} fill="currentColor" className="text-[#FF4B3F]" />} label="Hearts" value={`${economy.hearts}/${economy.maxHearts}`} />
-                    <StatTile icon={<img src={imageAssets.coin} alt="" className="h-6 w-6" />} label="Coins" value={economy.coins} />
-                    <StatTile icon={<Gem size={23} fill="currentColor" className="text-[#C671FF]" />} label="Gems" value={economy.gems} />
-                    <StatTile icon={<Zap size={23} fill="currentColor" className="text-[#38D6FF]" />} label="Typing XP" value={xp} />
-                    <StatTile icon={<Flame size={23} fill="currentColor" className="text-[#FF8D2D]" />} label="Streak" value={`${Math.max(economy.streak, stats.currentStreak)} days`} />
-                    <StatTile icon={<Sparkles size={23} />} label="Best Streak" value={`${Math.max(economy.longestStreak, stats.longestStreak)} days`} />
-                    <StatTile icon={<BookOpen size={23} />} label="Lessons" value={`${stats.totalLessonsCompleted}/${stats.totalLessons}`} />
-                    <StatTile icon={<Swords size={23} />} label="Bosses" value={bossPasses(progress)} />
-                    <StatTile icon={<Target size={23} />} label="Accuracy" value={`${stats.averageAccuracy}%`} />
-                    <StatTile icon={<Zap size={23} />} label="Best CPM" value={stats.bestCPM} />
+              <div className="space-y-3">
+                <StepPanel number={1} title="Display Name">
+                  <label className="sr-only" htmlFor="profile-display-name">Display name</label>
+                  <div className="flex items-center gap-3 rounded-[12px] border border-[#516474] bg-[#061725] px-4 py-2 focus-within:border-[#D7A041]">
+                    <input
+                      id="profile-display-name"
+                      value={draft.displayName}
+                      maxLength={20}
+                      onChange={(event) => updateDraft({ displayName: event.target.value })}
+                      className="h-10 min-w-0 flex-1 bg-transparent text-xl font-black text-[#F7E8CA] outline-none"
+                      aria-describedby="profile-name-rule"
+                    />
+                    <span className="text-[#D7B27B]" aria-hidden="true">Edit</span>
                   </div>
-                </Panel>
+                  <p id="profile-name-rule" className="mt-1 text-xs font-bold text-[#9DC6C2]">2-20 characters. Khmer and English are welcome.</p>
+                </StepPanel>
 
-                <Panel title="Avatar Selection" icon={<Medal size={24} />}>
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    {PROFILE_AVATARS.map((item) => {
-                      const unlock = avatarUnlockState(item, profile, progress, inventory, stats);
-                      const equipped = item.id === profile.equippedAvatarId;
-                      return (
-                        <article key={item.id} className={`rounded-[18px] border-2 p-3 ${equipped ? 'border-[#FFE17B] bg-[#113F2B]' : 'border-[#4DBAA6]/65 bg-[#083F46]/88'}`}>
-                          <div className="grid h-28 place-items-center rounded-[14px] bg-black/20">
-                            <GeneratedAvatar
-                              avatarId={item.id}
-                              skinStyleId={profile.equippedSkinId}
-                              themeId={profile.equippedThemeId}
-                              frameId={profile.equippedFrameId}
-                              level={level}
-                              size={96}
-                              className={unlock.unlocked ? '' : 'grayscale opacity-50'}
-                              ariaLabel={`${item.name} avatar option`}
-                            />
-                          </div>
-                          <h3 className="mt-3 truncate font-black text-[#FFE6A6]">{item.khmerName}</h3>
-                          <p className="truncate text-sm font-bold text-white">{item.name}</p>
-                          <p className="mt-1 line-clamp-2 min-h-10 text-xs font-bold text-[#C9F5E8]">{unlock.unlocked ? item.description : unlock.reason}</p>
-                          <GameButton
-                            variant={unlock.unlocked ? equipped ? 'green' : 'gold' : 'white'}
-                            size="sm"
-                            className="mt-3 w-full"
-                            disabled={equipped}
-                            leftIcon={unlock.unlocked ? equipped ? <CheckCircle2 size={16} /> : <BadgeCheck size={16} /> : <Lock size={16} />}
-                            onClick={() => equipAvatar(item)}
-                            aria-label={`${equipped ? 'Equipped' : 'Equip'} ${item.name}`}
-                          >
-                            {equipped ? 'Equipped' : unlock.unlocked ? 'Equip' : 'Locked'}
-                          </GameButton>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </Panel>
-
-                <Panel title="Skin Style" icon={<Palette size={24} />}>
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {PROFILE_SKINS.map((item) => {
-                      const equipped = item.id === profile.equippedSkinId;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => equipSkin(item)}
-                          aria-label={`Equip ${item.name} skin style`}
-                          className={`rounded-[16px] border-2 p-3 text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 ${equipped ? 'border-[#FFE17B] bg-[#113F2B]' : 'border-[#4DBAA6]/65 bg-[#083F46]/88 hover:-translate-y-0.5'}`}
-                        >
-                          <span className="flex items-center gap-3">
-                            <span className="h-12 w-12 shrink-0 rounded-[12px] border-2 border-white/50 shadow-inner" style={{ background: item.gradient }} />
-                            <span className="min-w-0">
-                              <span className="block font-black text-[#FFE6A6]">{item.name}</span>
-                              <span className="block text-xs font-bold text-[#C9F5E8]">{equipped ? 'Selected' : 'Changes avatar colors'}</span>
-                            </span>
-                            {equipped && <CheckCircle2 className="ml-auto shrink-0 text-[#7FE35E]" size={20} />}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Panel>
-
-                <Panel title="Profile Theme" icon={<Sparkles size={24} />}>
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {PROFILE_THEMES.map((item) => {
-                      const unlock = themeUnlockState(item, profile, progress);
-                      const equipped = item.id === profile.equippedThemeId;
-                      const swatch = `linear-gradient(135deg, ${item.colors.sky} 0%, ${item.colors.horizon} 52%, ${item.colors.ground} 100%)`;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => equipTheme(item)}
-                          aria-label={`${equipped ? 'Selected' : 'Equip'} ${item.name} profile theme`}
-                          className={`rounded-[16px] border-2 p-3 text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 ${equipped ? 'border-[#FFE17B] bg-[#113F2B]' : unlock.unlocked ? 'border-[#4DBAA6]/65 bg-[#083F46]/88 hover:-translate-y-0.5' : 'border-white/15 bg-black/24 opacity-75'}`}
-                        >
-                          <span className="flex items-center gap-3">
-                            <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[12px] border-2 border-white/50 shadow-inner" style={{ background: swatch }}>
-                              <span className="absolute bottom-2 left-2 h-2 w-8 rounded-full" style={{ backgroundColor: item.colors.accent }} />
-                            </span>
-                            <span className="min-w-0">
-                              <span className="block font-black text-[#FFE6A6]">{item.name}</span>
-                              <span className="block text-xs font-bold text-[#C9F5E8]">{unlock.unlocked ? equipped ? 'Selected' : 'Changes preview world' : unlock.reason}</span>
-                            </span>
-                            {equipped ? <CheckCircle2 className="ml-auto shrink-0 text-[#7FE35E]" size={20} /> : unlock.unlocked ? null : <Lock className="ml-auto shrink-0 text-white/54" size={20} />}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Panel>
-
-                <Panel title="Player Titles" icon={<Award size={24} />}>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {PLAYER_TITLES.map((item) => {
-                      const unlock = titleUnlockState(item, profile, progress, stats);
-                      const equipped = item.id === profile.equippedTitleId;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => equipTitle(item)}
-                          className={`rounded-[16px] border-2 px-4 py-3 text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 ${equipped ? 'border-[#FFE17B] bg-[#113F2B]' : unlock.unlocked ? 'border-[#4DBAA6]/65 bg-[#083F46]/88 hover:-translate-y-0.5' : 'border-white/15 bg-black/24 opacity-75'}`}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <span>
-                              <span className="khmer-body block font-black text-[#FFE6A6]">{item.khmerName}</span>
-                              <span className="block font-black text-white">{item.name}</span>
-                            </span>
-                            {equipped ? <CheckCircle2 className="text-[#7FE35E]" /> : unlock.unlocked ? <BadgeCheck className="text-[#FFE17B]" /> : <Lock className="text-white/54" />}
-                          </div>
-                          <p className="mt-2 text-sm font-bold text-[#C9F5E8]">{unlock.unlocked ? item.description : unlock.reason}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Panel>
-
-                <Panel title="Frames & Cosmetics" icon={<ShoppingBag size={24} />}>
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {PROFILE_FRAMES.map((item) => {
-                      const unlock = frameUnlockState(item, profile, progress, inventory, stats);
-                      const equipped = item.id === profile.equippedFrameId;
-                      return (
-                        <article key={item.id} className={`rounded-[16px] border-2 p-3 ${equipped ? 'border-[#FFE17B] bg-[#113F2B]' : 'border-[#4DBAA6]/65 bg-[#083F46]/88'}`}>
-                          <div className={`grid h-16 place-items-center rounded-[14px] border-[5px] bg-[#052D34] ${item.className}`}>
-                            <span className="font-black">{item.name}</span>
-                          </div>
-                          <p className="mt-3 text-sm font-bold text-[#C9F5E8]">{unlock.unlocked ? item.unlockRequirement : unlock.reason}</p>
-                          <GameButton variant={unlock.unlocked ? equipped ? 'green' : 'gold' : 'white'} size="sm" className="mt-3 w-full" disabled={equipped} onClick={() => equipFrame(item)}>
-                            {equipped ? 'Equipped' : unlock.unlocked ? 'Equip Frame' : 'Locked'}
-                          </GameButton>
-                        </article>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    {PROFILE_COSMETICS.map((item) => {
-                      const owned = inventoryOwns(inventory, item.shopItemId);
-                      return (
-                        <article key={item.id} className={`rounded-[16px] border-2 p-3 ${owned ? 'border-[#7FE35E] bg-[#113F2B]' : 'border-white/15 bg-black/24'}`}>
-                          <div className="flex items-center gap-3">
-                            <span className="grid h-11 w-11 place-items-center rounded-full bg-[#0E5960] text-[#FFE6A6]">
-                              {owned ? <CheckCircle2 size={22} /> : <Lock size={22} />}
-                            </span>
-                            <span>
-                              <span className="khmer-body block font-black text-[#FFE6A6]">{item.khmerName}</span>
-                              <span className="block text-sm font-black text-white">{item.name}</span>
-                            </span>
-                          </div>
-                          <p className="mt-2 min-h-12 text-sm font-bold text-[#C9F5E8]">{owned ? `${item.description} Owned / effect coming soon.` : item.unlockRequirement}</p>
-                          {!owned && (
-                            <GameButton variant="gold" size="sm" className="mt-2 w-full" onClick={() => navigate('/shop')}>
-                              Buy in Shop
-                            </GameButton>
-                          )}
-                        </article>
-                      );
-                    })}
-                  </div>
-                </Panel>
-
-                <Panel title="Badges & Achievements" icon={<Star size={24} />}>
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    {achievements.map((badge) => (
+                <StepPanel number={2} title="Avatar">
+                  <div className="flex flex-wrap gap-2">
+                    {avatarTabs.map((tab) => (
                       <button
-                        key={badge.badgeId}
+                        key={tab.id}
                         type="button"
-                        onClick={() => setSelectedBadgeId(badge.badgeId)}
-                        className={`rounded-[16px] border-2 p-3 text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 ${badge.unlocked ? 'border-[#FFE17B] bg-[#113F2B]' : 'border-white/15 bg-black/24 opacity-75'}`}
+                        onClick={() => setActiveCategory(tab.id)}
+                        className={`flex min-w-[132px] items-center justify-center gap-2 rounded-[9px] border px-4 py-2 font-black transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 ${activeCategory === tab.id ? 'border-[#F5C15C] bg-gradient-to-b from-[#F6C45C] to-[#9B6112] text-[#211100] shadow-[0_0_14px_rgba(255,198,79,.55)]' : 'border-[#52616A] bg-[#071927] text-[#D8D0BF] hover:border-[#B78943]'}`}
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="grid h-12 w-12 place-items-center rounded-full bg-[#0E5960] text-[#FFE6A6]">
-                            {badge.unlocked ? <Trophy size={24} /> : <Lock size={22} />}
-                          </span>
-                          <span>
-                            <span className="block font-black text-white">{badge.badgeName}</span>
-                            <span className="block text-xs font-bold text-[#C9F5E8]">{badge.progress}/{badge.total}</span>
-                          </span>
-                        </div>
-                        {selectedBadgeId === badge.badgeId && (
-                          <p className="mt-3 text-sm font-bold text-[#FFE6A6]">{badge.unlocked ? badge.description : badge.requirement}</p>
-                        )}
+                        {tab.icon}
+                        {tab.label}
                       </button>
                     ))}
                   </div>
-                  {selectedBadge && (
-                    <div className="mt-4 rounded-[16px] border border-[#70D4C2]/45 bg-[#052D34]/86 px-4 py-3 font-bold text-[#D6F6EE]">
-                      <strong className="text-[#FFE6A6]">{selectedBadge.badgeName}:</strong> {selectedBadge.unlocked ? selectedBadge.description : selectedBadge.requirement}
+
+                  <div className="mt-3 grid grid-cols-4 gap-2 md:grid-cols-6 xl:grid-cols-8">
+                    {visibleAvatars.map((item) => {
+                      const unlock = avatarUnlockState(item, profile, progress, inventory, stats);
+                      const selected = item.id === draft.equippedAvatarId;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          disabled={!unlock.unlocked}
+                          title={unlock.unlocked ? item.name : unlock.reason}
+                          onClick={() => selectAvatar(item)}
+                          aria-label={`${selected ? 'Selected' : 'Select'} ${item.name} avatar`}
+                          className={`relative grid aspect-square min-h-[76px] place-items-center rounded-[10px] border bg-[#071927] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 ${selected ? 'border-[#FFD45E] shadow-[0_0_18px_rgba(255,207,73,.68)]' : unlock.unlocked ? 'border-[#846B37] hover:border-[#E1AA47]' : 'border-white/15 opacity-55 grayscale'}`}
+                        >
+                          <GeneratedAvatar
+                            avatarId={item.id}
+                            skinStyleId={draft.equippedSkinId}
+                            themeId={draft.equippedThemeId}
+                            frameId={profile.equippedFrameId}
+                            titleId={draft.equippedTitleId}
+                            artStyle="illustration"
+                            level={level}
+                            size="82%"
+                            ariaLabel={`${item.name} avatar option`}
+                          />
+                          {selected && <CheckCircle2 className="absolute bottom-1 right-1 rounded-full bg-[#2B8D31] text-[#F7FFD7]" size={24} fill="currentColor" />}
+                          {!unlock.unlocked && <Lock className="absolute bottom-2 right-2 rounded bg-black/70 p-0.5 text-[#EFE3CE]" size={21} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </StepPanel>
+
+                <StepPanel number={3} title="Appearance">
+                  <div>
+                    <div className="mb-2 text-sm font-black text-[#F4D18A]">Theme</div>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+                      {visibleThemes.map((item) => {
+                        const unlock = themeUnlockState(item, profile, progress);
+                        const selected = item.id === draft.equippedThemeId;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            disabled={!unlock.unlocked}
+                            title={unlock.unlocked ? item.name : unlock.reason}
+                            onClick={() => selectTheme(item)}
+                            aria-label={`${selected ? 'Selected' : 'Select'} ${item.name} theme`}
+                            className={`relative overflow-hidden rounded-[12px] border p-1.5 text-center transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 ${selected ? 'border-[#FFD45E] shadow-[0_0_18px_rgba(255,207,73,.7)]' : unlock.unlocked ? 'border-[#80612D] hover:border-[#DBA54B]' : 'border-white/15 opacity-55 grayscale'}`}
+                          >
+                            <span className="relative block h-24 overflow-hidden rounded-[8px] bg-[#061927] md:h-28 xl:h-24">
+                              <img src={item.artwork} alt="" className="h-full w-full object-cover saturate-[1.08]" draggable={false} />
+                              <span className="absolute inset-0 bg-gradient-to-t from-black/34 via-transparent to-transparent" />
+                              <span className="absolute inset-0 opacity-45 mix-blend-screen" style={{ background: `radial-gradient(circle at 68% 28%, ${item.colors.glow}99, transparent 32%)` }} />
+                            </span>
+                            <span className="mt-1.5 block truncate text-sm font-black text-[#F2DEB4]">{item.name}</span>
+                            {selected && <CheckCircle2 className="absolute right-2 top-2 rounded-full bg-[#2B8D31] text-[#F7FFD7]" size={24} fill="currentColor" />}
+                            {!unlock.unlocked && <Lock className="absolute right-2 top-2 rounded bg-black/70 p-0.5 text-[#EFE3CE]" size={22} />}
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
-                </Panel>
+                  </div>
+                </StepPanel>
+
+                <StepPanel number={4} title="Title">
+                  <div className="flex flex-wrap gap-2">
+                    {PLAYER_TITLES.map((item) => {
+                      const unlock = titleUnlockState(item, profile, progress, stats);
+                      const selected = item.id === draft.equippedTitleId;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          disabled={!unlock.unlocked}
+                          title={unlock.unlocked ? item.description : unlock.reason}
+                          onClick={() => selectTitle(item)}
+                          aria-label={`${selected ? 'Selected' : 'Select'} ${titleName(item.id)} title`}
+                          className={`relative min-h-11 rounded-full border px-5 py-2 font-black transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70 ${selected ? 'border-[#FFD45E] bg-[#241804] text-[#FFD868] shadow-[0_0_17px_rgba(255,209,78,.58)]' : unlock.unlocked ? 'border-[#478942] bg-[#0A3A23] text-[#D8FFB5] hover:border-[#8EE36E]' : 'border-white/15 bg-black/28 text-[#9F9588] opacity-75'}`}
+                        >
+                          <span>{titleName(item.id)}</span>
+                          {selected && <CheckCircle2 className="absolute -bottom-1 -right-1 rounded-full bg-[#2B8D31] text-[#F7FFD7]" size={20} fill="currentColor" />}
+                          {!unlock.unlocked && <Lock className="mr-2 inline-block" size={15} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </StepPanel>
+
+                {hasChanges && (
+                  <div className="rounded-[12px] border border-[#D8A348]/65 bg-[#201606]/80 px-4 py-2 text-center text-sm font-black text-[#FFE5A2]">
+                    Unsaved changes are previewing live. Use Save Changes to keep them.
+                  </div>
+                )}
               </div>
             </section>
           </div>

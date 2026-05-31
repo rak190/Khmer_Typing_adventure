@@ -2,6 +2,10 @@ import { useId, type CSSProperties } from 'react';
 import { PROFILE_AVATARS, type AvatarShapeType } from '../../data/avatars';
 import { getProfileSkin } from '../../data/profileSkins';
 import { getProfileTheme } from '../../data/profileThemes';
+import heroAvatarArt from '../../assets/profile/khmer-typing-hero-avatar.png';
+import creatureAvatarArt from '../../assets/profile/khmer-typing-creature-avatar.png';
+import spiritAvatarArt from '../../assets/profile/khmer-typing-spirit-avatar.png';
+import scholarAvatarArt from '../../assets/profile/khmer-typing-scholar-avatar.png';
 
 type GeneratedAvatarProps = {
   avatarId: string;
@@ -9,6 +13,9 @@ type GeneratedAvatarProps = {
   themeId: string;
   frameId: string;
   level: number;
+  titleId?: string;
+  selectedAccessory?: string;
+  artStyle?: 'vector' | 'illustration';
   size?: number | string;
   showLevelBadge?: boolean;
   className?: string;
@@ -60,6 +67,13 @@ function getAvatarShape(avatarId: string): AvatarShapeType {
 
 function sizeValue(size: number | string) {
   return typeof size === 'number' ? `${size}px` : size;
+}
+
+function artworkForShape(shape: AvatarShapeType) {
+  if (shape === 'elephant' || shape === 'guardian') return creatureAvatarArt;
+  if (shape === 'spirit') return spiritAvatarArt;
+  if (shape === 'student' || shape === 'monk') return scholarAvatarArt;
+  return heroAvatarArt;
 }
 
 function EyePair({ y = 89, color = '#12222B' }: { y?: number; color?: string }) {
@@ -182,6 +196,9 @@ export default function GeneratedAvatar({
   themeId,
   frameId,
   level,
+  titleId,
+  selectedAccessory,
+  artStyle = 'vector',
   size = '100%',
   showLevelBadge = false,
   className = '',
@@ -194,6 +211,8 @@ export default function GeneratedAvatar({
   const shape = getAvatarShape(avatarId);
   const frame = frameStyles[frameId] ?? frameStyles.default_frame;
   const avatar = PROFILE_AVATARS.find((item) => item.id === avatarId) ?? PROFILE_AVATARS[0];
+  const hasCrown = titleId === 'typing_hero' || titleId === 'khmer_master' || selectedAccessory === 'crown';
+  const artwork = artworkForShape(shape);
 
   const style = {
     '--avatar-size': sizeValue(size),
@@ -209,6 +228,20 @@ export default function GeneratedAvatar({
       role="img"
       aria-label={ariaLabel ?? `${avatar.name} generated avatar, level ${Math.max(1, Math.floor(level))}`}
     >
+      {artStyle === 'illustration' ? (
+        <div className="relative h-full w-full overflow-hidden rounded-[9%] border-[min(6px,3%)] border-[var(--avatar-frame)] bg-[#071927] shadow-[0_0_0_2px_var(--avatar-frame-inner),0_18px_28px_rgba(0,0,0,.38),0_0_30px_var(--avatar-frame-glow)]">
+          <img src={artwork} alt="" className="h-full w-full scale-[1.04] object-cover saturate-[1.18] contrast-[1.08]" draggable={false} />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/22 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 opacity-45" style={{ background: `radial-gradient(circle at 72% 34%, ${theme.colors.glow}55, transparent 24%), linear-gradient(135deg, transparent 45%, ${skin.accentColor}22)` }} />
+          <div className="pointer-events-none absolute inset-[4%] rounded-[7%] border border-[#FFD66D]/35" />
+          {showLevelBadge && (
+            <span className="absolute bottom-[3%] left-1/2 grid h-[22%] min-h-8 min-w-10 -translate-x-1/2 place-items-center rounded-[18%] border-2 border-[#FFF6BE] bg-gradient-to-br from-[#5A3303] via-[#D99C28] to-[#FFE07A] px-3 text-[clamp(12px,24%,22px)] font-black leading-none text-[#FFF5C6] shadow-[0_8px_14px_rgba(0,0,0,.38),0_0_18px_rgba(255,211,91,.62)]">
+              {Math.max(1, Math.floor(level))}
+            </span>
+          )}
+        </div>
+      ) : (
+      <>
       <svg className="h-full w-full drop-shadow-[0_16px_18px_rgba(0,0,0,.34)]" viewBox="0 0 200 200" aria-hidden="true" focusable="false">
         <defs>
           <linearGradient id={`${ids}-stage`} x1="38" y1="15" x2="154" y2="190" gradientUnits="userSpaceOnUse">
@@ -258,12 +291,23 @@ export default function GeneratedAvatar({
         </g>
         <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(255,255,255,.42)" strokeWidth="4" />
         <circle cx="100" cy="100" r="80" fill="none" stroke={theme.colors.glow} strokeWidth="2" strokeDasharray="7 10" opacity=".55" />
+        {hasCrown && (
+          <path d="M73 42 L87 28 L100 44 L114 28 L128 42 L123 58 L78 58 Z" fill={theme.colors.accent} stroke="#FFF4BC" strokeWidth="3" strokeLinejoin="round" opacity=".9" />
+        )}
+        <g opacity=".95">
+          <path d="M146 105 C157 111 158 127 148 136 C137 146 119 138 119 123 C119 109 133 98 146 105 Z" fill={`url(#${ids}-spirit)`} />
+          <circle cx="137" cy="121" r="3.4" fill="#062531" />
+          <circle cx="149" cy="121" r="3.4" fill="#062531" />
+          <path d="M136 132 C140 136 147 136 151 132" fill="none" stroke="#062531" strokeWidth="2.8" strokeLinecap="round" />
+        </g>
       </svg>
 
       {showLevelBadge && (
         <span className="absolute bottom-0 right-0 grid h-[24%] min-h-7 min-w-7 place-items-center rounded-full border-2 border-[#FFF6BE] bg-gradient-to-br from-[#C8922A] to-[#F0C060] px-2 text-[clamp(10px,22%,16px)] font-black leading-none text-[#302008] shadow-[0_6px_12px_rgba(0,0,0,.32)]">
           {Math.max(1, Math.floor(level))}
         </span>
+      )}
+      </>
       )}
     </div>
   );

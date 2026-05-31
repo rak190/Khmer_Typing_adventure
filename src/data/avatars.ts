@@ -1,6 +1,6 @@
 export type ProfileRarity = 'common' | 'rare' | 'epic' | 'legendary';
 export type UnlockType = 'default' | 'achievement' | 'shop' | 'streak' | 'progress';
-export type AvatarCategory = 'heroes' | 'guardians' | 'spirits' | 'scholars';
+export type AvatarCategory = 'heroes' | 'creatures' | 'spirits' | 'scholars';
 export type AvatarShapeType = 'elephant' | 'student' | 'jungle' | 'guardian' | 'medal' | 'spirit' | 'monk';
 
 export type AvatarConfig = {
@@ -44,7 +44,7 @@ export const PROFILE_AVATARS: AvatarConfig[] = [
     id: 'sophea_elephant',
     name: 'Sophea Elephant',
     khmerName: 'ដំរី សុភា',
-    category: 'guardians',
+    category: 'creatures',
     shapeType: 'elephant',
     rarity: 'common',
     unlockType: 'default',
@@ -80,7 +80,7 @@ export const PROFILE_AVATARS: AvatarConfig[] = [
     id: 'guardian_apprentice',
     name: 'Guardian Apprentice',
     khmerName: 'សិស្សអាណាព្យាបាល',
-    category: 'guardians',
+    category: 'creatures',
     shapeType: 'guardian',
     rarity: 'rare',
     unlockType: 'progress',
@@ -92,7 +92,7 @@ export const PROFILE_AVATARS: AvatarConfig[] = [
     id: 'boss_victor_elephant',
     name: 'Boss Victor Elephant',
     khmerName: 'ដំរីឈ្នះ Boss',
-    category: 'guardians',
+    category: 'creatures',
     shapeType: 'elephant',
     rarity: 'epic',
     unlockType: 'achievement',
