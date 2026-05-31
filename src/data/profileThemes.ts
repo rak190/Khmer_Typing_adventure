@@ -8,6 +8,7 @@ export type ProfileThemeConfig = {
   id: string;
   name: string;
   artwork: string;
+  legacyIds?: string[];
   colors: {
     sky: string;
     horizon: string;
@@ -45,8 +46,8 @@ export const PROFILE_THEMES: ProfileThemeConfig[] = [
       accent: '#FFB85A',
       glow: '#FFD08C',
     },
-    defaultUnlocked: true,
-    unlockRequirement: 'Unlocked by default.',
+    defaultUnlocked: false,
+    unlockRequirement: 'Unlock after completing 5 lessons.',
   },
   {
     id: 'crystal_cave',
@@ -59,12 +60,13 @@ export const PROFILE_THEMES: ProfileThemeConfig[] = [
       accent: '#9BE7FF',
       glow: '#D8F7FF',
     },
-    defaultUnlocked: true,
-    unlockRequirement: 'Unlocked by default.',
+    defaultUnlocked: false,
+    unlockRequirement: 'Unlock after a 3-day streak.',
   },
   {
-    id: 'flame_keep',
+    id: 'mystic_ruins',
     name: 'Mystic Ruins',
+    legacyIds: ['flame_keep'],
     artwork: mysticRuinsThemeArt,
     colors: {
       sky: '#071F2C',
@@ -73,22 +75,8 @@ export const PROFILE_THEMES: ProfileThemeConfig[] = [
       accent: '#45D6B9',
       glow: '#BDF7DE',
     },
-    defaultUnlocked: true,
-    unlockRequirement: 'Unlocked by default.',
-  },
-  {
-    id: 'jade_palace',
-    name: 'Jade Palace',
-    artwork: mysticRuinsThemeArt,
-    colors: {
-      sky: '#082A2B',
-      horizon: '#0F8A78',
-      ground: '#154B3B',
-      accent: '#A7F06E',
-      glow: '#D7FFBE',
-    },
     defaultUnlocked: false,
-    unlockRequirement: 'Reach a 7-day streak.',
+    unlockRequirement: 'Unlock after passing your first Boss Battle.',
   },
   {
     id: 'storm_citadel',
@@ -102,12 +90,44 @@ export const PROFILE_THEMES: ProfileThemeConfig[] = [
       glow: '#9FD5FF',
     },
     defaultUnlocked: false,
-    unlockRequirement: 'Pass your first Boss Battle.',
+    unlockRequirement: 'Unlock at Level 15.',
+  },
+  {
+    id: 'flame_keep_boss3',
+    name: 'Flame Keep',
+    artwork: sunsetThemeArt,
+    colors: {
+      sky: '#271011',
+      horizon: '#8F2F1C',
+      ground: '#341713',
+      accent: '#FF8B3D',
+      glow: '#FFD05C',
+    },
+    defaultUnlocked: false,
+    unlockRequirement: 'Unlock after defeating 3 bosses.',
+  },
+  {
+    id: 'golden_temple',
+    name: 'Golden Temple',
+    artwork: jungleThemeArt,
+    colors: {
+      sky: '#20150A',
+      horizon: '#8A621B',
+      ground: '#2B210E',
+      accent: '#FFD76A',
+      glow: '#FFF2A6',
+    },
+    defaultUnlocked: false,
+    unlockRequirement: 'Unlock after 100% accuracy in any boss.',
   },
 ];
 
 export const DEFAULT_THEME_ID = 'angkor_night';
 
 export function getProfileTheme(themeId?: string) {
-  return PROFILE_THEMES.find((theme) => theme.id === themeId) ?? PROFILE_THEMES[0];
+  return PROFILE_THEMES.find((theme) => theme.id === themeId || theme.legacyIds?.includes(themeId ?? '')) ?? PROFILE_THEMES[0];
+}
+
+export function resolveProfileThemeId(themeId?: string) {
+  return getProfileTheme(themeId).id;
 }

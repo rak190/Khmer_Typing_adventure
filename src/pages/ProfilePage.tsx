@@ -15,7 +15,7 @@ import {
 import { imageAssets } from '../assets/assetManifest';
 import { PROFILE_AVATARS, type AvatarCategory, type AvatarConfig } from '../data/avatars';
 import { PLAYER_TITLES, type PlayerTitleConfig } from '../data/playerTitles';
-import { PROFILE_THEMES, type ProfileThemeConfig } from '../data/profileThemes';
+import { getProfileTheme, PROFILE_THEMES, type ProfileThemeConfig } from '../data/profileThemes';
 import AppLayout from '../components/layout/AppLayout';
 import PageTransition from '../components/layout/PageTransition';
 import GameButton from '../components/game-ui/GameButton';
@@ -57,7 +57,7 @@ const avatarTabs: AvatarTab[] = [
   { id: 'scholars', label: 'Scholars', icon: <BookOpen size={17} /> },
 ];
 
-const visibleThemes = PROFILE_THEMES.filter((theme) => theme.id !== 'jade_palace');
+const visibleThemes = PROFILE_THEMES;
 
 const titleLabels: Record<string, string> = {
   typing_hero: 'Temple Scribe',
@@ -150,9 +150,13 @@ function titleUnlockState(title: PlayerTitleConfig, profile: GameProfile, progre
 }
 
 function themeUnlockState(theme: ProfileThemeConfig, profile: GameProfile, progress: StudentProgress): UnlockState {
-  if (theme.defaultUnlocked || profile.unlockedThemes.includes(theme.id)) return { unlocked: true, reason: 'Unlocked' };
-  if (theme.id === 'jade_palace' && Math.max(progress.currentStreak, progress.longestStreak) >= 7) return { unlocked: true, reason: 'Reach a 7-day streak' };
-  if (theme.id === 'storm_citadel' && bossPasses(progress) >= 1) return { unlocked: true, reason: 'Pass 1 Boss Battle' };
+  if (theme.defaultUnlocked || profile.unlockedThemes.includes(theme.id) || theme.legacyIds?.some((id) => profile.unlockedThemes.includes(id))) return { unlocked: true, reason: 'Unlocked' };
+  if (theme.name === 'Sunset' && progress.completedLessons.length >= 5) return { unlocked: true, reason: 'Complete 5 lessons' };
+  if (theme.name === 'Night Sky' && Math.max(progress.currentStreak, progress.longestStreak) >= 3) return { unlocked: true, reason: 'Reach a 3-day streak' };
+  if (theme.name === 'Mystic Ruins' && bossPasses(progress) >= 1) return { unlocked: true, reason: 'Pass 1 Boss Battle' };
+  if (theme.name === 'Ice Realm' && progress.currentLevel >= 15) return { unlocked: true, reason: 'Reach Level 15' };
+  if (theme.name === 'Flame Keep' && bossPasses(progress) >= 3) return { unlocked: true, reason: 'Defeat 3 bosses' };
+  if (theme.name === 'Golden Temple' && progress.lessonResults.some((result) => result.mode === 'boss' && result.accuracy === 100 && result.mistakes === 0)) return { unlocked: true, reason: '100% accuracy in any boss' };
   return { unlocked: false, reason: theme.unlockRequirement };
 }
 
@@ -164,7 +168,7 @@ function messageClass(tone: ProfileMessage['tone']) {
 
 function StepPanel({ number, title, children, className = '' }: { number: number; title: string; children: ReactNode; className?: string }) {
   return (
-    <section className={`relative rounded-[16px] border border-[#A9772F] bg-[#051927]/88 p-3 shadow-[inset_0_1px_0_rgba(255,232,154,.16),0_14px_28px_rgba(0,0,0,.28)] ${className}`}>
+    <section className={`relative rounded-[16px] border border-[#C58B35] bg-[#073348]/90 p-3 shadow-[inset_0_1px_0_rgba(255,232,154,.2),0_14px_28px_rgba(0,0,0,.22)] ${className}`}>
       <div className="mb-2 flex items-center gap-3">
         <span className="grid h-10 w-10 shrink-0 rotate-45 place-items-center border-2 border-[#C58A34] bg-[#082239] text-[#FFE39C] shadow-[0_0_14px_rgba(255,188,73,.25)]">
           <span className="-rotate-45 font-black">{number}</span>
@@ -210,7 +214,7 @@ export default function ProfilePage() {
   const level = Math.max(economy.level, stats.currentLevel);
   const levelProgress = levelXP(xp, level);
   const hasChanges = !draftsEqual(draft, makeDraft(profile));
-  const activeTheme = PROFILE_THEMES.find((item) => item.id === draft.equippedThemeId) ?? PROFILE_THEMES[0];
+  const activeTheme = getProfileTheme(draft.equippedThemeId);
   const visibleAvatars = PROFILE_AVATARS.filter((item) => item.category === activeCategory);
   const currentAvatar = PROFILE_AVATARS.find((item) => item.id === draft.equippedAvatarId) ?? PROFILE_AVATARS[0];
 
@@ -305,13 +309,13 @@ export default function ProfilePage() {
         <main
           className="relative min-h-screen overflow-x-hidden px-3 py-4 text-white lg:px-5"
           style={{
-            backgroundImage: `linear-gradient(90deg, rgba(2, 13, 17, .96), rgba(3, 25, 35, .82) 46%, rgba(2, 13, 17, .96)), linear-gradient(180deg, rgba(6, 28, 35, .22), rgba(1, 10, 12, .96)), url(${imageAssets.backgrounds.worldMap})`,
+            backgroundImage: `linear-gradient(90deg, rgba(8, 46, 58, .9), rgba(10, 83, 96, .72) 46%, rgba(8, 46, 58, .9)), linear-gradient(180deg, rgba(12, 92, 106, .34), rgba(4, 35, 45, .88)), url(${imageAssets.backgrounds.worldMap})`,
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
             backgroundSize: 'cover',
           }}
         >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_4%,rgba(255,206,100,.18),transparent_20%),radial-gradient(circle_at_85%_70%,rgba(50,190,210,.12),transparent_22%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_4%,rgba(255,218,118,.3),transparent_22%),radial-gradient(circle_at_85%_70%,rgba(73,224,235,.2),transparent_24%)]" />
 
           <div className="relative z-10 mx-auto max-w-[1560px]">
             <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
@@ -341,12 +345,12 @@ export default function ProfilePage() {
             )}
 
             <section className="mt-4 grid gap-4 xl:grid-cols-[430px_minmax(0,1fr)] 2xl:grid-cols-[470px_minmax(0,1fr)]">
-              <aside className="relative overflow-hidden rounded-[18px] border-2 border-[#B77A2B] bg-[#041723]/92 p-3 shadow-[0_22px_44px_rgba(0,0,0,.45),inset_0_0_0_1px_rgba(255,223,145,.18)]">
+              <aside className="relative overflow-hidden rounded-[18px] border-2 border-[#C98A35] bg-[#073044]/94 p-3 shadow-[0_22px_44px_rgba(0,0,0,.32),inset_0_0_0_1px_rgba(255,223,145,.22)]">
                 <div className="pointer-events-none absolute inset-2 rounded-[14px] border border-[#644319]" />
-                <div className="relative overflow-hidden rounded-[14px] border border-[#7D5724] bg-gradient-to-b from-[#082943] via-[#08333A] to-[#04141C] px-4 pt-5">
-                  <img src={activeTheme.artwork} alt="" className="absolute inset-0 h-full w-full scale-105 object-cover opacity-[.82]" draggable={false} />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-[#031827]/16 to-[#020B10]/74" />
-                  <div className="absolute inset-0 opacity-75 mix-blend-screen" style={{ background: `radial-gradient(circle at 48% 18%, ${activeTheme.colors.glow}4d, transparent 28%), linear-gradient(135deg, transparent, ${activeTheme.colors.sky}66 62%, ${activeTheme.colors.ground}99)` }} />
+                <div className="relative overflow-hidden rounded-[14px] border border-[#A6742E] bg-gradient-to-b from-[#0B4961] via-[#0A4A50] to-[#062736] px-4 pt-5">
+                  <img src={activeTheme.artwork} alt="" className="absolute inset-0 h-full w-full scale-105 object-cover opacity-[.92] brightness-[1.08] saturate-[1.08]" draggable={false} />
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-[#073A4A]/8 to-[#02131B]/48" />
+                  <div className="absolute inset-0 opacity-45 mix-blend-screen" style={{ background: `radial-gradient(circle at 48% 18%, ${activeTheme.colors.glow}66, transparent 30%)` }} />
                   <div className="absolute left-8 top-7 h-28 w-28 rounded-full border border-[#D9F3FF]/40 bg-[#D9F3FF]/10 blur-[1px]" />
                   <div className="absolute bottom-7 left-8 right-8 h-12 rounded-[50%] bg-black/30 blur-sm" />
                   <div className="relative mx-auto h-[265px] w-[265px] lg:h-[300px] lg:w-[300px]">

@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Settings, Trophy, UserRound } from 'lucide-react';
+import { ArrowLeft, Mail, Settings, Trophy } from 'lucide-react';
 import ActionModal from '../components/game-ui/ActionModal';
 import GameButton from '../components/game-ui/GameButton';
 import GameIcon, { type GameIconName } from '../components/game-ui/GameIcon';
@@ -51,6 +51,9 @@ import {
   saveAchievementSnapshot,
   saveAppSettings,
 } from '../lib/playerFeatures';
+import GeneratedAvatar from '../components/profile/GeneratedAvatar';
+import { USER_PROFILE_EVENT } from '../lib/userProfile';
+import { loadCachedGameProfile } from '../services/profileService';
 
 const sideActions = [
   { khmer: 'រង្វាន់', title: 'Treasure', icon: 'treasure' as const },
@@ -310,6 +313,7 @@ export default function WorldMapPage() {
   const [modal, setModal] = useState<MapModal>(null);
   const [lockedWorldTitle, setLockedWorldTitle] = useState('');
   const [settings, setSettings] = useState(() => loadAppSettings());
+  const [profile, setProfile] = useState(() => loadCachedGameProfile());
   const [, setFeatureRevision] = useState(0);
   const [featureMessage, setFeatureMessage] = useState('');
   const [purchasingItemId, setPurchasingItemId] = useState<string | undefined>();
@@ -359,6 +363,12 @@ export default function WorldMapPage() {
 
     window.addEventListener(PLAYER_FEATURES_EVENT, refreshFeatures);
     return () => window.removeEventListener(PLAYER_FEATURES_EVENT, refreshFeatures);
+  }, []);
+
+  useEffect(() => {
+    const refreshProfile = () => setProfile(loadCachedGameProfile());
+    window.addEventListener(USER_PROFILE_EVENT, refreshProfile);
+    return () => window.removeEventListener(USER_PROFILE_EVENT, refreshProfile);
   }, []);
 
   useEffect(() => {
@@ -507,7 +517,25 @@ export default function WorldMapPage() {
         </div>
 
         <div className="absolute right-[62px] top-[24px] z-40 flex items-center gap-3">
-          <RoundHudButton icon={<UserRound size={31} />} label="Profile" onClick={() => navigate('/profile')} />
+          <RoundHudButton
+            icon={(
+              <span className="block h-9 w-9 overflow-hidden rounded-full">
+                <GeneratedAvatar
+                  avatarId={profile.equippedAvatarId}
+                  skinStyleId={profile.equippedSkinId}
+                  themeId={profile.equippedThemeId}
+                  frameId={profile.equippedFrameId}
+                  artStyle="illustration"
+                  iconOnly
+                  level={Math.max(1, studentProgress.currentLevel)}
+                  size="100%"
+                  ariaLabel={`${profile.displayName || 'Guest'} avatar`}
+                />
+              </span>
+            )}
+            label="Profile"
+            onClick={() => navigate('/profile')}
+          />
           <RoundHudButton icon={<Mail size={31} />} badge="3" label="Mail" onClick={() => setModal('mail')} />
           <RoundHudButton icon={<Trophy size={31} />} label="Trophy" onClick={() => setModal('trophy')} />
           <RoundHudButton icon={<Settings size={31} />} label="Settings" onClick={() => setModal('settings')} />
