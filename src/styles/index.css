@@ -1021,6 +1021,7 @@ a:focus-visible {
 }
 
 .boss-fighter-side {
+  position: relative;
   border-radius: 20px;
   background:
     radial-gradient(circle at 50% 58%, rgba(255, 228, 122, 0.14), transparent 38%),
@@ -1028,11 +1029,40 @@ a:focus-visible {
 }
 
 .boss-fighter-side--enemy {
-  box-shadow: inset 0 0 40px rgba(255, 92, 74, 0.1);
+  box-shadow:
+    inset 0 0 46px rgba(255, 92, 74, 0.12),
+    0 0 0 rgba(255, 92, 74, 0);
 }
 
 .boss-fighter-side--player {
-  box-shadow: inset 0 0 40px rgba(47, 208, 111, 0.1);
+  box-shadow:
+    inset 0 0 48px rgba(255, 228, 122, 0.12),
+    0 0 0 rgba(255, 228, 122, 0);
+}
+
+.boss-fighter-side--combo-1 {
+  box-shadow:
+    inset 0 0 54px rgba(255, 228, 122, 0.16),
+    0 0 16px rgba(255, 228, 122, 0.1);
+}
+
+.boss-fighter-side--combo-2,
+.boss-fighter-side--combo-3 {
+  box-shadow:
+    inset 0 0 64px rgba(255, 228, 122, 0.22),
+    0 0 24px rgba(255, 228, 122, 0.16);
+}
+
+.boss-fighter-side--hit {
+  animation: bossEnemyFlash 0.34s ease-out;
+}
+
+.boss-fighter-side--recoil {
+  animation: bossPlayerRecoil 0.28s ease-out;
+}
+
+.boss-fighter-side--defeated {
+  animation: bossDefeatPulse 0.9s ease-out both;
 }
 
 .boss-fighter-name {
@@ -1059,31 +1089,178 @@ a:focus-visible {
   line-height: 1;
 }
 
+.boss-character-stage {
+  position: absolute;
+  inset: 2.3rem 0 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.boss-character-glow {
+  position: absolute;
+  z-index: 0;
+  width: 74%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  filter: blur(10px);
+  opacity: 0.72;
+  animation: bossGlowPulse 2.8s ease-in-out infinite;
+}
+
+.boss-character-glow--player {
+  background:
+    radial-gradient(circle, rgba(255, 228, 122, 0.48), rgba(255, 181, 70, 0.18) 44%, transparent 68%);
+}
+
+.boss-character-glow--enemy {
+  background:
+    radial-gradient(circle, rgba(255, 92, 74, 0.44), rgba(255, 133, 47, 0.2) 42%, transparent 70%);
+}
+
+.boss-character-platform {
+  position: absolute;
+  bottom: 0.4rem;
+  z-index: 0;
+  width: 72%;
+  height: 1.45rem;
+  border-radius: 999px;
+  filter: blur(0.5px);
+}
+
+.boss-character-platform--player {
+  background:
+    radial-gradient(ellipse, rgba(255, 228, 122, 0.34), rgba(63, 45, 20, 0.45) 52%, transparent 72%);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.26);
+}
+
+.boss-character-platform--enemy {
+  background:
+    linear-gradient(90deg, transparent 8%, rgba(255, 92, 74, 0.32) 9% 12%, transparent 13% 29%, rgba(255, 184, 86, 0.28) 30% 34%, transparent 35%),
+    radial-gradient(ellipse, rgba(84, 42, 28, 0.62), rgba(19, 8, 8, 0.56) 56%, transparent 74%);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.34);
+}
+
 .boss-player-character {
-  height: 210px;
-  width: 184px;
-  filter: drop-shadow(0 24px 22px rgba(22, 255, 115, 0.16));
+  position: relative;
+  z-index: 1;
+  height: 232px;
+  width: 204px;
+  filter:
+    drop-shadow(0 24px 22px rgba(0, 0, 0, 0.2))
+    drop-shadow(0 0 20px rgba(255, 228, 122, 0.24));
+  animation: bossPlayerIdle 2.9s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+.boss-player-character--attack {
+  animation: bossPlayerAttack 0.34s ease-out, bossPlayerIdle 2.9s ease-in-out infinite 0.34s;
 }
 
 .boss-enemy-character {
-  height: 220px;
-  width: 194px;
+  position: relative;
+  z-index: 1;
+  height: 240px;
+  width: 212px;
   filter:
     drop-shadow(0 26px 22px rgba(0, 0, 0, 0.32))
     drop-shadow(0 0 18px rgba(255, 92, 74, 0.22));
+  animation: bossEnemyIdle 3.2s ease-in-out infinite;
+  transform-origin: 50% 88%;
+}
+
+.boss-enemy-character--hit {
+  animation: bossEnemyHit 0.38s ease-out, bossEnemyIdle 3.2s ease-in-out infinite 0.38s;
+}
+
+.boss-enemy-character--defeated {
+  animation: bossEnemyDefeated 0.9s ease-out both;
 }
 
 .boss-attack-beam {
   position: absolute;
-  right: -32%;
-  top: 48%;
+  right: -42%;
+  top: 50%;
   z-index: 15;
-  height: 0.55rem;
-  width: 74%;
+  height: 0.62rem;
+  width: 88%;
   transform-origin: left center;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(255, 228, 122, 0.92), rgba(126, 216, 255, 0.55), transparent);
-  box-shadow: 0 0 24px rgba(255, 228, 122, 0.78);
+  background:
+    radial-gradient(circle at 88% 50%, rgba(255, 255, 255, 0.96) 0 8%, transparent 18%),
+    linear-gradient(90deg, rgba(255, 228, 122, 0.95), rgba(126, 216, 255, 0.7), transparent);
+  box-shadow:
+    0 0 24px rgba(255, 228, 122, 0.78),
+    0 0 12px rgba(126, 216, 255, 0.45);
+}
+
+.boss-flow-feedback {
+  position: absolute;
+  left: 50%;
+  top: -2.25rem;
+  z-index: 24;
+  display: inline-flex;
+  min-width: 9rem;
+  transform: translateX(-50%);
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.48);
+  padding: 0.42rem 0.9rem;
+  text-align: center;
+  box-shadow:
+    0 10px 20px rgba(0, 12, 20, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  pointer-events: none;
+}
+
+.boss-flow-feedback span {
+  font-size: 1rem;
+  font-weight: 1000;
+  line-height: 1;
+}
+
+.boss-flow-feedback small {
+  font-size: 0.68rem;
+  font-weight: 900;
+  opacity: 0.9;
+}
+
+.boss-flow-feedback--hit,
+.boss-flow-feedback--wave,
+.boss-flow-feedback--defeat {
+  background: linear-gradient(180deg, #fff7b8, #f0b93f);
+  color: #3a2207;
+}
+
+.boss-flow-feedback--mistake {
+  background: linear-gradient(180deg, #ffe8df, #ff765f);
+  color: #5d1009;
+}
+
+.boss-wave-clear-moment {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 25;
+  transform: translate(-50%, -50%);
+  border-radius: 20px;
+  border: 3px solid rgba(255, 244, 180, 0.82);
+  background: linear-gradient(180deg, rgba(255, 247, 184, 0.96), rgba(236, 174, 52, 0.94));
+  padding: 0.75rem 1.5rem;
+  color: #3b2407;
+  font-size: 1.6rem;
+  font-weight: 1000;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 36px rgba(255, 228, 122, 0.48),
+    0 16px 30px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+.boss-damage-popup {
+  animation: bossDamageFlash 0.42s ease-out;
 }
 
 .boss-combo-banner {
@@ -1151,6 +1328,10 @@ a:focus-visible {
     0 12px 24px rgba(0, 18, 24, 0.24);
 }
 
+.boss-prompt-card--mistake {
+  animation: bossMistakeFlash 0.3s ease-out;
+}
+
 @keyframes bossPromptGlow {
   0%,
   100% {
@@ -1164,6 +1345,156 @@ a:focus-visible {
       inset 0 2px 0 rgba(255, 255, 255, 0.48),
       0 0 34px rgba(126, 216, 255, 0.24),
       0 18px 36px rgba(0, 18, 24, 0.26);
+  }
+}
+
+@keyframes bossGlowPulse {
+  0%,
+  100% {
+    opacity: 0.56;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.86;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes bossPlayerIdle {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.015);
+  }
+}
+
+@keyframes bossEnemyIdle {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.012);
+  }
+}
+
+@keyframes bossPlayerAttack {
+  0% {
+    transform: translateX(0) scale(1);
+  }
+  38% {
+    transform: translateX(8px) translateY(-2px) scale(1.045);
+  }
+  100% {
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes bossPlayerRecoil {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  35% {
+    transform: translateX(-4px);
+  }
+  68% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes bossEnemyHit {
+  0%,
+  100% {
+    filter:
+      drop-shadow(0 26px 22px rgba(0, 0, 0, 0.32))
+      drop-shadow(0 0 18px rgba(255, 92, 74, 0.22));
+    transform: translateX(0) scale(1);
+  }
+  20% {
+    filter:
+      brightness(1.7)
+      drop-shadow(0 26px 22px rgba(0, 0, 0, 0.28))
+      drop-shadow(0 0 30px rgba(255, 220, 126, 0.72));
+    transform: translateX(7px) rotate(1deg) scale(1.025);
+  }
+  45% {
+    transform: translateX(-5px) rotate(-1deg) scale(1.012);
+  }
+}
+
+@keyframes bossEnemyFlash {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 46px rgba(255, 92, 74, 0.12),
+      0 0 0 rgba(255, 92, 74, 0);
+  }
+  30% {
+    box-shadow:
+      inset 0 0 68px rgba(255, 198, 92, 0.26),
+      0 0 26px rgba(255, 92, 74, 0.34);
+  }
+}
+
+@keyframes bossDamageFlash {
+  0% {
+    filter: brightness(1.6);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes bossMistakeFlash {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(-4px);
+  }
+  64% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes bossDefeatPulse {
+  0% {
+    box-shadow:
+      inset 0 0 46px rgba(255, 92, 74, 0.12),
+      0 0 0 rgba(255, 92, 74, 0);
+  }
+  45% {
+    box-shadow:
+      inset 0 0 80px rgba(255, 228, 122, 0.24),
+      0 0 42px rgba(255, 92, 74, 0.36);
+  }
+  100% {
+    box-shadow:
+      inset 0 0 58px rgba(120, 255, 159, 0.14),
+      0 0 28px rgba(255, 228, 122, 0.22);
+  }
+}
+
+@keyframes bossEnemyDefeated {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  45% {
+    opacity: 0.92;
+    transform: translateY(8px) rotate(-2deg) scale(1.04);
+  }
+  100% {
+    opacity: 0.72;
+    transform: translateY(14px) rotate(2deg) scale(0.96);
+    filter:
+      grayscale(0.2)
+      drop-shadow(0 26px 22px rgba(0, 0, 0, 0.36))
+      drop-shadow(0 0 24px rgba(255, 228, 122, 0.24));
   }
 }
 
@@ -1260,13 +1591,17 @@ a:focus-visible {
   }
 
   .boss-player-character {
-    height: 184px;
-    width: 162px;
+    height: 202px;
+    width: 178px;
   }
 
   .boss-enemy-character {
-    height: 194px;
-    width: 170px;
+    height: 210px;
+    width: 186px;
+  }
+
+  .boss-character-stage {
+    inset: 1.9rem 0 0;
   }
 
   .boss-combo-banner {

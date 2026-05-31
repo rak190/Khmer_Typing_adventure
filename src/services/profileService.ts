@@ -2,7 +2,7 @@ import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'fireb
 import { DEFAULT_AVATAR_ID, DEFAULT_FRAME_ID } from '../data/avatars';
 import { DEFAULT_TITLE_ID } from '../data/playerTitles';
 import { DEFAULT_SKIN_ID } from '../data/profileSkins';
-import { DEFAULT_THEME_ID, PROFILE_THEMES } from '../data/profileThemes';
+import { DEFAULT_THEME_ID, PROFILE_THEMES, resolveProfileThemeId } from '../data/profileThemes';
 import { db } from '../lib/firebase';
 import { getActiveEconomyUserId, loadCachedInventory, type EconomyInventoryItem } from '../lib/economy';
 import { USER_PROFILE_EVENT, USER_PROFILE_STORAGE_KEY } from '../lib/userProfile';
@@ -16,6 +16,8 @@ export type GameProfile = {
   equippedThemeId: string;
   equippedTitleId: string;
   equippedFrameId: string;
+  typingXP: number;
+  level: number;
   unlockedAvatars: string[];
   unlockedTitles: string[];
   unlockedFrames: string[];
@@ -24,12 +26,14 @@ export type GameProfile = {
 };
 
 const defaultGameProfile: GameProfile = {
-  displayName: 'អ្នកលេង Guest',
+  displayName: 'Guest',
   equippedAvatarId: DEFAULT_AVATAR_ID,
   equippedSkinId: DEFAULT_SKIN_ID,
   equippedThemeId: DEFAULT_THEME_ID,
   equippedTitleId: DEFAULT_TITLE_ID,
   equippedFrameId: DEFAULT_FRAME_ID,
+  typingXP: 0,
+  level: 1,
   unlockedAvatars: [DEFAULT_AVATAR_ID],
   unlockedTitles: [DEFAULT_TITLE_ID],
   unlockedFrames: [DEFAULT_FRAME_ID],
@@ -72,9 +76,11 @@ export function normalizeGameProfile(value: Partial<GameProfile> = {}): GameProf
     displayName: cleanString(value.displayName, defaultGameProfile.displayName),
     equippedAvatarId: cleanString(value.equippedAvatarId, defaultGameProfile.equippedAvatarId),
     equippedSkinId: cleanString(value.equippedSkinId, defaultGameProfile.equippedSkinId),
-    equippedThemeId: cleanString(value.equippedThemeId, defaultGameProfile.equippedThemeId),
+    equippedThemeId: resolveProfileThemeId(cleanString(value.equippedThemeId, defaultGameProfile.equippedThemeId)),
     equippedTitleId: cleanString(value.equippedTitleId, defaultGameProfile.equippedTitleId),
     equippedFrameId: cleanString(value.equippedFrameId, defaultGameProfile.equippedFrameId),
+    typingXP: Math.max(0, Number(value.typingXP) || defaultGameProfile.typingXP),
+    level: Math.max(1, Number(value.level) || defaultGameProfile.level),
     unlockedAvatars: cleanStringArray(value.unlockedAvatars, defaultGameProfile.unlockedAvatars),
     unlockedTitles: cleanStringArray(value.unlockedTitles, defaultGameProfile.unlockedTitles),
     unlockedFrames: cleanStringArray(value.unlockedFrames, defaultGameProfile.unlockedFrames),

@@ -51,7 +51,7 @@ export default function AccountMenu({ variant = 'home' }: AccountMenuProps) {
 
   const buttonClass = variant === 'home'
     ? 'pointer-events-auto flex h-[58px] w-[176px] cursor-pointer items-center gap-2 rounded-[23px] border-2 border-white/35 bg-gradient-to-b from-[#78E0FF]/85 to-[#1472D8]/90 px-3 text-white shadow-[inset_0_-5px_0_rgba(0,38,91,.25),0_9px_16px_rgba(0,36,97,.24)]'
-    : 'flex min-w-44 cursor-pointer items-center gap-3 rounded-2xl border border-white/25 bg-white/12 px-3 py-2 text-white shadow-inner';
+    : 'flex h-[72px] w-full min-w-0 cursor-pointer items-center gap-3 rounded-[22px] border border-[#75D6C9]/35 bg-white/12 px-3 py-2 text-white shadow-[inset_0_0_18px_rgba(255,255,255,.08),0_10px_20px_rgba(0,0,0,.18)]';
 
   const avatarClass = variant === 'home'
     ? 'grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-white/75 bg-gradient-to-b from-[#D6FFF7] to-[#30BE69]'
@@ -64,7 +64,7 @@ export default function AccountMenu({ variant = 'home' }: AccountMenuProps) {
   };
 
   return (
-    <div className="pointer-events-auto relative">
+    <div className={cn('pointer-events-auto relative', variant === 'topbar' && 'w-full')}>
       <button type="button" className={buttonClass} onClick={() => setOpen((value) => !value)} aria-label="គណនីអ្នកលេង">
         <span className={avatarClass}>
           <GeneratedAvatar
@@ -72,6 +72,8 @@ export default function AccountMenu({ variant = 'home' }: AccountMenuProps) {
             skinStyleId={profile.equippedSkinId}
             themeId={profile.equippedThemeId}
             frameId={profile.equippedFrameId}
+            artStyle="illustration"
+            iconOnly
             level={level}
             size="100%"
             ariaLabel={`${displayName} avatar`}
@@ -85,7 +87,12 @@ export default function AccountMenu({ variant = 'home' }: AccountMenuProps) {
       </button>
 
       {open && (
-        <section className="absolute right-0 top-[calc(100%+10px)] z-[90] w-[286px] rounded-[22px] border-[3px] border-[#B9893E] bg-gradient-to-b from-[#FFF8DC] to-[#EFC36E] p-4 text-[#4D2D10] shadow-[0_18px_36px_rgba(0,24,64,.35)]">
+        <section
+          className={cn(
+            'absolute top-[calc(100%+10px)] z-[90] rounded-[22px] border-[3px] border-[#B9893E] bg-gradient-to-b from-[#FFF8DC] to-[#EFC36E] p-4 text-[#4D2D10] shadow-[0_18px_36px_rgba(0,24,64,.35)]',
+            variant === 'home' ? 'right-0 w-[286px]' : 'left-0 right-0 w-full',
+          )}
+        >
           <div className="font-black">គណនីរបស់អ្នក</div>
           <div className="mt-1 truncate text-sm font-bold text-[#65411F]">{session?.user?.email ?? (session?.mode === 'demo' ? 'Guest Adventure' : 'អ្នកលេង')}</div>
 

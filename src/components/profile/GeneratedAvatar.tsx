@@ -18,6 +18,7 @@ type GeneratedAvatarProps = {
   artStyle?: 'vector' | 'illustration';
   size?: number | string;
   showLevelBadge?: boolean;
+  iconOnly?: boolean;
   className?: string;
   ariaLabel?: string;
 };
@@ -201,6 +202,7 @@ export default function GeneratedAvatar({
   artStyle = 'vector',
   size = '100%',
   showLevelBadge = false,
+  iconOnly = false,
   className = '',
   ariaLabel,
 }: GeneratedAvatarProps) {
@@ -229,12 +231,16 @@ export default function GeneratedAvatar({
       aria-label={ariaLabel ?? `${avatar.name} generated avatar, level ${Math.max(1, Math.floor(level))}`}
     >
       {artStyle === 'illustration' ? (
-        <div className="relative h-full w-full overflow-hidden rounded-[9%] border-[min(6px,3%)] border-[var(--avatar-frame)] bg-[#071927] shadow-[0_0_0_2px_var(--avatar-frame-inner),0_18px_28px_rgba(0,0,0,.38),0_0_30px_var(--avatar-frame-glow)]">
-          <img src={artwork} alt="" className="h-full w-full scale-[1.04] object-cover saturate-[1.18] contrast-[1.08]" draggable={false} />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/22 via-transparent to-transparent" />
-          <div className="pointer-events-none absolute inset-0 opacity-45" style={{ background: `radial-gradient(circle at 72% 34%, ${theme.colors.glow}55, transparent 24%), linear-gradient(135deg, transparent 45%, ${skin.accentColor}22)` }} />
-          <div className="pointer-events-none absolute inset-[4%] rounded-[7%] border border-[#FFD66D]/35" />
-          {showLevelBadge && (
+        <div
+          className="relative h-full w-full overflow-hidden rounded-full border-[min(5px,2.5%)] border-[var(--avatar-frame)] shadow-[0_0_0_2px_var(--avatar-frame-inner),0_12px_22px_rgba(0,0,0,.28),0_0_20px_var(--avatar-frame-glow)]"
+          style={iconOnly ? {
+            backgroundImage: `linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.18)), url(${theme.artwork})`,
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+          } : undefined}
+        >
+          <img src={artwork} alt="" className="h-full w-full object-contain saturate-[1.16] contrast-[1.06]" draggable={false} />
+          {showLevelBadge && !iconOnly && (
             <span className="absolute bottom-[3%] left-1/2 grid h-[22%] min-h-8 min-w-10 -translate-x-1/2 place-items-center rounded-[18%] border-2 border-[#FFF6BE] bg-gradient-to-br from-[#5A3303] via-[#D99C28] to-[#FFE07A] px-3 text-[clamp(12px,24%,22px)] font-black leading-none text-[#FFF5C6] shadow-[0_8px_14px_rgba(0,0,0,.38),0_0_18px_rgba(255,211,91,.62)]">
               {Math.max(1, Math.floor(level))}
             </span>

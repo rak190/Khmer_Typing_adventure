@@ -25,7 +25,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { imageAssets } from '../assets/assetManifest';
-import { PLAYER_TITLES } from '../data/playerTitles';
 import { resetLessonProgressRecords } from '../data/mockData';
 import {
   getNextStructuredLesson,
@@ -37,7 +36,7 @@ import GameButton from '../components/game-ui/GameButton';
 import { AchievementsPanel, DailyQuestsPanel, SettingsPanel } from '../components/game-ui/FeaturePanels';
 import AppLayout from '../components/layout/AppLayout';
 import PageTransition from '../components/layout/PageTransition';
-import GeneratedAvatar from '../components/profile/GeneratedAvatar';
+import PlayerProfileBadge from '../components/profile/PlayerProfileBadge';
 import { claimDailyQuestReward, getActiveEconomyUserId } from '../lib/economy';
 import {
   buildAchievementProgress,
@@ -61,8 +60,6 @@ import {
   type StudentProgress,
 } from '../lib/studentProgress';
 import { useDailyQuestClaimIds, useEconomyState } from '../lib/useEconomyState';
-import { USER_PROFILE_EVENT } from '../lib/userProfile';
-import { loadCachedGameProfile } from '../services/profileService';
 
 type DashboardModal = 'details' | 'dailyQuests' | 'achievements' | 'settings' | 'messages' | null;
 
@@ -437,7 +434,6 @@ export default function DashboardPage() {
   const dailyQuestClaimIds = useDailyQuestClaimIds();
   const [progress, setProgress] = useState<StudentProgress>(() => safeLoadStudentProgress());
   const [settings, setSettings] = useState<AppSettings>(() => loadAppSettings());
-  const [profile, setProfile] = useState(() => loadCachedGameProfile());
   const [modal, setModal] = useState<DashboardModal>(null);
   const [featureMessage, setFeatureMessage] = useState('');
   const [claimingQuestId, setClaimingQuestId] = useState<string | null>(null);
@@ -467,7 +463,6 @@ export default function DashboardPage() {
   const longestStreak = Math.max(economy.longestStreak, stats.longestStreak);
   const unlockedAchievements = achievements.filter((achievement) => achievement.unlocked).length;
   const resetCountdown = formatResetCountdown(now);
-  const profileTitle = PLAYER_TITLES.find((item) => item.id === profile.equippedTitleId) ?? PLAYER_TITLES[0];
 
   useEffect(() => {
     const refreshProgress = () => {
@@ -483,12 +478,6 @@ export default function DashboardPage() {
       window.removeEventListener(STUDENT_PROGRESS_EVENT, refreshProgress);
       window.removeEventListener(PLAYER_FEATURES_EVENT, refreshProgress);
     };
-  }, []);
-
-  useEffect(() => {
-    const refreshProfile = () => setProfile(loadCachedGameProfile());
-    window.addEventListener(USER_PROFILE_EVENT, refreshProfile);
-    return () => window.removeEventListener(USER_PROFILE_EVENT, refreshProfile);
   }, []);
 
   useEffect(() => {
@@ -809,29 +798,10 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate('/profile')}
-                className="rounded-[20px] border-[3px] border-[#C99031] bg-[#062F35]/88 p-4 text-left shadow-[0_14px_32px_rgba(0,0,0,.28)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70"
+                className="rounded-[20px] text-left transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFE66B]/70"
                 aria-label="Open player profile"
               >
-                <div className="flex items-center gap-3">
-                  <span className="grid h-12 w-12 overflow-hidden rounded-full border-2 border-[#FFE17B] bg-[#0B4A50] text-[#FFE17B]">
-                    <GeneratedAvatar
-                      avatarId={profile.equippedAvatarId}
-                      skinStyleId={profile.equippedSkinId}
-                      themeId={profile.equippedThemeId}
-                      frameId={profile.equippedFrameId}
-                      level={displayLevel}
-                      size="100%"
-                      ariaLabel={`${profile.displayName || progress.studentName || 'Typing Hero'} avatar`}
-                    />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="khmer-body font-black text-[#FFE6A6]">{profile.displayName || progress.studentName || 'Typing Hero'}</div>
-                    <div className="text-sm font-bold text-[#D6F6EE]">{profileTitle.name} · Level {displayLevel} · {levelXP.current}/{levelXP.target} XP</div>
-                  </div>
-                </div>
-                <div className="mt-3 h-3 overflow-hidden rounded-full bg-black/32 shadow-inner">
-                  <div className="h-full rounded-full bg-gradient-to-r from-[#6DE24D] to-[#F7E55B]" style={{ width: `${levelXP.percent}%` }} />
-                </div>
+                <PlayerProfileBadge size="medium" showXP showTitle showLevel />
               </button>
             </section>
           </main>

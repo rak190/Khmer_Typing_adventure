@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Award, CheckCircle2, Clock, Flame, Gauge, Gem, HelpCircle, RotateCcw, Settings, ShieldAlert, Sparkles, Swords, Target, Trophy, Volume2, XCircle } from 'lucide-react';
+import { ArrowLeft, Award, CheckCircle2, Clock, Flame, Gauge, Gem, HelpCircle, RotateCcw, Settings, Sparkles, Swords, Target, Trophy, Volume2, XCircle } from 'lucide-react';
 import CharacterPlaceholder from '../components/characters/CharacterPlaceholder';
 import GameButton from '../components/game/GameButton';
 import KhmerKeyboard from '../components/game/KhmerKeyboard';
@@ -12,6 +12,7 @@ import ActionModal from '../components/game-ui/ActionModal';
 import { ComingSoonPanel, SettingsPanel } from '../components/game-ui/FeaturePanels';
 import PageTransition from '../components/layout/PageTransition';
 import GameIcon from '../components/game-ui/GameIcon';
+import PlayerProfileBadge from '../components/profile/PlayerProfileBadge';
 import { backgroundImages } from '../assets/assetManifest';
 import { getCurriculumLevel, getCurriculumWorld, lessonCurriculum } from '../data/lessonCurriculum';
 import { getStructuredLessonByRoute } from '../data/typingProgression';
@@ -58,6 +59,12 @@ type BossRunStats = {
   weakKeyStats: WeakKeyStatRecord;
 };
 type BossModal = 'help' | 'settings' | 'sound' | 'continueLocked' | 'noHearts' | null;
+type BattleCue = {
+  id: number;
+  kind: 'hit' | 'mistake' | 'wave' | 'defeat';
+  text: string;
+  combo: number;
+};
 
 function BattleResourceIcon({ name }: { name: 'coin' | 'gem' }) {
   return <GameIcon name={name} size={24} decorative={false} className="h-6 w-6" />;
@@ -157,6 +164,18 @@ function getPerformanceFeedback(accuracy: number, cpm: number, targetCPM: number
   return { label: `COMBO x${streak}`, detail: 'Keep the rhythm.', tone: 'neutral' as const };
 }
 
+function getPraiseForStreak(streak: number) {
+  if (streak >= 8) return 'AWESOME';
+  if (streak >= 5) return 'PERFECT';
+  if (streak >= 3) return 'GREAT';
+  return 'GOOD';
+}
+
+function getMistakeFeedback(streak: number) {
+  if (streak >= 4) return 'SLOW DOWN';
+  return streak === 0 ? 'TRY AGAIN' : 'OOPS';
+}
+
 export default function BattlePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -187,6 +206,7 @@ export default function BattlePage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [damage, setDamage] = useState<number | null>(null);
   const [attack, setAttack] = useState(false);
+  const [battleCue, setBattleCue] = useState<BattleCue | null>(null);
   const [stats, setStats] = useState<BossRunStats>(() => getInitialStats());
   const [newBadges, setNewBadges] = useState<StudentBadge[]>([]);
   const [modal, setModal] = useState<BossModal>(null);
@@ -198,6 +218,7 @@ export default function BattlePage() {
   const [attemptNonce, setAttemptNonce] = useState(0);
   const economy = useEconomyState();
   const progressSavedRef = useRef(false);
+  const cueIdRef = useRef(0);
 
   const currentWord = battleItems[Math.min(wordIndex, Math.max(0, battleItems.length - 1))] ?? 'សាលា';
   const currentUnits = useMemo(() => Array.from(normalizeKhmerText(currentWord)), [currentWord]);
@@ -292,6 +313,23 @@ export default function BattlePage() {
       };
     });
   }, [bossLesson.stages, completedPrompts]);
+  const waveEndPositions = useMemo(() => {
+    let cursor = 0;
+    return bossLesson.stages.map((stage) => {
+      cursor += stage.items.length;
+      return cursor;
+    });
+  }, [bossLesson.stages]);
+  const comboPower = Math.min(3, Math.floor(stats.streak / 3));
+
+  const showBattleCue = useCallback((kind: BattleCue['kind'], text: string, combo = 0) => {
+    cueIdRef.current += 1;
+    const id = cueIdRef.current;
+    setBattleCue({ id, kind, text, combo });
+    window.setTimeout(() => {
+      setBattleCue((current) => (current?.id === id ? null : current));
+    }, kind === 'wave' || kind === 'defeat' ? 980 : 620);
+  }, []);
 
   const completeCorrectWord = useCallback(() => {
     if (!bossReady || battleFinished) return;
@@ -300,6 +338,9 @@ export default function BattlePage() {
     const completedCount = Math.min(battleItems.length, wordIndex + 1);
     const nextBossHp = Math.max(0, Math.round(bossMaxHp * (1 - completedCount / Math.max(1, battleItems.length))));
     const nextDamage = Math.max(1, bossHp - nextBossHp);
+    const nextStreak = stats.streak + 1;
+    const waveCleared = waveEndPositions.includes(completedCount) && completedCount < battleItems.length;
+    const defeated = completedCount >= battleItems.length;
 
     setStats((current) => {
       const nextStreak = current.streak + 1;
@@ -316,11 +357,13 @@ export default function BattlePage() {
     setTyped('');
     setDamage(nextDamage);
     setAttack(true);
+    showBattleCue(defeated ? 'defeat' : waveCleared ? 'wave' : 'hit', defeated ? 'VICTORY!' : waveCleared ? 'Wave Cleared' : getPraiseForStreak(nextStreak), nextStreak);
     window.setTimeout(() => setAttack(false), 420);
     window.setTimeout(() => setDamage(null), 800);
-  }, [battleFinished, battleItems.length, bossHp, bossMaxHp, bossReady, currentWord, wordIndex]);
+  }, [battleFinished, battleItems.length, bossHp, bossMaxHp, bossReady, currentWord, showBattleCue, stats.streak, waveEndPositions, wordIndex]);
 
   const registerMistake = useCallback((expectedValue: string) => {
+    showBattleCue('mistake', getMistakeFeedback(stats.streak), 0);
     setStats((current) => ({
       ...current,
       mistakes: current.mistakes + 1,
@@ -328,7 +371,7 @@ export default function BattlePage() {
       weakKeyStats: addWeakKeyStat(current.weakKeyStats, expectedValue, 'mistakes'),
     }));
     setPlayerHp((hp) => Math.max(0, hp - 8));
-  }, []);
+  }, [showBattleCue, stats.streak]);
 
   const submitWord = useCallback(() => {
     if (!bossReady || !typed || battleFinished) return;
@@ -500,6 +543,7 @@ export default function BattlePage() {
     setPlayerHp(100);
     setDamage(null);
     setAttack(false);
+    setBattleCue(null);
     setStats(getInitialStats());
     setElapsedSeconds(0);
     setNewBadges([]);
@@ -572,15 +616,7 @@ export default function BattlePage() {
         <div className="boss-battle-grid relative z-10 grid min-h-0 gap-2 2xl:grid-cols-[220px_minmax(0,1fr)_230px] xl:grid-cols-[190px_minmax(0,1fr)_205px] lg:grid-cols-[165px_minmax(0,1fr)_180px] md:grid-cols-[145px_minmax(0,1fr)_160px]">
           <aside className="boss-side-stack grid min-h-0 gap-2">
             <BossPanel className="boss-player-panel">
-              <div className="flex items-center gap-2">
-                <div className="grid h-10 w-10 place-items-center rounded-[13px] bg-gradient-to-b from-[#4CE982] to-[#16723A] text-white shadow-[0_0_18px_rgba(76,233,130,.22)]">
-                  <ShieldAlert size={22} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-black uppercase tracking-wide text-white/58">Player</div>
-                  <h2 className="truncate text-lg font-black leading-none">Student Hero</h2>
-                </div>
-              </div>
+              <PlayerProfileBadge size="small" showTitle={false} showLevel />
               <div className="mt-2 grid grid-cols-2 gap-1.5 text-center">
                 <div className="rounded-[11px] bg-white/8 px-2 py-1.5">
                   <div className="text-xs font-black uppercase text-white/58">Streak</div>
@@ -610,16 +646,40 @@ export default function BattlePage() {
 
           <main className="boss-arena-panel relative grid min-h-0 grid-rows-[minmax(0,1fr)] overflow-hidden rounded-[24px] p-2.5 shadow-2xl">
             <div className="relative z-10 grid min-h-0 items-center gap-2 md:grid-cols-[minmax(130px,.62fr)_minmax(340px,1.35fr)_minmax(140px,.68fr)] lg:grid-cols-[minmax(150px,.68fr)_minmax(390px,1.28fr)_minmax(160px,.72fr)]">
-              <div className="boss-fighter-side boss-fighter-side--player relative min-h-[235px]">
+              <div className={`boss-fighter-side boss-fighter-side--player relative min-h-[235px] ${comboPower > 0 ? `boss-fighter-side--combo-${comboPower}` : ''} ${battleCue?.kind === 'mistake' ? 'boss-fighter-side--recoil' : ''}`}>
                 <div className="boss-fighter-name left-3 top-3">
                   <span>Student</span>
                   <strong>Typing Hero</strong>
                 </div>
-                <CharacterPlaceholder type="elephant" className="boss-player-character mx-auto" />
-                {attack && <motion.div className="boss-attack-beam" initial={{ scaleX: 0, opacity: 0.8 }} animate={{ scaleX: 1, opacity: 0 }} transition={{ duration: 0.42 }} />}
+                <div className="boss-character-stage boss-character-stage--player">
+                  <span className="boss-character-glow boss-character-glow--player" />
+                  <CharacterPlaceholder type="elephant" className={`boss-player-character mx-auto ${attack ? 'boss-player-character--attack' : ''}`} />
+                  <span className="boss-character-platform boss-character-platform--player" />
+                </div>
+                {attack && (
+                  <motion.div
+                    className="boss-attack-beam"
+                    initial={{ scaleX: 0, opacity: 0.9 }}
+                    animate={{ scaleX: 1, opacity: 0 }}
+                    transition={{ duration: 0.42, ease: 'easeOut' }}
+                  />
+                )}
               </div>
 
               <div className="boss-typing-column relative mx-auto w-full max-w-[680px]">
+                {battleCue && (
+                  <motion.div
+                    key={battleCue.id}
+                    className={`boss-flow-feedback boss-flow-feedback--${battleCue.kind}`}
+                    initial={{ y: 14, scale: 0.92, opacity: 0 }}
+                    animate={{ y: 0, scale: 1, opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    <span>{battleCue.text}</span>
+                    {battleCue.combo >= 3 && <small>Combo x{battleCue.combo}</small>}
+                  </motion.div>
+                )}
                 <motion.div
                   key={`${performanceFeedback.label}-${stats.streak}-${correctPrefix}`}
                   className={`boss-combo-banner boss-combo-banner--${performanceFeedback.tone}`}
@@ -631,7 +691,7 @@ export default function BattlePage() {
                   <small>{performanceFeedback.detail}</small>
                 </motion.div>
 
-                <div className={`boss-prompt-card relative mt-2 rounded-[22px] px-4 py-3 text-center ${correctPrefix ? 'boss-prompt-card--active' : 'boss-prompt-card--danger'}`}>
+                <div className={`boss-prompt-card relative mt-2 rounded-[22px] px-4 py-3 text-center ${correctPrefix ? 'boss-prompt-card--active' : 'boss-prompt-card--danger'} ${battleCue?.kind === 'mistake' ? 'boss-prompt-card--mistake' : ''}`}>
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <span className="rounded-full bg-[#0B4B5F]/12 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#0C5364]">{waveLabel}</span>
                     <span className="rounded-full bg-[#FFE47A]/40 px-3 py-1 text-xs font-black text-[#6B4512]">Wave {currentWave.index + 1} / {bossLesson.stages.length}</span>
@@ -666,15 +726,19 @@ export default function BattlePage() {
                 </div>
               </div>
 
-              <div className="boss-fighter-side boss-fighter-side--enemy relative min-h-[245px]">
+              <div className={`boss-fighter-side boss-fighter-side--enemy relative min-h-[245px] ${battleCue?.kind === 'hit' || battleCue?.kind === 'wave' ? 'boss-fighter-side--hit' : ''} ${bossDefeated ? 'boss-fighter-side--defeated' : ''}`}>
                 <div className="boss-fighter-name right-3 top-3 text-right">
                   <span>Boss</span>
                   <strong>{bossLesson.labelEn}</strong>
                 </div>
-                <CharacterPlaceholder type="guardian" className="boss-enemy-character mx-auto" />
+                <div className="boss-character-stage boss-character-stage--enemy">
+                  <span className="boss-character-glow boss-character-glow--enemy" />
+                  <CharacterPlaceholder type="guardian" className={`boss-enemy-character mx-auto ${battleCue?.kind === 'hit' || battleCue?.kind === 'wave' ? 'boss-enemy-character--hit' : ''} ${bossDefeated ? 'boss-enemy-character--defeated' : ''}`} />
+                  <span className="boss-character-platform boss-character-platform--enemy" />
+                </div>
                 {damage && (
                   <motion.div
-                    className="absolute left-1/2 top-24 z-20 text-6xl font-black text-[#FF8D74] drop-shadow-[0_0_18px_rgba(255,80,65,.85)]"
+                    className="boss-damage-popup absolute left-1/2 top-24 z-20 text-6xl font-black text-[#FF8D74] drop-shadow-[0_0_18px_rgba(255,80,65,.85)]"
                     initial={{ opacity: 0, y: 24, scale: 0.6 }}
                     animate={{ opacity: 1, y: -36, scale: 1 }}
                   >
@@ -683,6 +747,17 @@ export default function BattlePage() {
                 )}
               </div>
             </div>
+            {battleCue?.kind === 'wave' && (
+              <motion.div
+                key={`wave-${battleCue.id}`}
+                className="boss-wave-clear-moment"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                Wave Cleared
+              </motion.div>
+            )}
 
           </main>
 
