@@ -1,6 +1,13 @@
+import jungleThemeArt from '../assets/profile/theme-jungle.jpg';
+import sunsetThemeArt from '../assets/profile/theme-sunset.jpg';
+import nightSkyThemeArt from '../assets/profile/theme-night-sky.jpg';
+import mysticRuinsThemeArt from '../assets/profile/theme-mystic-ruins.jpg';
+import iceRealmThemeArt from '../assets/profile/theme-ice-realm.jpg';
+
 export type ProfileThemeConfig = {
   id: string;
   name: string;
+  artwork: string;
   colors: {
     sky: string;
     horizon: string;
@@ -15,7 +22,8 @@ export type ProfileThemeConfig = {
 export const PROFILE_THEMES: ProfileThemeConfig[] = [
   {
     id: 'angkor_night',
-    name: 'Angkor Night',
+    name: 'Jungle',
+    artwork: jungleThemeArt,
     colors: {
       sky: '#09182C',
       horizon: '#183E56',
@@ -28,20 +36,22 @@ export const PROFILE_THEMES: ProfileThemeConfig[] = [
   },
   {
     id: 'forest_realm',
-    name: 'Forest Realm',
+    name: 'Sunset',
+    artwork: sunsetThemeArt,
     colors: {
-      sky: '#0D2A24',
-      horizon: '#1B6A4B',
-      ground: '#14371F',
-      accent: '#87E05B',
-      glow: '#D9FF9C',
+      sky: '#2E1726',
+      horizon: '#B55833',
+      ground: '#3E2516',
+      accent: '#FFB85A',
+      glow: '#FFD08C',
     },
     defaultUnlocked: true,
     unlockRequirement: 'Unlocked by default.',
   },
   {
     id: 'crystal_cave',
-    name: 'Crystal Cave',
+    name: 'Night Sky',
+    artwork: nightSkyThemeArt,
     colors: {
       sky: '#122045',
       horizon: '#3356A6',
@@ -54,13 +64,14 @@ export const PROFILE_THEMES: ProfileThemeConfig[] = [
   },
   {
     id: 'flame_keep',
-    name: 'Flame Keep',
+    name: 'Mystic Ruins',
+    artwork: mysticRuinsThemeArt,
     colors: {
-      sky: '#2B1110',
-      horizon: '#7B2D16',
-      ground: '#3B1D0E',
-      accent: '#FFB048',
-      glow: '#FFE38C',
+      sky: '#071F2C',
+      horizon: '#0D605D',
+      ground: '#153D34',
+      accent: '#45D6B9',
+      glow: '#BDF7DE',
     },
     defaultUnlocked: true,
     unlockRequirement: 'Unlocked by default.',
@@ -68,6 +79,7 @@ export const PROFILE_THEMES: ProfileThemeConfig[] = [
   {
     id: 'jade_palace',
     name: 'Jade Palace',
+    artwork: mysticRuinsThemeArt,
     colors: {
       sky: '#082A2B',
       horizon: '#0F8A78',
@@ -80,7 +92,8 @@ export const PROFILE_THEMES: ProfileThemeConfig[] = [
   },
   {
     id: 'storm_citadel',
-    name: 'Storm Citadel',
+    name: 'Ice Realm',
+    artwork: iceRealmThemeArt,
     colors: {
       sky: '#141C34',
       horizon: '#45547D',

@@ -161,6 +161,16 @@ export async function updateDisplayName(uid: string | undefined, name: string) {
   });
 }
 
+export function saveProfile(uid: string | undefined, profile: Pick<GameProfile, 'displayName' | 'equippedAvatarId' | 'equippedSkinId' | 'equippedThemeId' | 'equippedTitleId'>) {
+  return updateProfileFields(uid, {
+    displayName: profile.displayName.trim().replace(/\s+/g, ' '),
+    equippedAvatarId: profile.equippedAvatarId,
+    equippedSkinId: profile.equippedSkinId,
+    equippedThemeId: profile.equippedThemeId,
+    equippedTitleId: profile.equippedTitleId,
+  });
+}
+
 export function updateEquippedAvatar(uid: string | undefined, avatarId: string) {
   return updateProfileFields(uid, { equippedAvatarId: avatarId });
 }
