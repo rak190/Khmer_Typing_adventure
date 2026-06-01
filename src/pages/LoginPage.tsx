@@ -1,14 +1,24 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { LockKeyhole, Mail, Play, Shield, Sparkles, UserPlus } from 'lucide-react';
 import GameButton from '../components/game-ui/GameButton';
 import GameIcon from '../components/game-ui/GameIcon';
 import LizardMascot from '../components/characters/LizardMascot';
 import PageTransition from '../components/layout/PageTransition';
 import { backgroundImages, imageAssets } from '../assets/assetManifest';
-import { createAccountWithEmail, firebaseEnabled, signInAsGuest, signInWithEmail, signInWithGoogle } from '../lib/firebase';
+import { createAccountWithEmail, firebaseEnabled, firebaseStatusMessage, signInAsGuest, signInWithEmail, signInWithGoogle } from '../lib/firebase';
+import { demoAuthFallbackEnabled } from '../config/environment';
 
 type LoginMode = 'login' | 'create';
+
+const publicLinks = [
+  { label: 'Lessons', to: '/lessons' },
+  { label: 'Typing Practice', to: '/typing-practice' },
+  { label: 'Keyboard Guide', to: '/khmer-keyboard-guide' },
+  { label: 'Parents & Teachers', to: '/parents-teachers' },
+  { label: 'Help', to: '/help' },
+  { label: 'Privacy', to: '/privacy' },
+];
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -17,6 +27,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const authUnavailable = !firebaseEnabled && !demoAuthFallbackEnabled;
 
   const submit = async () => {
     setBusy(true);
@@ -128,7 +139,7 @@ export default function LoginPage() {
               className="mt-5 space-y-4"
               onSubmit={(event) => {
                 event.preventDefault();
-                submit();
+                if (!authUnavailable) void submit();
               }}
             >
               <label className="block">
@@ -155,30 +166,38 @@ export default function LoginPage() {
                 />
               </label>
 
-              {error && (
+              {(error || authUnavailable) && (
                 <div className="rounded-[18px] border-2 border-[#E1493D] bg-[#FFE8E4] px-4 py-3 text-sm font-black text-[#9C221D]">
-                  {error}
+                  {error || firebaseStatusMessage}
                 </div>
               )}
 
-              <GameButton type="submit" variant="green" size="xl" className="h-[68px] w-full rounded-[24px] text-[22px]" rightIcon={mode === 'login' ? <Play size={28} /> : <UserPlus size={28} />} disabled={busy}>
+              <GameButton type="submit" variant="green" size="xl" className="h-[68px] w-full rounded-[24px] text-[22px]" rightIcon={mode === 'login' ? <Play size={28} /> : <UserPlus size={28} />} disabled={busy || authUnavailable}>
                 {busy ? 'កំពុងដំណើរការ...' : mode === 'login' ? 'ចូល Adventure' : 'បង្កើតគណនី'}
               </GameButton>
             </form>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <GameButton variant="blue" size="md" className="h-[54px] rounded-[20px]" onClick={googleLogin} disabled={busy}>
+              <GameButton variant="blue" size="md" className="h-[54px] rounded-[20px]" onClick={googleLogin} disabled={busy || authUnavailable}>
                 Google Login
               </GameButton>
-              <GameButton variant="gold" size="md" className="h-[54px] rounded-[20px]" onClick={quickStart} disabled={busy}>
+              <GameButton variant="gold" size="md" className="h-[54px] rounded-[20px]" onClick={quickStart} disabled={busy || authUnavailable}>
                 ចូលជា Guest
               </GameButton>
             </div>
 
             <div className="mt-4 flex items-center gap-2 rounded-[18px] border-2 border-[#C99A55] bg-[#FFF8E4] px-4 py-3 text-xs font-black text-[#6B4A24]">
               <Shield size={22} className="text-[#159447]" />
-              {firebaseEnabled ? 'Firebase progress saving is ready for classroom practice.' : 'Firebase config is missing. Progress can only stay in memory for this session.'}
+              {firebaseEnabled ? 'Firebase progress saving is ready for classroom practice.' : firebaseStatusMessage}
             </div>
+
+            <nav className="mt-4 flex flex-wrap justify-center gap-2 text-xs font-black text-[#0B3A80]" aria-label="Public learning pages">
+              {publicLinks.map((link) => (
+                <Link key={link.to} to={link.to} className="rounded-full bg-white/70 px-3 py-2 transition hover:bg-white hover:text-[#146FE1]">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
           </div>
         </section>
       </main>

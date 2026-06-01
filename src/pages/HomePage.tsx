@@ -41,11 +41,11 @@ import {
 
 const navItems = [
   { label: 'ទំព័រដើម', to: '/', icon: Home, active: true },
-  { label: 'មេរៀន', to: '/lesson', icon: BookOpen, chevron: true },
-  { label: 'Mini-Games', to: '/battle', icon: Gamepad2 },
-  { label: 'Boss Battles', to: '/battle', icon: Swords },
-  { label: 'តារាងពិន្ទុ', to: '/dashboard', icon: Trophy },
-  { label: 'សម្រាប់គ្រូ', to: '/dashboard', icon: Users },
+  { label: 'Lessons', to: '/lessons', icon: BookOpen, chevron: true },
+  { label: 'Practice', to: '/typing-practice', icon: Gamepad2 },
+  { label: 'Boss Battles Login', to: '/battle', icon: Swords },
+  { label: 'Progress Login', to: '/dashboard', icon: Trophy },
+  { label: 'Teachers', to: '/parents-teachers', icon: Users },
 ];
 
 const loveItems = [
@@ -67,6 +67,34 @@ const pathStages = [
 
 const badgeVariants = ['newbie', 'rising-star', 'skilled', 'boss-slayer', 'legend'] as const;
 const stageKhmerLabels = ['ព្យញ្ជនៈ', 'ស្រៈ', 'ពាក្យងាយ', 'ប្រយោគ', 'មេប្រយុទ្ធ', ''];
+
+const footerGroups = [
+  {
+    title: 'Quick Links',
+    links: [
+      { label: 'Lessons', to: '/lessons' },
+      { label: 'Typing Practice', to: '/typing-practice' },
+      { label: 'Keyboard Guide', to: '/khmer-keyboard-guide' },
+    ],
+  },
+  {
+    title: 'Support',
+    links: [
+      { label: 'Help Center', to: '/help' },
+      { label: 'Contact Us', to: '/contact' },
+      { label: 'Privacy Policy', to: '/privacy' },
+    ],
+  },
+  {
+    title: 'About',
+    links: [
+      { label: 'About Us', to: '/about' },
+      { label: 'Parents & Teachers', to: '/parents-teachers' },
+      { label: 'Blog', to: '/blog' },
+      { label: 'Terms', to: '/terms' },
+    ],
+  },
+];
 
 function TopNav({ onOpenModal }: { onOpenModal: (modal: HomeModal) => void }) {
   const economy = useEconomyState();
@@ -232,17 +260,17 @@ export default function HomePage() {
               <span className="block text-[#1576EA]">Become a Typing Hero!</span>
             </h1>
             <p className="mt-5 w-[520px] text-[21px] font-extrabold leading-[1.42] text-[#17325A]">
-              An exciting adventure to master Khmer typing for <span className="font-black">Grade 3-9 students.</span>
+              Built to help learners practice Khmer typing with lessons, progress tracking, and typing challenges.
             </p>
             <div className="mt-7 flex items-center gap-5">
               <Link to="/map" className="pointer-events-auto inline-flex cursor-pointer">
                 <GameButton size="xl" variant="gold" rightIcon={<Play size={27} />} className="h-[70px] min-w-[330px] rounded-[36px] text-[25px]">
-                  Start Adventure
+                  Start Adventure Login
                 </GameButton>
               </Link>
-              <Link to="/lesson" className="pointer-events-auto inline-flex cursor-pointer">
+              <Link to="/typing-practice" className="pointer-events-auto inline-flex cursor-pointer">
                 <GameButton size="lg" variant="white" leftIcon={<Keyboard size={24} />} className="h-[62px] min-w-[190px] rounded-[34px] border-[#2376E6] text-[20px]">
-                  Try Demo
+                  Public Practice
                 </GameButton>
               </Link>
             </div>
@@ -329,22 +357,22 @@ export default function HomePage() {
             <div className="flex h-full w-[880px] shrink-0 items-center gap-4 pl-[390px]">
               <GraduationCap className="shrink-0 text-[#176DE2] drop-shadow" size={44} />
               <div className="min-w-0">
-                <div className="whitespace-nowrap text-[21px] font-black leading-tight text-[#0B3A80]">Trusted by Teachers. Loved by Students.</div>
-                <div className="whitespace-nowrap text-[12px] font-extrabold text-[#51637D]">Aligned with Cambodian curriculum standards.</div>
+                <div className="whitespace-nowrap text-[21px] font-black leading-tight text-[#0B3A80]">Built to help learners practice Khmer typing.</div>
+                <div className="whitespace-nowrap text-[12px] font-extrabold text-[#51637D]">Designed for students, teachers, and self-learners.</div>
               </div>
             </div>
             <div className="ml-2 flex flex-1 items-center justify-between gap-6">
               {[
-                { icon: Users, value: '120K+', label: 'Happy Students', color: 'text-[#2AB559]' },
-                { icon: Trophy, value: '2,500+', label: 'Schools', color: 'text-[#F28C16]' },
-                { icon: Timer, value: '95%', label: 'Teacher Approval', color: 'text-[#F3A913]' },
+                { icon: Users, value: 'Safe', label: 'Student Practice', color: 'text-[#2AB559]' },
+                { icon: Trophy, value: 'CPM', label: 'Khmer Speed Metric', color: 'text-[#F28C16]' },
+                { icon: Timer, value: 'Clear', label: 'Accuracy Feedback', color: 'text-[#F3A913]' },
               ].map((stat) => {
                 const Icon = stat.icon;
                 return (
                   <div key={stat.label} className="flex min-w-[182px] items-center gap-3">
                     <Icon className={stat.color} size={38} />
                     <div>
-                      <div className="text-[27px] font-black leading-none text-[#1370E6]">{stat.value}</div>
+                      <div className="text-[24px] font-black leading-none text-[#1370E6]">{stat.value}</div>
                       <div className="text-[12px] font-bold text-[#40506B]">{stat.label}</div>
                     </div>
                   </div>
@@ -355,34 +383,24 @@ export default function HomePage() {
 
           <footer className="absolute bottom-0 left-0 z-30 h-[92px] w-full overflow-hidden rounded-t-[18px] bg-gradient-to-b from-[#075AC9] via-[#0047A6] to-[#00317E] px-[76px] py-2 text-white shadow-[0_-10px_20px_rgba(0,54,118,.18)]">
             <div className="grid h-full grid-cols-[300px_300px_260px_250px_1fr] items-start gap-14">
-              <img src={imageAssets.logo} alt="" className="mt-[-8px] h-[108px] w-[258px] object-contain drop-shadow-[0_8px_10px_rgba(0,18,70,.28)]" />
-              <div>
-                <div className="mb-1 text-[12px] font-black">Quick Links</div>
-                <div className="space-y-0.5 text-[11px] font-bold leading-tight text-white/86">
-                  <div>Lessons</div>
-                  <div>Mini-Games</div>
-                  <div>Boss Battles</div>
+              <Link to="/" className="pointer-events-auto">
+                <img src={imageAssets.logo} alt="Khmer Typing Adventure" className="mt-[-8px] h-[108px] w-[258px] object-contain drop-shadow-[0_8px_10px_rgba(0,18,70,.28)]" />
+              </Link>
+              {footerGroups.map((group) => (
+                <div key={group.title}>
+                  <div className="mb-1 text-[12px] font-black">{group.title}</div>
+                  <div className="space-y-0.5 text-[11px] font-bold leading-tight text-white/86">
+                    {group.links.map((link) => (
+                      <Link key={link.to} to={link.to} className="pointer-events-auto block hover:text-white hover:underline">
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ))}
               <div>
-                <div className="mb-1 text-[12px] font-black">Support</div>
-                <div className="space-y-0.5 text-[11px] font-bold leading-tight text-white/86">
-                  <div>Help Center</div>
-                  <div>Contact Us</div>
-                  <div>Privacy Policy</div>
-                </div>
-              </div>
-              <div>
-                <div className="mb-1 text-[12px] font-black">About</div>
-                <div className="space-y-0.5 text-[11px] font-bold leading-tight text-white/86">
-                  <div>About Us</div>
-                  <div>Blog</div>
-                  <div>Careers</div>
-                </div>
-              </div>
-              <div>
-                <div className="mb-1 text-[12px] font-black">Follow Us</div>
-                <div className="mb-1 flex gap-2">
+                <div className="mb-1 text-[12px] font-black">Project</div>
+                <div className="hidden">
                   {[
                     { item: 'f', color: 'from-[#4AA4FF] to-[#2668E5]' },
                     { item: '▶', color: 'from-[#FF5B54] to-[#D91B20]' },
@@ -395,7 +413,7 @@ export default function HomePage() {
                   ))}
                 </div>
                 <div className="text-[10px] font-bold leading-tight text-white/78">
-                  <div>Made with love in Cambodia</div>
+                  <div>Built for Khmer typing practice</div>
                   <div>Copyright 2026 Khmer Typing Adventure</div>
                 </div>
               </div>

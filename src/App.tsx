@@ -15,6 +15,21 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ShopPage = lazy(() => import('./pages/ShopPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const DesignSystemPage = lazy(() => import('./pages/DesignSystemPage'));
+const PublicInfoPage = lazy(() => import('./pages/PublicInfoPage'));
+const internalRoutesEnabled = import.meta.env.DEV;
+
+const publicRoutes = new Set([
+  '/about',
+  '/contact',
+  '/privacy',
+  '/terms',
+  '/help',
+  '/parents-teachers',
+  '/blog',
+  '/lessons',
+  '/khmer-keyboard-guide',
+  '/typing-practice',
+]);
 
 function ProtectedRoute({ session, children }: { session: AppSession | null; children: ReactNode }) {
   if (!session) {
@@ -63,7 +78,8 @@ export default function App() {
   const location = useLocation();
   const [session, setSession] = useState<AppSession | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
-  const isPublicRoute = location.pathname === '/design-system';
+  const isInternalRoute = internalRoutesEnabled && location.pathname === '/design-system';
+  const isPublicRoute = publicRoutes.has(location.pathname) || isInternalRoute;
 
   useEffect(() => {
     try {
@@ -120,7 +136,17 @@ export default function App() {
             <Route path="/dashboard" element={<ProtectedRoute session={session}><DashboardPage /></ProtectedRoute>} />
             <Route path="/shop" element={<ProtectedRoute session={session}><ShopPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute session={session}><ProfilePage /></ProtectedRoute>} />
-            <Route path="/design-system" element={<DesignSystemPage />} />
+            {internalRoutesEnabled && <Route path="/design-system" element={<DesignSystemPage />} />}
+            <Route path="/about" element={<PublicInfoPage />} />
+            <Route path="/contact" element={<PublicInfoPage />} />
+            <Route path="/privacy" element={<PublicInfoPage />} />
+            <Route path="/terms" element={<PublicInfoPage />} />
+            <Route path="/help" element={<PublicInfoPage />} />
+            <Route path="/parents-teachers" element={<PublicInfoPage />} />
+            <Route path="/blog" element={<PublicInfoPage />} />
+            <Route path="/lessons" element={<PublicInfoPage />} />
+            <Route path="/khmer-keyboard-guide" element={<PublicInfoPage />} />
+            <Route path="/typing-practice" element={<PublicInfoPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </RouteErrorBoundary>

@@ -88,8 +88,8 @@ export default function DesignSystemPage() {
               <GameSidebarItem icon="quests" khmer="បេសកកម្ម" subtitle="Daily Quests" active />
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <GameStatCard icon={<Home />} value="120K+" label="Students" tone="green" />
-              <GameStatCard icon={<BookOpen />} value="95%" label="Accuracy" tone="gold" />
+              <GameStatCard icon={<Home />} value="Practice" label="Khmer Typing" tone="green" />
+              <GameStatCard icon={<BookOpen />} value="Lessons" label="Learning Path" tone="gold" />
             </div>
           </GameCard>
         </div>
