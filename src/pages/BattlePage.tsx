@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Award, CheckCircle2, Clock, Flame, Gauge, Gem, HelpCircle, RotateCcw, Settings, Sparkles, Swords, Target, Trophy, Volume2, XCircle } from 'lucide-react';
@@ -14,6 +14,7 @@ import PageTransition from '../components/layout/PageTransition';
 import GameIcon from '../components/game-ui/GameIcon';
 import PlayerProfileBadge from '../components/profile/PlayerProfileBadge';
 import { backgroundImages } from '../assets/assetManifest';
+import { getWorldBossArt } from '../data/bosses';
 import { getCurriculumLevel, getCurriculumWorld, lessonCurriculum } from '../data/lessonCurriculum';
 import { getStructuredLessonByRoute } from '../data/typingProgression';
 import {
@@ -183,6 +184,12 @@ export default function BattlePage() {
   const requestedWorldId = Number(searchParams.get('world') ?? 1);
   const world = getCurriculumWorld(Number.isFinite(requestedWorldId) ? requestedWorldId : 1) ?? lessonCurriculum[0];
   const bossLesson = getCurriculumLevel(world.id, 'boss') ?? lessonCurriculum[0].levels.find((level) => level.id === 'boss') ?? lessonCurriculum[0].levels[0];
+  const bossArt = getWorldBossArt(world.id);
+  const bossArtStyle = useMemo(() => ({
+    '--boss-accent': bossArt.accent,
+    '--boss-glow': bossArt.glow,
+    '--boss-platform': bossArt.platform,
+  }) as CSSProperties, [bossArt]);
   const structuredBossLesson = getStructuredLessonByRoute(world.id, 'boss');
   const battleItems = useMemo(() => bossLesson.stages.flatMap((stage) => stage.items).filter(Boolean), [bossLesson]);
   const targetText = useMemo(() => battleItems.join(' '), [battleItems]);
@@ -564,52 +571,37 @@ export default function BattlePage() {
     <PageTransition className="h-screen overflow-hidden text-white">
       <div
         className="boss-battle-page boss-battle-shell relative h-screen overflow-hidden px-3 py-3 lg:px-4"
-        style={{ backgroundImage: `url(${backgroundImages.battle})` }}
+        style={{ backgroundImage: `url(${backgroundImages.bossBattle})` }}
       >
-        <header className="boss-battle-header relative z-20 flex items-center gap-3 rounded-[20px] px-3 py-2">
-          <Link to="/map" className="shrink-0">
-            <Logo compact={false} className="origin-left scale-[.58] sm:scale-[.68] lg:scale-75" />
+        <header className="boss-battle-header relative z-20 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-1">
+          <Link to="/map" className="boss-header-logo justify-self-start">
+            <Logo compact={false} className="origin-left scale-[.5] sm:scale-[.58] lg:scale-[.64]" />
           </Link>
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-3 text-center">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] border border-[#FFE47A]/40 bg-[#0A3A48]/70 text-[#FFE47A] shadow-[0_0_18px_rgba(255,228,122,.18)]">
-              <Swords size={23} />
+          <div className="boss-title-plaque flex min-w-0 items-center justify-center gap-2 justify-self-center text-center">
+            <span className="boss-title-icon grid h-8 w-8 shrink-0 place-items-center rounded-[12px] text-[#FFE47A]">
+              <Swords size={20} />
             </span>
             <div className="min-w-0">
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9FEAFF]">Temple Jungle Boss</div>
-              <h1 className="truncate text-xl font-black leading-tight sm:text-2xl">{world.title} Boss Battle</h1>
-              <div className="truncate text-xs font-black text-white/72">Pass with {bossTargets.minimumAccuracy}% accuracy and {bossTargets.targetCPM} CPM target</div>
+              <h1 className="boss-title-text truncate text-lg font-black leading-tight sm:text-xl">{world.title} Boss Battle</h1>
+              <div className="truncate text-xs font-black text-white/82">Pass with <span className="text-[#78FF9F]">{bossTargets.minimumAccuracy}%</span> accuracy and <span className="text-[#7ED8FF]">{bossTargets.targetCPM} CPM</span> target</div>
             </div>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <StatPill icon={<BattleResourceIcon name="coin" />} value={economy.coins} tone="dark" className="min-h-10 rounded-[14px] px-3 py-1.5" />
-            <StatPill icon={<BattleResourceIcon name="gem" />} value={economy.gems} tone="dark" className="min-h-10 rounded-[14px] px-3 py-1.5" />
-            <button type="button" onClick={() => setModal('settings')} className="grid h-10 w-10 place-items-center rounded-[14px] bg-gradient-to-b from-[#1F9BFF] to-[#073E8B] shadow-button" aria-label="Settings">
+          <div className="flex items-center gap-2 justify-self-end">
+            <StatPill icon={<BattleResourceIcon name="coin" />} value={economy.coins} tone="dark" className="min-h-9 rounded-[14px] px-3 py-1" />
+            <StatPill icon={<BattleResourceIcon name="gem" />} value={economy.gems} tone="dark" className="min-h-9 rounded-[14px] px-3 py-1" />
+            <button type="button" onClick={() => setModal('settings')} className="grid h-9 w-9 place-items-center rounded-[14px] bg-gradient-to-b from-[#1F9BFF] to-[#073E8B] shadow-button" aria-label="Settings">
               <Settings size={19} />
             </button>
             <GameButton variant="blue" size="sm" icon={<HelpCircle />} onClick={() => setModal('help')}>Help</GameButton>
           </div>
         </header>
 
-        <section className="boss-battle-hud relative z-10 grid items-center gap-2 rounded-[18px] px-3 py-2 lg:grid-cols-[minmax(155px,.9fr)_minmax(420px,1.7fr)_minmax(155px,.9fr)]">
-          <div>
-            <div className="mb-1 flex justify-between text-[10px] font-black uppercase tracking-wide text-white/70">
-              <span>Player HP</span>
-              <span>{playerHp}/100</span>
-            </div>
-            <ProgressBar value={playerHp} max={100} color="green" showValue />
-          </div>
-          <div className="boss-hud-metrics flex min-w-0 items-center justify-center gap-2">
+        <section className="boss-battle-hud relative z-10 rounded-[18px] px-3 py-1">
+          <div className="boss-hud-metrics mx-auto flex min-w-0 max-w-[760px] items-center justify-center gap-2">
             <BossHudItem label="Accuracy" value={`${bossResult.accuracy}%`} icon={<Target size={18} />} tone={bossResult.accuracy >= bossTargets.minimumAccuracy ? 'green' : 'gold'} />
             <BossHudItem label="CPM" value={bossResult.cpm} icon={<Gauge size={18} />} tone={bossResult.cpm >= bossTargets.targetCPM ? 'green' : 'blue'} />
             <BossHudItem label="Mistakes" value={stats.mistakes} icon={<XCircle size={18} />} tone={stats.mistakes > 0 ? 'red' : 'gold'} />
-            <BossHudItem label="Time" value={`${timer}s`} icon={<Clock size={18} />} tone={timer < 25 ? 'red' : 'gold'} />
-          </div>
-          <div>
-            <div className="mb-1 flex justify-between text-[10px] font-black uppercase tracking-wide text-white/70">
-              <span>Boss HP</span>
-              <span>{bossHp}/{bossMaxHp}</span>
-            </div>
-            <ProgressBar value={bossHp} max={bossMaxHp} color="red" showValue />
+            <BossHudItem label="Time" value={formatElapsedTime(timer)} icon={<Clock size={18} />} tone={timer < 25 ? 'red' : 'gold'} />
           </div>
         </section>
 
@@ -617,14 +609,21 @@ export default function BattlePage() {
           <aside className="boss-side-stack grid min-h-0 gap-2">
             <BossPanel className="boss-player-panel">
               <PlayerProfileBadge size="small" showTitle={false} showLevel />
+              <div className="mt-2 rounded-[12px] bg-white/8 px-2 py-1.5">
+                <div className="mb-1 flex justify-between text-xs font-black uppercase text-white/72">
+                  <span>HP</span>
+                  <span>{playerHp}/100</span>
+                </div>
+                <ProgressBar value={playerHp} max={100} color="green" showValue />
+              </div>
               <div className="mt-2 grid grid-cols-2 gap-1.5 text-center">
                 <div className="rounded-[11px] bg-white/8 px-2 py-1.5">
-                  <div className="text-xs font-black uppercase text-white/58">Streak</div>
-                  <div className="text-2xl font-black text-[#FFE47A]">{stats.streak}</div>
+                  <div className="flex items-center justify-center gap-1 text-xs font-black uppercase text-white/58"><Flame size={14} className="text-[#FF8D74]" /> Streak</div>
+                  <div className="text-2xl font-black text-white">{stats.streak}</div>
                 </div>
                 <div className="rounded-[11px] bg-white/8 px-2 py-1.5">
-                  <div className="text-xs font-black uppercase text-white/58">Best</div>
-                  <div className="text-2xl font-black text-[#9FEAFF]">{stats.bestStreak}</div>
+                  <div className="flex items-center justify-center gap-1 text-xs font-black uppercase text-white/58"><GameIcon name="star" size={15} /> Best</div>
+                  <div className="text-2xl font-black text-white">{stats.bestStreak}</div>
                 </div>
               </div>
               <div className="mt-2 rounded-[11px] bg-[#FFE47A]/14 px-2 py-1.5 text-center">
@@ -638,19 +637,15 @@ export default function BattlePage() {
               <div className="grid gap-1.5">
                 <BossGoalRow label="Accuracy" value={`${bossTargets.minimumAccuracy}%`} />
                 <BossGoalRow label="CPM" value={bossTargets.targetCPM} />
-                <BossGoalRow label="Prompts" value={battleItems.length} />
-                <BossGoalRow label="Timer" value={formatElapsedTime(initialTimer)} />
+                <BossGoalRow label="Mistakes" value="≤ 3" />
+                <BossGoalRow label="Time Limit" value={formatElapsedTime(initialTimer)} />
               </div>
             </BossPanel>
           </aside>
 
-          <main className="boss-arena-panel relative grid min-h-0 grid-rows-[minmax(0,1fr)] overflow-hidden rounded-[24px] p-2.5 shadow-2xl">
-            <div className="relative z-10 grid min-h-0 items-center gap-2 md:grid-cols-[minmax(130px,.62fr)_minmax(340px,1.35fr)_minmax(140px,.68fr)] lg:grid-cols-[minmax(150px,.68fr)_minmax(390px,1.28fr)_minmax(160px,.72fr)]">
-              <div className={`boss-fighter-side boss-fighter-side--player relative min-h-[235px] ${comboPower > 0 ? `boss-fighter-side--combo-${comboPower}` : ''} ${battleCue?.kind === 'mistake' ? 'boss-fighter-side--recoil' : ''}`}>
-                <div className="boss-fighter-name left-3 top-3">
-                  <span>Student</span>
-                  <strong>Typing Hero</strong>
-                </div>
+          <main className="boss-arena-panel relative grid min-h-0 grid-rows-[minmax(0,1fr)] overflow-visible rounded-[24px] p-2.5 shadow-2xl">
+            <div className="relative z-10 grid min-h-0 items-center gap-1 md:grid-cols-[minmax(150px,.86fr)_minmax(330px,1.08fr)_minmax(170px,.92fr)] lg:grid-cols-[minmax(185px,.9fr)_minmax(380px,1.02fr)_minmax(205px,.98fr)]">
+              <div className={`boss-fighter-side boss-fighter-side--player relative min-h-[275px] ${comboPower > 0 ? `boss-fighter-side--combo-${comboPower}` : ''} ${battleCue?.kind === 'mistake' ? 'boss-fighter-side--recoil' : ''}`}>
                 <div className="boss-character-stage boss-character-stage--player">
                   <span className="boss-character-glow boss-character-glow--player" />
                   <CharacterPlaceholder type="elephant" className={`boss-player-character mx-auto ${attack ? 'boss-player-character--attack' : ''}`} />
@@ -692,9 +687,13 @@ export default function BattlePage() {
                 </motion.div>
 
                 <div className={`boss-prompt-card relative mt-2 rounded-[22px] px-4 py-3 text-center ${correctPrefix ? 'boss-prompt-card--active' : 'boss-prompt-card--danger'} ${battleCue?.kind === 'mistake' ? 'boss-prompt-card--mistake' : ''}`}>
-                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="boss-wave-ribbon absolute left-1/2 top-0 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full px-5 py-1 text-sm font-black uppercase tracking-wide">
+                    <Sparkles size={15} />
+                    <span>Wave {currentWave.index + 1} / {bossLesson.stages.length}</span>
+                    <Sparkles size={15} />
+                  </div>
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2 pt-2">
                     <span className="rounded-full bg-[#0B4B5F]/12 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#0C5364]">{waveLabel}</span>
-                    <span className="rounded-full bg-[#FFE47A]/40 px-3 py-1 text-xs font-black text-[#6B4512]">Wave {currentWave.index + 1} / {bossLesson.stages.length}</span>
                     <button type="button" onClick={() => setModal('sound')} className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-b from-[#1F9BFF] to-[#073E8B] text-white shadow-button" aria-label="Play word sound">
                       <Volume2 size={19} />
                     </button>
@@ -708,32 +707,21 @@ export default function BattlePage() {
                   <div className="mt-2 text-center text-xs font-black text-[#24536A]">Type the boss phrase exactly, then press Enter if needed.</div>
                 </div>
 
-                <div className="boss-timer-meter mt-2 rounded-[14px] p-2">
-                  <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] font-black uppercase tracking-wide text-white/68">
-                    <span>Battle Timer</span>
-                    <span>{waveProgressPercent}% complete</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="h-4 flex-1 overflow-hidden rounded-full border border-white/18 bg-black/22">
-                      <motion.div
-                        className={`h-full rounded-full ${timer < 25 ? 'bg-gradient-to-r from-[#FF5C4A] to-[#FFE47A]' : 'bg-gradient-to-r from-[#2FD06F] via-[#FFE47A] to-[#7ED8FF]'}`}
-                        animate={{ width: `${timerPercent}%` }}
-                        transition={{ duration: 0.25 }}
-                      />
-                    </div>
-                    <div className={`rounded-full px-3 py-1.5 text-base font-black ${timer < 25 ? 'bg-[#A32A1E] text-white' : 'bg-[#FFE47A] text-[#17325A]'}`}>{timer}s</div>
-                  </div>
-                </div>
               </div>
 
-              <div className={`boss-fighter-side boss-fighter-side--enemy relative min-h-[245px] ${battleCue?.kind === 'hit' || battleCue?.kind === 'wave' ? 'boss-fighter-side--hit' : ''} ${bossDefeated ? 'boss-fighter-side--defeated' : ''}`}>
-                <div className="boss-fighter-name right-3 top-3 text-right">
-                  <span>Boss</span>
-                  <strong>{bossLesson.labelEn}</strong>
-                </div>
+              <div
+                className={`boss-fighter-side boss-fighter-side--enemy relative min-h-[290px] ${battleCue?.kind === 'hit' || battleCue?.kind === 'wave' ? 'boss-fighter-side--hit' : ''} ${bossDefeated ? 'boss-fighter-side--defeated' : ''}`}
+                style={bossArtStyle}
+              >
                 <div className="boss-character-stage boss-character-stage--enemy">
                   <span className="boss-character-glow boss-character-glow--enemy" />
-                  <CharacterPlaceholder type="guardian" className={`boss-enemy-character mx-auto ${battleCue?.kind === 'hit' || battleCue?.kind === 'wave' ? 'boss-enemy-character--hit' : ''} ${bossDefeated ? 'boss-enemy-character--defeated' : ''}`} />
+                  <img
+                    src={bossArt.image}
+                    alt={bossArt.name}
+                    className={`boss-enemy-character boss-enemy-character--art mx-auto ${battleCue?.kind === 'hit' || battleCue?.kind === 'wave' ? 'boss-enemy-character--hit' : ''} ${bossDefeated ? 'boss-enemy-character--defeated' : ''}`}
+                    decoding="async"
+                    draggable={false}
+                  />
                   <span className="boss-character-platform boss-character-platform--enemy" />
                 </div>
                 {damage && (
@@ -766,7 +754,7 @@ export default function BattlePage() {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-wide text-white/58">Boss</div>
-                  <h3 className="text-lg font-black leading-tight">{bossLesson.labelEn}</h3>
+                  <h3 className="text-lg font-black leading-tight">{bossArt.name}</h3>
                 </div>
                 <Flame className="text-[#FF8D74]" size={25} />
               </div>
@@ -782,8 +770,8 @@ export default function BattlePage() {
                   <span className="text-[10px] font-black uppercase tracking-wide text-white/58">Current Wave</span>
                   <span className="rounded-full bg-[#FFE47A]/18 px-2 py-0.5 text-xs font-black text-[#FFE47A]">{currentWave.index + 1}/{bossLesson.stages.length}</span>
                 </div>
-                <div className="mt-1 text-sm font-black text-white">{waveLabel}</div>
-                <div className="text-[11px] font-black uppercase text-white/52">{currentWave.stage?.items.length ?? 0} prompts</div>
+                <div className="mt-1 text-center text-2xl font-black text-[#FFE47A]">{currentWave.index + 1} / {bossLesson.stages.length}</div>
+                <div className="text-center text-[11px] font-black uppercase text-white/52">{waveLabel}</div>
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {waveSummaries.map(({ stage, index, completed, current }) => (
@@ -819,7 +807,25 @@ export default function BattlePage() {
         </div>
 
         <div className="boss-keyboard-dock relative z-10">
-          <KhmerKeyboard onKeyPress={handlePress} activeKey={settings.keyboardHintsEnabled ? activeKey : ''} compact />
+          <div className="boss-timer-meter boss-keyboard-timer mx-auto mb-1.5 rounded-[14px] p-2">
+            <div className="flex items-center gap-3">
+              <span className="hidden text-[11px] font-black uppercase tracking-wide text-white/68 sm:inline">Battle Timer</span>
+              <div className="h-4 flex-1 overflow-hidden rounded-full border border-white/18 bg-black/22">
+                <motion.div
+                  className={`h-full rounded-full ${timer < 25 ? 'bg-gradient-to-r from-[#FF5C4A] to-[#FFE47A]' : 'bg-gradient-to-r from-[#2FD06F] via-[#7ED8FF] to-[#2FD06F]'}`}
+                  animate={{ width: `${timerPercent}%` }}
+                  transition={{ duration: 0.25 }}
+                />
+              </div>
+              <div className={`rounded-full px-3 py-1 text-sm font-black ${timer < 25 ? 'bg-[#A32A1E] text-white' : 'bg-[#061B2F] text-white'}`}>
+                {formatElapsedTime(timer)} / {formatElapsedTime(initialTimer)}
+              </div>
+              <span className="hidden text-[11px] font-black uppercase tracking-wide text-white/68 md:inline">{waveProgressPercent}% complete</span>
+            </div>
+          </div>
+          <div className="boss-keyboard-scale">
+            <KhmerKeyboard onKeyPress={handlePress} activeKey={settings.keyboardHintsEnabled ? activeKey : ''} />
+          </div>
         </div>
 
         {battleFinished && (

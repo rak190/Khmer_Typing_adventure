@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://example.com/</loc>
+  </url>
+  <url>
+    <loc>https://example.com/about</loc>
+  </url>
+  <url>
+    <loc>https://example.com/contact</loc>
+  </url>
+  <url>
+    <loc>https://example.com/privacy</loc>
+  </url>
+  <url>
+    <loc>https://example.com/terms</loc>
+  </url>
+  <url>
+    <loc>https://example.com/help</loc>
+  </url>
+  <url>
+    <loc>https://example.com/parents-teachers</loc>
+  </url>
+  <url>
+    <loc>https://example.com/blog</loc>
+  </url>
+  <url>
+    <loc>https://example.com/lessons</loc>
+  </url>
+  <url>
+    <loc>https://example.com/khmer-keyboard-guide</loc>
+  </url>
+  <url>
+    <loc>https://example.com/typing-practice</loc>
+  </url>
+</urlset>

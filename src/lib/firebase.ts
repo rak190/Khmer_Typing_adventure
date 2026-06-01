@@ -12,6 +12,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import { demoAuthFallbackEnabled, firebaseConfigComplete, getFirebaseConfigMessage } from '../config/environment';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -23,16 +24,8 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-const requiredFirebaseConfig = [
-  firebaseConfig.apiKey,
-  firebaseConfig.authDomain,
-  firebaseConfig.projectId,
-  firebaseConfig.storageBucket,
-  firebaseConfig.messagingSenderId,
-  firebaseConfig.appId,
-];
-
-export const firebaseEnabled = requiredFirebaseConfig.every(Boolean);
+export const firebaseEnabled = firebaseConfigComplete;
+export const firebaseStatusMessage = getFirebaseConfigMessage();
 
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
@@ -42,6 +35,8 @@ if (firebaseEnabled) {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
+} else if (import.meta.env.DEV) {
+  console.warn(firebaseStatusMessage);
 }
 
 export { app, auth, db };
@@ -68,6 +63,11 @@ function setDemoSession(userId: string) {
 
 export function subscribeToSession(onChange: (session: AppSession | null) => void) {
   if (!auth) {
+    if (!demoAuthFallbackEnabled) {
+      onChange(null);
+      return () => undefined;
+    }
+
     onChange(getDemoSession());
     const updateDemoSession = () => onChange(getDemoSession());
     window.addEventListener(DEMO_SESSION_EVENT, updateDemoSession);
@@ -81,48 +81,61 @@ export function subscribeToSession(onChange: (session: AppSession | null) => voi
   });
 }
 
-export async function signInWithEmail(email: string, password: string) {
+function requireAuth() {
   if (!auth) {
+    if (demoAuthFallbackEnabled) return null;
+    throw new Error(firebaseStatusMessage);
+  }
+
+  return auth;
+}
+
+export async function signInWithEmail(email: string, password: string) {
+  const activeAuth = requireAuth();
+  if (!activeAuth) {
     const userId = `demo-${Date.now()}`;
     setDemoSession(userId);
     return { mode: 'demo' as const, userId };
   }
 
-  const credential = await signInWithEmailAndPassword(auth, email, password);
+  const credential = await signInWithEmailAndPassword(activeAuth, email, password);
   return { mode: 'firebase' as const, userId: credential.user.uid, user: credential.user };
 }
 
 export async function createAccountWithEmail(email: string, password: string) {
-  if (!auth) {
+  const activeAuth = requireAuth();
+  if (!activeAuth) {
     const userId = `demo-${Date.now()}`;
     setDemoSession(userId);
     return { mode: 'demo' as const, userId };
   }
 
-  const credential = await createUserWithEmailAndPassword(auth, email, password);
+  const credential = await createUserWithEmailAndPassword(activeAuth, email, password);
   return { mode: 'firebase' as const, userId: credential.user.uid, user: credential.user };
 }
 
 export async function signInWithGoogle() {
-  if (!auth) {
+  const activeAuth = requireAuth();
+  if (!activeAuth) {
     const userId = `demo-${Date.now()}`;
     setDemoSession(userId);
     return { mode: 'demo' as const, userId };
   }
 
   const provider = new GoogleAuthProvider();
-  const credential = await signInWithPopup(auth, provider);
+  const credential = await signInWithPopup(activeAuth, provider);
   return { mode: 'firebase' as const, userId: credential.user.uid, user: credential.user };
 }
 
 export async function signInAsGuest() {
-  if (!auth) {
+  const activeAuth = requireAuth();
+  if (!activeAuth) {
     const userId = `demo-${Date.now()}`;
     setDemoSession(userId);
     return { mode: 'demo' as const, userId };
   }
 
-  const credential = await signInAnonymously(auth);
+  const credential = await signInAnonymously(activeAuth);
   return { mode: 'firebase' as const, userId: credential.user.uid, user: credential.user };
 }
 
@@ -141,5 +154,5 @@ export async function ensureFirebaseSession() {
     return { mode: 'firebase' as const, userId: auth.currentUser.uid, user: auth.currentUser };
   }
 
-  return getDemoSession();
+  return demoAuthFallbackEnabled ? getDemoSession() : null;
 }
