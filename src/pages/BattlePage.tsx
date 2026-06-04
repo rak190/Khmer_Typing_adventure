@@ -564,11 +564,11 @@ export default function BattlePage() {
     <PageTransition className="h-screen overflow-hidden text-white">
       <div
         className="boss-battle-page boss-battle-shell relative h-screen overflow-hidden px-3 py-3 lg:px-4"
-        style={{ backgroundImage: `url(${backgroundImages.battle})` }}
+        style={{ backgroundImage: `url(${backgroundImages.bossBattle})` }}
       >
         <header className="boss-battle-header relative z-20 items-center gap-3 rounded-[20px] px-3 py-2">
           <Link to="/map" className="shrink-0">
-            <Logo compact={false} className="origin-left scale-[.58] sm:scale-[.68] lg:scale-75" />
+            <Logo compact className="origin-left scale-[.72] sm:scale-[.78] lg:scale-[.82]" />
           </Link>
           <div className="boss-title-plaque flex min-w-0 flex-1 items-center justify-center gap-3 text-center">
             <span className="boss-title-icon grid h-10 w-10 shrink-0 place-items-center rounded-[14px] border border-[#FFE47A]/40 bg-[#0A3A48]/70 text-[#FFE47A] shadow-[0_0_18px_rgba(255,228,122,.18)]">
@@ -637,7 +637,7 @@ export default function BattlePage() {
           </aside>
 
           <main className="boss-arena-panel relative grid min-h-0 grid-rows-[minmax(0,1fr)] overflow-hidden rounded-[24px] p-2.5 shadow-2xl">
-            <div className="relative z-10 grid min-h-0 items-center gap-2 md:grid-cols-[minmax(130px,.62fr)_minmax(340px,1.35fr)_minmax(140px,.68fr)] lg:grid-cols-[minmax(150px,.68fr)_minmax(390px,1.28fr)_minmax(160px,.72fr)]">
+            <div className="boss-arena-stage relative z-10 grid min-h-0 items-center gap-2 md:grid-cols-[minmax(130px,.62fr)_minmax(340px,1.35fr)_minmax(140px,.68fr)] lg:grid-cols-[minmax(150px,.68fr)_minmax(390px,1.28fr)_minmax(160px,.72fr)]">
               <div className={`boss-fighter-side boss-fighter-side--player relative min-h-[235px] ${comboPower > 0 ? `boss-fighter-side--combo-${comboPower}` : ''} ${battleCue?.kind === 'mistake' ? 'boss-fighter-side--recoil' : ''}`}>
                 <div className="boss-fighter-name left-3 top-3">
                   <span>Student</span>
