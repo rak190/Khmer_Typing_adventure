@@ -957,7 +957,7 @@ a:focus-visible {
 
 .boss-battle-page {
   background-color: #052c31;
-  background-position: center 46%;
+  background-position: center center;
   background-size: cover;
   isolation: isolate;
 }
@@ -973,28 +973,29 @@ a:focus-visible {
 
 .boss-battle-page::before {
   background:
-    linear-gradient(180deg, rgba(11, 37, 37, 0.1) 0%, rgba(8, 27, 34, 0.08) 46%, rgba(4, 17, 24, 0.32) 100%),
-    radial-gradient(ellipse at 50% 44%, rgba(255, 224, 114, 0.16), transparent 34%);
+    linear-gradient(180deg, rgba(5, 23, 20, 0.08) 0%, rgba(4, 18, 24, 0.03) 48%, rgba(5, 15, 12, 0.18) 100%),
+    radial-gradient(ellipse at 50% 52%, rgba(255, 224, 114, 0.08), transparent 34%);
 }
 
 .boss-battle-page::after {
   inset-inline: 0;
   top: auto;
-  height: 42%;
-  background: linear-gradient(180deg, transparent, rgba(5, 18, 18, 0.28));
+  height: 24%;
+  background: linear-gradient(180deg, transparent, rgba(5, 18, 18, 0.2));
 }
 
 .boss-battle-shell {
   display: grid;
+  height: 100svh;
   min-height: 100svh;
   grid-template-rows: auto auto minmax(0, 1fr) auto auto;
-  gap: clamp(0.28rem, 0.7vh, 0.5rem);
+  gap: clamp(0.22rem, 0.55vh, 0.46rem);
 }
 
 .boss-battle-header {
   display: grid;
   grid-template-columns: minmax(104px, 0.62fr) minmax(0, 1.38fr) minmax(270px, 0.72fr);
-  min-height: clamp(4.25rem, 9vh, 5.7rem);
+  min-height: clamp(3.7rem, 7.2vh, 5rem);
 }
 
 .boss-title-plaque {
@@ -1052,9 +1053,9 @@ a:focus-visible {
 
 .boss-battle-hud {
   justify-self: center;
-  width: min(690px, 58vw);
+  width: min(650px, 58vw);
   border: 1px solid rgba(126, 216, 255, 0.28);
-  background: linear-gradient(90deg, rgba(2, 25, 43, 0.84), rgba(7, 49, 70, 0.78), rgba(2, 25, 43, 0.84));
+  background: linear-gradient(90deg, rgba(2, 25, 43, 0.68), rgba(7, 49, 70, 0.62), rgba(2, 25, 43, 0.68));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
     0 8px 18px rgba(0, 10, 16, 0.2);
@@ -1066,9 +1067,9 @@ a:focus-visible {
 }
 
 .boss-hud-item {
-  min-width: clamp(7.25rem, 11vw, 9.8rem);
+  min-width: clamp(6.7rem, 10vw, 9rem);
   border: 1px solid rgba(126, 216, 255, 0.22);
-  background: linear-gradient(180deg, rgba(4, 31, 57, 0.94), rgba(1, 21, 38, 0.9));
+  background: linear-gradient(180deg, rgba(4, 31, 57, 0.82), rgba(1, 21, 38, 0.78));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
     0 5px 10px rgba(0, 10, 16, 0.14);
@@ -1079,7 +1080,7 @@ a:focus-visible {
 .boss-arena-panel {
   border: 1px solid rgba(255, 205, 89, 0.3);
   background:
-    linear-gradient(180deg, rgba(7, 49, 70, 0.82), rgba(2, 27, 43, 0.78));
+    linear-gradient(180deg, rgba(7, 49, 70, 0.64), rgba(2, 27, 43, 0.58));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
     0 10px 20px rgba(0, 10, 16, 0.2);
@@ -1087,7 +1088,7 @@ a:focus-visible {
 
 .boss-battle-header {
   background:
-    linear-gradient(90deg, rgba(4, 35, 47, 0.3), rgba(12, 62, 64, 0.24), rgba(4, 35, 47, 0.3));
+    linear-gradient(90deg, rgba(4, 35, 47, 0.2), rgba(12, 62, 64, 0.16), rgba(4, 35, 47, 0.2));
   box-shadow: none;
 }
 
@@ -1190,10 +1191,15 @@ a:focus-visible {
 .boss-arena-panel {
   overflow: visible;
   border-color: transparent;
-  background:
-    radial-gradient(ellipse at 50% 72%, rgba(255, 228, 122, 0.14), transparent 36%),
-    linear-gradient(180deg, rgba(31, 90, 81, 0.08), rgba(16, 56, 60, 0.1));
+  background: transparent;
   box-shadow: none;
+}
+
+.boss-arena-stage {
+  display: block;
+  position: relative;
+  height: 100%;
+  min-height: clamp(220px, 34vh, 560px);
 }
 
 .boss-metric-card,
@@ -1206,44 +1212,55 @@ a:focus-visible {
 
 .boss-battle-grid {
   align-items: stretch;
+  justify-self: center;
+  width: min(100%, 1680px);
 }
 
 .boss-side-stack {
   align-content: start;
 }
 
+.boss-typing-column {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 10;
+  width: clamp(420px, 54%, 680px);
+  transform: translate(-50%, -50%);
+}
+
 .boss-fighter-side {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  width: clamp(178px, 19.5%, 282px);
+  height: clamp(214px, 82%, 390px);
+  transform: translateY(-50%);
   border-radius: 20px;
-  background:
-    radial-gradient(ellipse at 50% 78%, rgba(255, 228, 122, 0.16), transparent 36%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(17, 80, 70, 0.04));
+  min-height: 0;
+  background: transparent;
   overflow: visible;
 }
 
 .boss-fighter-side--enemy {
-  box-shadow:
-    inset 0 0 46px rgba(255, 92, 74, 0.12),
-    0 0 0 rgba(255, 92, 74, 0);
+  right: clamp(0.1rem, 1vw, 1.25rem);
+  box-shadow: none;
 }
 
 .boss-fighter-side--player {
-  box-shadow:
-    inset 0 0 48px rgba(255, 228, 122, 0.12),
-    0 0 0 rgba(255, 228, 122, 0);
+  left: clamp(0.1rem, 1vw, 1.25rem);
+  box-shadow: none;
 }
 
 .boss-fighter-side--combo-1 {
-  box-shadow:
-    inset 0 0 54px rgba(255, 228, 122, 0.16),
-    0 0 16px rgba(255, 228, 122, 0.1);
+  transform: translateY(-50%);
+  filter: drop-shadow(0 0 12px rgba(255, 228, 122, 0.18));
 }
 
 .boss-fighter-side--combo-2,
 .boss-fighter-side--combo-3 {
-  box-shadow:
-    inset 0 0 64px rgba(255, 228, 122, 0.22),
-    0 0 24px rgba(255, 228, 122, 0.16);
+  transform: translateY(-50%);
+  filter: drop-shadow(0 0 18px rgba(255, 228, 122, 0.24));
 }
 
 .boss-fighter-side--hit {
@@ -1284,10 +1301,18 @@ a:focus-visible {
 
 .boss-character-stage {
   position: absolute;
-  inset: clamp(1.6rem, 4.4vh, 2.3rem) 0 0;
+  inset: 0;
   display: grid;
   place-items: center;
   pointer-events: none;
+}
+
+.boss-character-stage--player {
+  transform: translateY(4%);
+}
+
+.boss-character-stage--enemy {
+  transform: translateY(1%);
 }
 
 .boss-character-glow {
@@ -1297,7 +1322,7 @@ a:focus-visible {
   aspect-ratio: 1;
   border-radius: 999px;
   filter: blur(10px);
-  opacity: 0.72;
+  opacity: 0.56;
   animation: bossGlowPulse 2.8s ease-in-out infinite;
 }
 
@@ -1313,10 +1338,10 @@ a:focus-visible {
 
 .boss-character-platform {
   position: absolute;
-  bottom: 0.4rem;
+  bottom: clamp(0.25rem, 1vh, 0.8rem);
   z-index: 0;
-  width: 72%;
-  height: 1.45rem;
+  width: 86%;
+  height: clamp(1.4rem, 3vh, 2.2rem);
   border-radius: 999px;
   filter: blur(0.5px);
 }
@@ -1337,8 +1362,8 @@ a:focus-visible {
 .boss-player-character {
   position: relative;
   z-index: 1;
-  height: clamp(180px, 28vh, 248px);
-  width: clamp(158px, 24vh, 218px);
+  height: clamp(226px, 92%, 318px);
+  width: clamp(200px, 80%, 282px);
   filter:
     drop-shadow(0 24px 22px rgba(0, 0, 0, 0.2))
     drop-shadow(0 0 20px rgba(255, 228, 122, 0.24));
@@ -1353,8 +1378,8 @@ a:focus-visible {
 .boss-enemy-character {
   position: relative;
   z-index: 1;
-  height: clamp(190px, 29vh, 260px);
-  width: clamp(168px, 25vh, 230px);
+  height: clamp(242px, 96%, 342px);
+  width: clamp(214px, 84%, 306px);
   filter:
     drop-shadow(0 26px 22px rgba(0, 0, 0, 0.32))
     drop-shadow(0 0 18px rgba(255, 92, 74, 0.22));
@@ -1511,7 +1536,7 @@ a:focus-visible {
     inset 0 0 0 2px rgba(255, 244, 194, 0.72),
     inset 0 2px 0 rgba(255, 255, 255, 0.56),
     0 0 26px rgba(255, 228, 122, 0.28),
-    0 14px 28px rgba(0, 18, 24, 0.26);
+    0 12px 24px rgba(0, 18, 24, 0.22);
 }
 
 .boss-wave-ribbon {
@@ -1620,13 +1645,13 @@ a:focus-visible {
 @keyframes bossPlayerRecoil {
   0%,
   100% {
-    transform: translateX(0);
+    transform: translateY(-50%) translateX(0);
   }
   35% {
-    transform: translateX(-4px);
+    transform: translateY(-50%) translateX(-4px);
   }
   68% {
-    transform: translateX(3px);
+    transform: translateY(-50%) translateX(3px);
   }
 }
 
@@ -1742,7 +1767,7 @@ a:focus-visible {
 
 .boss-timer-meter {
   margin-inline: auto;
-  width: min(560px, 96%);
+  width: min(520px, 96%);
 }
 
 .boss-timer-dock {
@@ -1989,44 +2014,10 @@ a:focus-visible {
     padding: 0.55rem;
   }
 
-  .boss-lesson-keyboard--compact {
-    min-width: 940px;
-    padding-bottom: 0.5rem;
-    padding-top: 0.5rem;
-  }
-
-  .boss-lesson-keyboard--compact .lesson-stone-key {
-    height: 34px;
-    min-width: 40px;
-    font-size: 18px;
-  }
-
-  .boss-lesson-keyboard--compact .lesson-stone-key:is(.lesson-key--special) {
-    font-size: 12px;
-  }
-
-  .boss-player-character {
-    height: 202px;
-    width: 178px;
-  }
-
-  .boss-enemy-character {
-    height: 210px;
-    width: 186px;
-  }
-
-  .boss-character-stage {
-    inset: 1.9rem 0 0;
-  }
-
   .boss-combo-banner {
     min-height: 32px;
     padding-bottom: 0.28rem;
     padding-top: 0.28rem;
-  }
-
-  .boss-fighter-side {
-    min-height: 198px;
   }
 
   .boss-prompt-text {
@@ -2085,16 +2076,6 @@ a:focus-visible {
 
   .boss-keyboard-dock .boss-keyboard-scroll {
     width: min(940px, 94vw);
-  }
-
-  .boss-lesson-keyboard--compact {
-    min-width: 920px;
-  }
-
-  .boss-lesson-keyboard--compact .lesson-stone-key {
-    height: 34px;
-    min-width: 40px;
-    font-size: 18px;
   }
 
   .boss-battle-header .game-button {

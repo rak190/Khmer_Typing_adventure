@@ -13,6 +13,7 @@ import homeBackground from './backgrounds/home-background.png';
 import worldMapBackground from './backgrounds/world-map-background.png';
 import lessonBackground from './backgrounds/lesson-background.png';
 import battleBackground from './backgrounds/battle-background.png';
+import bossBattleBackground from './backgrounds/boss-battle-background.png';
 import leftHandTyping from './hands/left-hand-typing.png';
 import rightHandTyping from './hands/right-hand-typing.png';
 import world1 from './map/world-1.png';
@@ -42,6 +43,7 @@ export const imageAssets = {
     worldMap: worldMapBackground,
     lesson: lessonBackground,
     battle: battleBackground,
+    bossBattle: bossBattleBackground,
   },
   hands: {
     leftTyping: leftHandTyping,
