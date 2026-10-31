@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 type WebGLFallbackProps = {
   message?: string;
@@ -7,6 +7,8 @@ type WebGLFallbackProps = {
 
 export default function WebGLFallback({ message }: WebGLFallbackProps) {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const lessonQuery = new URLSearchParams({ world: params.get('world') ?? '1', level: params.get('level') ?? '1' });
 
   return (
     <div
@@ -39,7 +41,7 @@ export default function WebGLFallback({ message }: WebGLFallbackProps) {
           <button
             type="button"
             data-testid="three-fallback-lesson-btn"
-            onClick={() => navigate('/lesson')}
+            onClick={() => navigate(`/lesson?${lessonQuery}`)}
             className="flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-3 font-bold text-slate-950 transition hover:bg-amber-400 active:scale-95"
           >
             <ArrowLeft className="h-4 w-4" />

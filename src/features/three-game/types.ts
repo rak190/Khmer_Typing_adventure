@@ -1,5 +1,13 @@
+import type { AdventureNodeId } from '../../data/adventureWorlds';
 import type { KhmerKeyboardKey, KeyboardModifier } from '../../data/keyboardMap';
+import type {
+  CurriculumLevel,
+  CurriculumStage,
+  LessonStageKind,
+} from '../../data/lessonCurriculum';
 import type { FingerId } from '../../lib/fingerGuidance';
+import type { TypingMetricResult } from '../../lib/typingMetrics';
+
 
 export type GameMode = 'exploration' | 'typing' | 'opening' | 'completed';
 
@@ -69,4 +77,67 @@ export type PrototypeReward = {
   cpm: number;
   totalSessionXp: number;
   totalSessionCoins: number;
+};
+
+export type StageProgressState = {
+  stageId: string;
+  stageIndex: number;
+  status: GateStatus;
+  attempts: number;
+  passed: boolean;
+  bestAccuracy: number;
+  bestCpm: number;
+  bestScore: number;
+  bestStars: number;
+  lastMetrics: TypingMetricResult | null;
+  completedCount: number;
+  incorrectCount: number;
+  backspaceCount: number;
+  bestStreak: number;
+  elapsedMs: number;
+  totalUnits: number;
+  typedText: string;
+};
+
+export type StageCompletionSummary = {
+  stageIndex: number;
+  stageId: string;
+  titleKh: string;
+  titleEn: string;
+  kind: LessonStageKind;
+  minimumAccuracy: number;
+  passed: boolean;
+  metrics: TypingMetricResult;
+  isFinalStage: boolean;
+};
+
+
+export type ThreeLessonConfig = {
+  worldId: number;
+  worldNameKh: string;
+  worldNameEn: string;
+  lesson: CurriculumLevel;
+  stages: CurriculumStage[];
+  lessonMinimumAccuracy: number;
+  lessonSpeedTargetCpm: number;
+};
+
+export type ThreeLessonCompletionPayload = {
+  worldId: number;
+  lessonId: AdventureNodeId;
+  lessonCompletionIndex: number;
+  stageStates: StageProgressState[];
+  finalMetrics: TypingMetricResult;
+  reward: PrototypeReward;
+  completedAt: number;
+};
+
+export type ThreeLessonPersistenceAdapter = {
+  recordStageCompletion: (
+    worldId: number,
+    lessonId: AdventureNodeId,
+    stageState: StageProgressState,
+  ) => void;
+  recordLessonCompletion: (payload: ThreeLessonCompletionPayload) => void;
+  getCompletions: () => ThreeLessonCompletionPayload[];
 };

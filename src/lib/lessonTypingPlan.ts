@@ -5,7 +5,7 @@ import {
   type KhmerKeyboardKey,
   typeableKeyboardKeys,
 } from '../data/keyboardMap';
-import type { CurriculumLevel } from '../data/lessonCurriculum';
+import type { CurriculumLevel, CurriculumStage } from '../data/lessonCurriculum';
 import { normalizeKhmerText } from './khmerText';
 
 export type TypingUnit = {
@@ -13,6 +13,7 @@ export type TypingUnit = {
   key: KhmerKeyboardKey;
   modifier: KeyboardModifier;
   sourceItem: string;
+  itemIndex?: number;
 };
 
 export type LessonTypingPlan = {
@@ -36,7 +37,7 @@ function getLessonInputTarget(worldId: number, lesson: CurriculumLevel) {
   return 90;
 }
 
-function splitItemIntoUnits(item: string): TypingUnit[] {
+function splitItemIntoUnits(item: string, itemIndex?: number): TypingUnit[] {
   const normalized = normalizeKhmerText(item);
   const units: TypingUnit[] = [];
   let index = 0;
@@ -46,7 +47,15 @@ function splitItemIntoUnits(item: string): TypingUnit[] {
 
     if (/^\s/u.test(remaining)) {
       const spaceMatch = findKhmerKeyByOutput(' ');
-      if (spaceMatch) units.push({ value: ' ', key: spaceMatch.key, modifier: spaceMatch.modifier, sourceItem: item });
+      if (spaceMatch) {
+        units.push({
+          value: ' ',
+          key: spaceMatch.key,
+          modifier: spaceMatch.modifier,
+          sourceItem: item,
+          ...(itemIndex !== undefined ? { itemIndex } : {}),
+        });
+      }
       index += Array.from(remaining[0])[0].length;
       continue;
     }
@@ -54,7 +63,11 @@ function splitItemIntoUnits(item: string): TypingUnit[] {
     const matched = outputOptions.find((option) => remaining.startsWith(option.value));
 
     if (matched) {
-      units.push({ ...matched, sourceItem: item });
+      units.push({
+        ...matched,
+        sourceItem: item,
+        ...(itemIndex !== undefined ? { itemIndex } : {}),
+      });
       index += matched.value.length;
       continue;
     }
@@ -85,6 +98,29 @@ export function buildLessonTypingPlan(lesson: CurriculumLevel, worldId: number):
   }
 
   if (units.at(-1)?.value === ' ') units.pop();
+
+  return {
+    targetText: units.map((unit) => unit.value).join(''),
+    units,
+  };
+}
+
+/**
+ * Builds a Khmer typing plan for a single curriculum stage using its exact items and Unicode order.
+ */
+export function buildStageTypingPlan(
+  stage: CurriculumStage,
+  fallbackItems: string[] = [],
+): LessonTypingPlan {
+  const rawItems = stage.items.filter((item) => item.trim().length > 0);
+  const items = rawItems.length > 0 ? rawItems : fallbackItems.filter((item) => item.trim().length > 0);
+  const units: TypingUnit[] = [];
+
+  for (let itemIndex = 0; itemIndex < items.length; itemIndex += 1) {
+    const itemUnits = splitItemIntoUnits(items[itemIndex], itemIndex);
+    if (itemUnits.length === 0) continue;
+    units.push(...itemUnits);
+  }
 
   return {
     targetText: units.map((unit) => unit.value).join(''),

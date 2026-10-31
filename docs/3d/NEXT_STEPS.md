@@ -1,6 +1,6 @@
 # Next steps
 
-Updated: 2026-10-31. Branch: `fix/3d-prototype-stabilization`.
+Updated: 2026-10-31. Branch: `feat/3d-world-map-integration`.
 
 ## Completed work
 
@@ -32,12 +32,32 @@ Updated: 2026-10-31. Branch: `fix/3d-prototype-stabilization`.
    - **Bug 1 (Horizontal Movement Inversion)**: Resolved camera frame-of-reference inversion where camera standing at negative Z looking along +Z caused world +X to project to screen-left and world -X to screen-right. Added `computeMovementDelta` in `gameplayState.ts` and integrated into `Character.tsx`. `A` / `ArrowLeft` now moves screen-left (world +X, facing $\pi/2$ rad), `D` / `ArrowRight` moves screen-right (world -X, facing $-\pi/2$ rad), `W` / `ArrowUp` moves forward (+Z, facing 0 rad), `S` / `ArrowDown` moves backward (-Z, facing $\pi$ rad), with strictly normalized diagonal movement and movement lock during typing.
    - **Bug 2 (Shift Key Highlighting Priority & Opposite-Hand Guidance)**: Corrected keyboard highlight priority in `TypingOverlay.tsx` where `keyData.disabled` was previously evaluated before `isShiftTarget`. Exported `getRequiredShiftKeyCode` from `fingerGuidance.ts` to highlight only the ergonomic opposite-hand Shift key (`ShiftLeft` for right-hand keys like KeyK; `ShiftRight` for left-hand keys like KeyA/KeyD). Enabled `ShiftLeft` and `ShiftRight` highlights even with `disabled: true` styling, while ignoring modifier-only physical keydowns so pressing Shift alone does not count as input or mistake.
    - **Regression Tests & Browser Validation**: Expanded `scripts/threePrototypeTests.mjs` with directional movement mapping, camera projection, diagonal normalization, and Shift highlight tests. Updated Playwright E2E browser test (`verify3dBrowser.mjs`) to verify screen-space movement directions, Shift key guidance, and typing mode restrictions.
+6. **Task 4 — Reusable Multi-Stage 3D Khmer Learning System (World 1, Lesson 1)**:
+   - **Curriculum-Driven Stage Engine**: Added `buildStageTypingPlan` in `src/lib/lessonTypingPlan.ts` and `resolveThreeLessonConfig`, `createStageTypingPlan`, `getStageMinimumAccuracy`, `computeStageMetrics`, `shouldUnlockStage`, `createInitialStageProgressStates`, `canAccessStage`, `recordStageAttemptResult`, `computeFinalLessonMetrics`, and `createInMemoryLessonPersistenceAdapter` in `src/features/three-game/systems/gameplayState.ts`.
+   - **World 1, Lesson 1 (`ព្យញ្ជនៈដំបូង` / `First Consonants`) Multi-Stage Implementation**:
+     1. **Stage 1 (`w1-l1-s1` — `ទ្វារអក្សរ` / `Glyph Gate`, `z = 6`)**: Warmup stage with 10 base & shifted consonants (`ក, ខ, គ, ឃ, ង, ច, ឆ, ជ, ឈ, ញ`), 90% accuracy goal, unlocking the Ancient Angkor Gopura Gate.
+     2. **Stage 2 (`w1-l1-s2` — `ថ្មភ្លោះ` / `Twin Stones`, `z = 16`)**: Pattern stage with 8 consonant pairs (`កខ, គឃ, ចឆ, ជឈ, ងញ, ខក, ឆច, ឃគ`), 90% accuracy goal, unlocking the sliding Angkorian Twin Monoliths in `StageChallenges.tsx`.
+     3. **Stage 3 (`w1-l1-s3` — `ផ្លូវព្រៃ` / `Jungle Path`, `z = 26`)**: Word stage with 8 short words (`កង, ចង, ជង, ខង, គង, ចក, កច, ជក`), 92% accuracy goal, unlocking the mossy Ta Prohm-inspired Jungle Archway leading into the Golden Lotus Sanctuary (`z = 31`).
+   - **Stage Locking, Retry, & Final Lesson Rewards**:
+     - Enforced strict sequential stage progression (`canAccessStage` and `clampMultiStageCharacterPosition`) so Stage 2 is locked until Stage 1 is passed and open, and Stage 3 is locked until Stage 2 is passed and open.
+     - Failed stages keep their barrier closed and allow immediate retry without resetting earlier passed stages.
+     - Final lesson completion aggregates accuracy, CPM, score, and stars across all 3 stages, claims session rewards once via `claimLessonReward` (blocking duplicate XP/coins on replay), and logs structured completion payloads to `createInMemoryLessonPersistenceAdapter()` for future teacher dashboard/Firebase integration without touching production data.
+   - **Multi-Stage UI & Tests**:
+     - Added 3-stage progress stepper and mission prompt in `ExplorationHud.tsx`, intact Khmer stage item rune tiles in `TypingOverlay.tsx`, and 3-stage summary breakdown in `VictoryModal.tsx`.
+     - Expanded `scripts/threePrototypeTests.mjs` and Playwright E2E verification (`verify3dBrowser.mjs`) to validate all 3 stages, 90%/90%/92% accuracy thresholds, stage locking, retry behavior, final lesson scoring, and replay reward deduplication.
+
+7. **Task 5 — World Map integration**:
+   - Reused Task 4 from commit `6a61f845` without merging branches. The explicit availability registry enables only World 1 / Lesson 1; generic curriculum resolution is not evidence of 3D support.
+   - The map offers Khmer-labeled Play 2D / Play 3D choices. Both 3D routes validate IDs and existing map unlock rules; invalid, locked and unsupported lessons never mount the engine. Production routes require the existing login session. The bare `/3d-prototype` default is development-only.
+   - Added a 2D lesson route guard for the existing map locks, closing the pre-existing direct-URL shortcut without changing the 2D game.
+   - Route changes start a fresh lesson session. Replay resets stage/UI state while retaining the in-memory reward ledger to prevent duplicate rewards. Final summaries explain that results are temporary and unlock nothing.
+   - Regression coverage: `scripts/threePrototypeTests.mjs` and the exported Playwright flow in `scripts/verifyThreeIntegrationBrowser.mjs` (run against a development server with Firebase disabled). No new dependencies, production result writes, deployment or branch merge.
 
 ## Remaining for future tasks
 
 1. **Manual school-hardware check**: Test `/3d-prototype` interactively on a target Cambodian school computer (integrated GPU) to confirm frame rate and keyboard layout comfort.
 2. **Dependency security maintenance**: Review the pre-existing `npm audit` findings in a dedicated dependency maintenance pass before production deployment.
 3. **Future 3D milestones (separate authorization required)**:
-   - Optional Web Audio sound effects (`public/audio/`) and custom low-poly GLB assets (`public/models/`).
-   - Touch/virtual joystick controls for tablet and mobile browsers.
-   - Multi-gate stage progression and deliberate Firebase progress adapter once prototype sign-off is complete.
+   - Wire `ThreeLessonPersistenceAdapter` to live student progress / teacher dashboard storage once approved.
+   - Add World 1 Lessons 2–6 and Boss Battle 3D stage layouts using `resolveThreeLessonConfig(worldId, levelId)`.
+   - Optional Web Audio sound effects (`public/audio/`) and touch/virtual joystick controls for tablet browsers.

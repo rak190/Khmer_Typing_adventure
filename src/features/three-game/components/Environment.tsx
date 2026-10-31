@@ -322,25 +322,25 @@ export default function Environment() {
 
       {/* ===== COURTYARD GROUND ===== */}
       {/* Outer Lush Grass Terrain */}
-      <mesh position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[74, 74]} />
+      <mesh position={[0, -0.05, 10]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[84, 96]} />
         <meshStandardMaterial color="#2D5A27" roughness={0.95} />
       </mesh>
 
-      {/* Main Temple Courtyard (Sandstone Flagstones) */}
-      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[28, 34]} />
+      {/* Main Temple Courtyard (Sandstone Flagstones extending across all 3 stages) */}
+      <mesh position={[0, 0.02, 10]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[28, 54]} />
         <meshStandardMaterial color="#8C6F4B" roughness={0.9} />
       </mesh>
 
-      {/* Royal Processional Stone Pathway (leading towards the gate) */}
-      <mesh position={[0, 0.05, -1]}>
-        <boxGeometry args={[4.4, 0.06, 26]} />
+      {/* Royal Processional Stone Pathway (leading through Stages 1, 2, and 3) */}
+      <mesh position={[0, 0.05, 8]}>
+        <boxGeometry args={[4.4, 0.06, 44]} />
         <meshStandardMaterial color="#A88960" roughness={0.82} />
       </mesh>
 
-      {/* Pathway Stepping Blocks (relief pavers) */}
-      {[-10, -7, -4, -1, 2, 5].map((zPos, idx) => (
+      {/* Pathway Stepping Blocks (relief pavers along the full multi-stage causeway) */}
+      {[-10, -7, -4, -1, 2, 5, 8, 11, 14, 17, 20, 23, 26, 28.5].map((zPos, idx) => (
         <mesh key={idx} position={[0, 0.09, zPos]}>
           <boxGeometry args={[3.8, 0.02, 2.2]} />
           <meshStandardMaterial color={idx % 2 === 0 ? '#B5966D' : '#9E7E55'} roughness={0.8} />
@@ -348,14 +348,15 @@ export default function Environment() {
       ))}
 
       {/* Paved Edging Trim with Lotus Molding */}
-      <mesh position={[-2.3, 0.08, -1]}>
-        <boxGeometry args={[0.3, 0.12, 26]} />
+      <mesh position={[-2.3, 0.08, 8]}>
+        <boxGeometry args={[0.3, 0.12, 44]} />
         <meshStandardMaterial color="#6E5437" roughness={0.88} />
       </mesh>
-      <mesh position={[2.3, 0.08, -1]}>
-        <boxGeometry args={[0.3, 0.12, 26]} />
+      <mesh position={[2.3, 0.08, 8]}>
+        <boxGeometry args={[0.3, 0.12, 44]} />
         <meshStandardMaterial color="#6E5437" roughness={0.88} />
       </mesh>
+
 
       {/* ===== NAGA BALUSTRADES (Angkor Serpent Causeway Guard) ===== */}
       {/* Left Naga Head at walkway start */}
@@ -385,13 +386,13 @@ export default function Environment() {
 
       {/* ===== PERIMETER STONE BOUNDARY WALLS & CORNER COLUMNS ===== */}
       {/* Left Wall */}
-      <mesh position={[-14.2, 0.6, 0]}>
-        <boxGeometry args={[0.8, 1.2, 34]} />
+      <mesh position={[-14.2, 0.6, 10]}>
+        <boxGeometry args={[0.8, 1.2, 54]} />
         <meshStandardMaterial color="#735639" roughness={0.92} />
       </mesh>
       {/* Right Wall */}
-      <mesh position={[14.2, 0.6, 0]}>
-        <boxGeometry args={[0.8, 1.2, 34]} />
+      <mesh position={[14.2, 0.6, 10]}>
+        <boxGeometry args={[0.8, 1.2, 54]} />
         <meshStandardMaterial color="#735639" roughness={0.92} />
       </mesh>
       {/* South Wall */}
@@ -409,17 +410,17 @@ export default function Environment() {
         <boxGeometry args={[1.6, 2.2, 1.6]} />
         <meshStandardMaterial color="#856847" roughness={0.9} />
       </mesh>
-      <mesh position={[-14.2, 1.1, 16.2]}>
+      <mesh position={[-14.2, 1.1, 36.2]}>
         <boxGeometry args={[1.6, 2.2, 1.6]} />
         <meshStandardMaterial color="#856847" roughness={0.9} />
       </mesh>
-      <mesh position={[14.2, 1.1, 16.2]}>
+      <mesh position={[14.2, 1.1, 36.2]}>
         <boxGeometry args={[1.6, 2.2, 1.6]} />
         <meshStandardMaterial color="#856847" roughness={0.9} />
       </mesh>
 
-      {/* ===== INNER SANCTUARY (Visible Behind the Gate Z > 6) ===== */}
-      <group position={[0, 0, 11]}>
+      {/* ===== INNER SANCTUARY (Visible Behind Stage 3 Gate Z > 26) ===== */}
+      <group position={[0, 0, 31]}>
         {/* Raised Sanctuary Terrace Base */}
         <mesh position={[0, 0.3, 0]}>
           <boxGeometry args={[8.0, 0.6, 7.0]} />
@@ -454,14 +455,19 @@ export default function Environment() {
       <SugarPalm position={[-11, 0, -10]} scale={0.95} rotationY={0.3} />
       <SugarPalm position={[-11.5, 0, -2]} scale={1.05} rotationY={1.1} />
       <SugarPalm position={[-10.8, 0, 8]} scale={1.0} rotationY={2.4} />
+      <SugarPalm position={[-11.2, 0, 19]} scale={0.98} rotationY={0.6} />
+      <SugarPalm position={[-10.6, 0, 29]} scale={1.04} rotationY={1.8} />
       <SugarPalm position={[11, 0, -11]} scale={1.0} rotationY={0.8} />
       <SugarPalm position={[11.8, 0, -3]} scale={0.9} rotationY={1.9} />
       <SugarPalm position={[10.5, 0, 7]} scale={1.08} rotationY={3.0} />
+      <SugarPalm position={[11.3, 0, 18]} scale={0.96} rotationY={1.4} />
+      <SugarPalm position={[10.7, 0, 28]} scale={1.02} rotationY={2.5} />
 
       {/* ===== DISTANT ANGKOR PRASAT SILHOUETTES ===== */}
-      <DistantPrasat position={[0, 0, 28]} scale={1.8} />
-      <DistantPrasat position={[-16, 0, 32]} scale={1.4} />
-      <DistantPrasat position={[16, 0, 32]} scale={1.4} />
+      <DistantPrasat position={[0, 0, 48]} scale={1.8} />
+      <DistantPrasat position={[-16, 0, 52]} scale={1.4} />
+      <DistantPrasat position={[16, 0, 52]} scale={1.4} />
+
     </group>
   );
 }

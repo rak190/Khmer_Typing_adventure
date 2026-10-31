@@ -13,6 +13,7 @@ import {
   khmerKeyboardRows,
   type KhmerKeyboardKey,
 } from '../../../data/keyboardMap';
+import type { CurriculumStage } from '../../../data/lessonCurriculum';
 import { getFingerGuidance, getRequiredShiftKeyCode } from '../../../lib/fingerGuidance';
 import { khmerTextEquals } from '../../../lib/khmerText';
 import {
@@ -29,11 +30,16 @@ type TypingOverlayProps = {
   speedTargetCpm: number;
   completedCount: number;
   streak: number;
+  stage?: CurriculumStage;
+  stageIndex?: number;
+  totalStages?: number;
+  lessonTitleKh?: string;
   onTypedValue: (value: string, code: string) => void;
   onBackspace: () => void;
   onCancel: () => void;
   onRestart: () => void;
 };
+
 
 function visibleTargetUnit(value: string): string {
   return value === ' ' ? 'Spacebar' : value;
@@ -53,6 +59,10 @@ export default function TypingOverlay({
   speedTargetCpm,
   completedCount,
   streak,
+  stage,
+  stageIndex = 0,
+  totalStages = 3,
+  lessonTitleKh = 'ព្យញ្ជនៈដំបូង',
   onTypedValue,
   onBackspace,
   onCancel,
@@ -67,6 +77,32 @@ export default function TypingOverlay({
   const activeTarget = isFinished ? undefined : targetUnits[completedCount];
   const shiftRequired = activeTarget?.modifier === 'shift';
   const altgrRequired = activeTarget?.modifier === 'altgr';
+
+  const stageItemGroups = useMemo(() => {
+    const groups: Array<{
+      itemIndex: number;
+      text: string;
+      startUnitIdx: number;
+      endUnitIdx: number;
+    }> = [];
+    targetUnits.forEach((unit, unitIdx) => {
+      const idx = unit.itemIndex ?? unitIdx;
+      const last = groups[groups.length - 1];
+      if (!last || last.itemIndex !== idx) {
+        groups.push({
+          itemIndex: idx,
+          text: unit.value,
+          startUnitIdx: unitIdx,
+          endUnitIdx: unitIdx,
+        });
+      } else {
+        last.text += unit.value;
+        last.endUnitIdx = unitIdx;
+      }
+    });
+    return groups;
+  }, [targetUnits]);
+
 
   const fullTargetText = useMemo(
     () => targetUnits.map((unit) => unit.value).join(''),
@@ -134,6 +170,11 @@ export default function TypingOverlay({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Keep normal focus navigation and form controls available in the lesson UI.
+      if (event.code === 'Tab') return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (event.code === 'Space' && target?.closest('button, a')) return;
       if (event.code === 'Escape') {
         event.preventDefault();
         onCancel();
@@ -165,7 +206,7 @@ export default function TypingOverlay({
 
       const usingAltGr = event.getModifierState?.('AltGraph') || (event.ctrlKey && event.altKey);
       if ((event.ctrlKey || event.metaKey) && !usingAltGr) return;
-      if (['Space', 'Tab'].includes(event.code)) event.preventDefault();
+      if (event.code === 'Space') event.preventDefault();
       if (event.repeat) return;
 
       const keyboardInput = getKhmerKeyboardInput(event);
@@ -193,13 +234,22 @@ export default function TypingOverlay({
     >
       {/* ===== HEADER / TOP CONTROLS ===== */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl border border-amber-500/40 bg-slate-900/90 px-4 py-2 shadow-lg">
-            <span className="text-xs font-bold text-amber-400">
-              ការប្រកួតដោះសោទ្វារបុរាណ • មូលដ្ឋានព្យញ្ជនៈ (Temple Gate Challenge)
-            </span>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div
+            data-testid="three-typing-stage-banner"
+            className="rounded-xl border border-amber-500/40 bg-slate-900/90 px-4 py-2 shadow-lg"
+          >
+            <div className="text-xs font-bold text-amber-400">
+              {stage
+                ? `ដំណាក់កាលទី ${stageIndex + 1}/${totalStages} • ${stage.titleKh} (${stage.titleEn})`
+                : `ការប្រកួតដោះសោទ្វារបុរាណ • ${lessonTitleKh}`}
+            </div>
+            {stage && (
+              <div className="text-[11px] text-slate-300">{stage.mission}</div>
+            )}
           </div>
         </div>
+
 
         <div className="flex items-center gap-2">
           <button
@@ -305,7 +355,40 @@ export default function TypingOverlay({
         </div>
 
         {/* Continuous Khmer Text Display (preserving grapheme/coeng/dependent vowel shaping) */}
-        <div className="relative flex w-full flex-col items-center justify-center rounded-3xl border-2 border-amber-500/50 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 p-6 shadow-2xl backdrop-blur-md">
+        <div className="relative flex w-full flex-col items-center justify-center rounded-3xl border-2 border-amber-500/50 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 p-5 sm:p-6 shadow-2xl backdrop-blur-md">
+          {/* Curriculum Stage Item Tiles (each tile keeps its full Khmer word/pair intact) */}
+          {stageItemGroups.length > 0 && (
+            <div
+              data-testid="three-typing-stage-items"
+              className="mb-3 flex flex-wrap items-center justify-center gap-2"
+            >
+              {stageItemGroups.map((group) => {
+                const isGroupDone = completedCount > group.endUnitIdx;
+                const isGroupActive =
+                  completedCount >= group.startUnitIdx &&
+                  completedCount <= group.endUnitIdx;
+                return (
+                  <span
+                    key={group.itemIndex}
+                    data-testid={`three-stage-item-${group.itemIndex}`}
+                    data-item-state={
+                      isGroupDone ? 'done' : isGroupActive ? 'active' : 'pending'
+                    }
+                    className={`khmer-body rounded-xl border px-3 py-1 text-lg sm:text-xl font-bold transition ${
+                      isGroupDone
+                        ? 'border-emerald-400/50 bg-emerald-950/60 text-emerald-300'
+                        : isGroupActive
+                        ? 'border-amber-400 bg-amber-500/25 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.45)] scale-105'
+                        : 'border-white/10 bg-slate-800/70 text-slate-400'
+                    }`}
+                  >
+                    {group.text}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
           <div
             data-testid="three-typing-target"
             data-target={currentTargetText}
@@ -322,7 +405,7 @@ export default function TypingOverlay({
 
           {/* Active Key and Finger Guidance Banner */}
           {activeTarget && !isFinished && (
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-200">
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-200">
               <span>
                 អក្សរត្រូវវាយ:{' '}
                 <span className="font-bold text-white bg-slate-800 px-2.5 py-0.5 rounded border border-amber-400/50">
@@ -350,7 +433,17 @@ export default function TypingOverlay({
               )}
             </div>
           )}
+
+          {stage?.hint && (
+            <div
+              data-testid="three-typing-stage-hint"
+              className="mt-2.5 text-center text-xs text-slate-300"
+            >
+              💡 {stage.hint}
+            </div>
+          )}
         </div>
+
       </div>
 
       {/* ===== BOTTOM STAGE: COMPACT RESPONSIVE ON-SCREEN KEYBOARD ===== */}
