@@ -384,6 +384,341 @@ try {
     ledger.getTotals().totalXp,
     firstClaim.reward.xpEarned + retryClaim.reward.xpEarned,
   );
+
+  // =========================================================================
+  // 7. TASK 4: MULTI-STAGE 3D LESSON SYSTEM (World 1, Lesson 1)
+  // =========================================================================
+
+  // 7.1 Loading World 1, Lesson 1 curriculum stages
+  const lessonConfig = gameplayState.resolveThreeLessonConfig(1, 1);
+  assert.equal(lessonConfig.worldId, 1);
+  assert.equal(lessonConfig.lesson.id, 1);
+  assert.equal(lessonConfig.lesson.labelKh, 'ព្យញ្ជនៈដំបូង');
+  assert.equal(lessonConfig.lesson.labelEn, 'First Consonants');
+  assert.equal(lessonConfig.stages.length, 3, 'World 1 Lesson 1 must have 3 stages');
+
+  const [stage1, stage2, stage3] = lessonConfig.stages;
+  assert.equal(stage1.id, 'w1-l1-s1');
+  assert.equal(stage1.titleKh, 'ទ្វារអក្សរ');
+  assert.equal(stage1.titleEn, 'Glyph Gate');
+  assert.equal(stage1.kind, 'warmup');
+
+  assert.equal(stage2.id, 'w1-l1-s2');
+  assert.equal(stage2.titleKh, 'ថ្មភ្លោះ');
+  assert.equal(stage2.titleEn, 'Twin Stones');
+  assert.equal(stage2.kind, 'pattern');
+
+  assert.equal(stage3.id, 'w1-l1-s3');
+  assert.equal(stage3.titleKh, 'ផ្លូវព្រៃ');
+  assert.equal(stage3.titleEn, 'Jungle Path');
+  assert.equal(stage3.kind, 'word');
+
+  // Also verify reusable config resolution for another lesson (e.g. World 1 Lesson 2)
+  const lesson2Config = gameplayState.resolveThreeLessonConfig(1, 2);
+  assert.equal(lesson2Config.lesson.id, 2);
+  assert.equal(lesson2Config.stages.length, 3);
+
+  // 7.2 Stage 1 typing items and 90% accuracy requirement
+  assert.equal(
+    gameplayState.getStageMinimumAccuracy(stage1, lessonConfig.lesson, lessonConfig.worldId),
+    90,
+    'Stage 1 accuracy requirement must be 90%',
+  );
+  assert.deepEqual(stage1.items, ['ក', 'ខ', 'គ', 'ឃ', 'ង', 'ច', 'ឆ', 'ជ', 'ឈ', 'ញ']);
+  const stage1Plan = gameplayState.createStageTypingPlan(stage1, lessonConfig.lesson.focusKeys);
+  assert.equal(stage1Plan.targetText, 'កខគឃងចឆជឈញ');
+  assert.equal(stage1Plan.units.length, 10, 'Stage 1 plan must have 10 typing units');
+
+  const stage1PassMetrics = gameplayState.computeStageMetrics(
+    stage1Plan.units,
+    10,
+    1, // 9/10 = 90%
+    0,
+    9,
+    15000,
+    stage1,
+    lessonConfig.lesson,
+    lessonConfig.worldId,
+  );
+  assert.equal(stage1PassMetrics.accuracy, 90);
+  assert.equal(stage1PassMetrics.passed, true, '90% accuracy must pass Stage 1');
+  assert.equal(gameplayState.shouldUnlockStage(stage1PassMetrics), true);
+
+  const stage1FailMetrics = gameplayState.computeStageMetrics(
+    stage1Plan.units,
+    10,
+    2, // 8/10 = 80%
+    0,
+    8,
+    15000,
+    stage1,
+    lessonConfig.lesson,
+    lessonConfig.worldId,
+  );
+  assert.equal(stage1FailMetrics.accuracy, 80);
+  assert.equal(stage1FailMetrics.passed, false, '80% accuracy must fail Stage 1');
+  assert.equal(gameplayState.shouldUnlockStage(stage1FailMetrics), false);
+
+  // 7.3 Stage 2 typing items and 90% accuracy requirement
+  assert.equal(
+    gameplayState.getStageMinimumAccuracy(stage2, lessonConfig.lesson, lessonConfig.worldId),
+    90,
+    'Stage 2 accuracy requirement must be 90%',
+  );
+  assert.deepEqual(stage2.items, ['កខ', 'គឃ', 'ចឆ', 'ជឈ', 'ងញ', 'ខក', 'ឆច', 'ឃគ']);
+  const stage2Plan = gameplayState.createStageTypingPlan(stage2, lessonConfig.lesson.focusKeys);
+  assert.equal(stage2Plan.targetText, 'កខគឃចឆជឈងញខកឆចឃគ');
+  assert.equal(stage2Plan.units.length, 16, 'Stage 2 plan must have 16 typing units (8 pairs)');
+
+  const stage2PassMetrics = gameplayState.computeStageMetrics(
+    stage2Plan.units,
+    16,
+    1, // 15/16 = 94%
+    0,
+    15,
+    22000,
+    stage2,
+    lessonConfig.lesson,
+    lessonConfig.worldId,
+  );
+  assert.equal(stage2PassMetrics.accuracy, 94);
+  assert.equal(stage2PassMetrics.passed, true, '94% accuracy must pass Stage 2 (90% threshold)');
+  assert.equal(gameplayState.shouldUnlockStage(stage2PassMetrics), true);
+
+  // 7.4 Stage 3 typing items and 92% accuracy requirement
+  assert.equal(
+    gameplayState.getStageMinimumAccuracy(stage3, lessonConfig.lesson, lessonConfig.worldId),
+    92,
+    'Stage 3 accuracy requirement must be 92%',
+  );
+  assert.deepEqual(stage3.items, ['កង', 'ចង', 'ជង', 'ខង', 'គង', 'ចក', 'កច', 'ជក']);
+  const stage3Plan = gameplayState.createStageTypingPlan(stage3, lessonConfig.lesson.focusKeys);
+  assert.equal(stage3Plan.targetText, 'កងចងជងខងគងចកកចជក');
+  assert.equal(stage3Plan.units.length, 16, 'Stage 3 plan must have 16 typing units (8 words)');
+
+  // 90% accuracy (e.g. 2 mistakes on 16 units -> 14/16 = 88%) or 91% must FAIL Stage 3 (92% required)
+  const stage3FailAt88 = gameplayState.computeStageMetrics(
+    stage3Plan.units,
+    16,
+    2, // 14/16 = 88%
+    0,
+    12,
+    20000,
+    stage3,
+    lessonConfig.lesson,
+    lessonConfig.worldId,
+  );
+  assert.equal(stage3FailAt88.accuracy, 88);
+  assert.equal(stage3FailAt88.passed, false, '88% accuracy must fail Stage 3 (requires 92%)');
+  assert.equal(gameplayState.shouldUnlockStage(stage3FailAt88), false);
+
+  const stage3PassAt94 = gameplayState.computeStageMetrics(
+    stage3Plan.units,
+    16,
+    1, // 15/16 = 94% >= 92%
+    0,
+    15,
+    20000,
+    stage3,
+    lessonConfig.lesson,
+    lessonConfig.worldId,
+  );
+  assert.equal(stage3PassAt94.accuracy, 94);
+  assert.equal(stage3PassAt94.passed, true, '94% accuracy must pass Stage 3 (requires 92%)');
+  assert.equal(gameplayState.shouldUnlockStage(stage3PassAt94), true);
+
+  // 7.5 Stage locking, unlocking order, and multi-stage collision barriers (no skipping ahead)
+  let stageStates = gameplayState.createInitialStageProgressStates(lessonConfig.stages);
+  assert.equal(stageStates.length, 3);
+  assert.equal(gameplayState.canAccessStage(0, 0, stageStates), true, 'Stage 1 is accessible initially');
+  assert.equal(gameplayState.canAccessStage(1, 0, stageStates), false, 'Stage 2 cannot be accessed while on Stage 1');
+  assert.equal(gameplayState.canAccessStage(1, 1, stageStates), false, 'Stage 2 cannot be skipped to before Stage 1 is open');
+  assert.equal(gameplayState.canAccessStage(2, 2, stageStates), false, 'Stage 3 cannot be skipped to before Stages 1 & 2 are open');
+
+  // Verify multi-stage spatial barriers
+  const [, clampedAtStage1] = gameplayState.clampMultiStageCharacterPosition(0, 25, ['closed', 'closed', 'closed']);
+  assert.equal(clampedAtStage1, gameplayState.getStageCollisionZ(0), 'Closed Stage 1 blocks movement at z = 5.6');
+
+  const [, clampedAtStage2] = gameplayState.clampMultiStageCharacterPosition(0, 25, ['open', 'closed', 'closed']);
+  assert.equal(clampedAtStage2, gameplayState.getStageCollisionZ(1), 'Open Stage 1 + Closed Stage 2 blocks movement at z = 15.6');
+
+  const [, clampedAtStage3] = gameplayState.clampMultiStageCharacterPosition(0, 29, ['open', 'open', 'closed']);
+  assert.equal(clampedAtStage3, gameplayState.getStageCollisionZ(2), 'Open Stages 1 & 2 + Closed Stage 3 blocks movement at z = 25.6');
+
+  const [, clampedAllOpen] = gameplayState.clampMultiStageCharacterPosition(0, 29, ['open', 'open', 'open']);
+  assert.equal(clampedAllOpen, 29, 'All 3 stages open allows walking into the Golden Lotus Sanctuary (z = 29)');
+
+  // 7.6 Stage progression & failed stage retry behavior
+  // Pass Stage 1
+  const s1Session = {
+    ...gameplayState.createTypingSessionState(1),
+    completedCount: 10,
+    incorrectCount: 1,
+    bestStreak: 9,
+    finished: true,
+  };
+  stageStates = gameplayState.recordStageAttemptResult(
+    stageStates,
+    0,
+    stage1PassMetrics,
+    s1Session,
+    stage1Plan.units,
+    15000,
+    'open',
+  );
+  assert.equal(stageStates[0].passed, true);
+  assert.equal(stageStates[0].status, 'open');
+  assert.equal(gameplayState.canAccessStage(1, 1, stageStates), true, 'Stage 2 unlocks after Stage 1 is open');
+  assert.equal(gameplayState.canAccessStage(2, 2, stageStates), false, 'Stage 3 remains locked until Stage 2 is open');
+
+  // Pass Stage 2
+  const s2Session = {
+    ...gameplayState.createTypingSessionState(2),
+    completedCount: 16,
+    incorrectCount: 1,
+    bestStreak: 15,
+    finished: true,
+  };
+  stageStates = gameplayState.recordStageAttemptResult(
+    stageStates,
+    1,
+    stage2PassMetrics,
+    s2Session,
+    stage2Plan.units,
+    22000,
+    'open',
+  );
+  assert.equal(stageStates[1].passed, true);
+  assert.equal(stageStates[1].status, 'open');
+  assert.equal(gameplayState.canAccessStage(2, 2, stageStates), true, 'Stage 3 unlocks after Stage 2 is open');
+
+  // Fail Stage 3 first (88% < 92%) -> Stage 3 stays closed and can be retried
+  const s3FailSession = {
+    ...gameplayState.createTypingSessionState(3),
+    completedCount: 16,
+    incorrectCount: 2,
+    bestStreak: 12,
+    finished: true,
+  };
+  stageStates = gameplayState.recordStageAttemptResult(
+    stageStates,
+    2,
+    stage3FailAt88,
+    s3FailSession,
+    stage3Plan.units,
+    20000,
+    'closed',
+  );
+  assert.equal(stageStates[2].passed, false, 'Stage 3 must remain unpassed after 88% attempt');
+  assert.equal(stageStates[2].status, 'closed', 'Stage 3 barrier must remain closed after failed attempt');
+  assert.equal(stageStates[2].attempts, 1);
+  assert.equal(gameplayState.areAllStagesCompleted(stageStates), false);
+  assert.equal(gameplayState.canAccessStage(2, 2, stageStates), true, 'Failed Stage 3 can be retried immediately');
+
+  // Retry Stage 3 and pass (94% >= 92%)
+  const s3PassSession = {
+    ...gameplayState.createTypingSessionState(4),
+    completedCount: 16,
+    incorrectCount: 1,
+    bestStreak: 15,
+    finished: true,
+  };
+  stageStates = gameplayState.recordStageAttemptResult(
+    stageStates,
+    2,
+    stage3PassAt94,
+    s3PassSession,
+    stage3Plan.units,
+    20000,
+    'open',
+  );
+  assert.equal(stageStates[2].passed, true);
+  assert.equal(stageStates[2].status, 'open');
+  assert.equal(stageStates[2].attempts, 2);
+  assert.equal(gameplayState.areAllStagesCompleted(stageStates), true, 'All 3 stages are now completed');
+
+  // 7.7 Shifted characters across World 1 Lesson 1 stages have opposite-hand Shift guidance
+  const shiftedUnitsInLesson = [
+    ...stage1Plan.units,
+    ...stage2Plan.units,
+    ...stage3Plan.units,
+  ].filter((u) => u.modifier === 'shift');
+  assert.ok(shiftedUnitsInLesson.length > 0, 'World 1 Lesson 1 contains shifted consonants (គ, ឃ, ឈ, ញ)');
+  for (const unit of shiftedUnitsInLesson) {
+    const shiftCode = fingerGuidanceMod.getRequiredShiftKeyCode(unit.key, true);
+    const expectedShift = unit.key.hand === 'right' ? 'ShiftLeft' : 'ShiftRight';
+    assert.equal(
+      shiftCode,
+      expectedShift,
+      `Shifted consonant ${unit.value} on ${unit.key.code} (${unit.key.hand} hand) must require ${expectedShift}`,
+    );
+  }
+
+  // 7.8 Final lesson score calculation across all 3 stages
+  const finalLessonMetrics = gameplayState.computeFinalLessonMetrics(
+    stageStates,
+    lessonConfig.lesson,
+    lessonConfig.worldId,
+  );
+  assert.equal(finalLessonMetrics.passed, true, 'Final lesson metrics must pass when all 3 stages pass');
+  assert.equal(
+    finalLessonMetrics.totalRequiredInputs,
+    10 + 16 + 16,
+    'Total required inputs across Stages 1, 2, and 3 must equal 42',
+  );
+  assert.equal(
+    finalLessonMetrics.acceptedCorrectInputs,
+    10 + 16 + 16,
+    'Accepted correct inputs across Stages 1, 2, and 3 must equal 42',
+  );
+
+  assert.ok(finalLessonMetrics.accuracy >= 90, `Final accuracy should be >= 90%, got ${finalLessonMetrics.accuracy}`);
+  assert.ok(finalLessonMetrics.finalScore > 0, 'Final lesson score must be positive');
+
+  // 7.9 Duplicate reward prevention on lesson replay & in-memory persistence adapter
+  const lessonLedger = gameplayState.createPrototypeRewardLedger();
+  const persistence = gameplayState.createInMemoryLessonPersistenceAdapter();
+
+  const firstLessonClaim = lessonLedger.claimLessonReward(
+    lessonConfig.worldId,
+    lessonConfig.lesson.id,
+    finalLessonMetrics,
+    lessonConfig.lessonSpeedTargetCpm,
+    4,
+  );
+  assert.equal(firstLessonClaim.duplicate, false, 'First lesson completion must grant reward');
+  assert.ok(firstLessonClaim.reward.xpEarned > 0);
+  assert.ok(firstLessonClaim.reward.coinsEarned > 0);
+
+  persistence.recordLessonCompletion({
+    worldId: lessonConfig.worldId,
+    lessonId: lessonConfig.lesson.id,
+    lessonCompletionIndex: 1,
+    stageStates,
+    finalMetrics: finalLessonMetrics,
+    reward: firstLessonClaim.reward,
+    completedAt: Date.now(),
+  });
+  assert.equal(persistence.getCompletions().length, 1);
+
+  const totalsAfterLesson1 = lessonLedger.getTotals();
+  assert.equal(lessonLedger.hasClaimedLesson(lessonConfig.worldId, lessonConfig.lesson.id), true);
+
+  // Replay the same lesson (new attemptId = 7, same worldId & lessonId) -> must NOT grant duplicate reward
+  const replayLessonClaim = lessonLedger.claimLessonReward(
+    lessonConfig.worldId,
+    lessonConfig.lesson.id,
+    finalLessonMetrics,
+    lessonConfig.lessonSpeedTargetCpm,
+    7,
+  );
+  assert.equal(replayLessonClaim.duplicate, true, 'Replaying completed lesson must flag duplicate = true');
+  assert.deepEqual(
+    lessonLedger.getTotals(),
+    totalsAfterLesson1,
+    'Replaying completed lesson must NOT increase total session XP or coins',
+  );
+
 } finally {
   await server.close();
 }
