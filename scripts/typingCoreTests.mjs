@@ -100,6 +100,20 @@ try {
   // =========================================================================
   // Master Task 5.5: Home-Row Touch-Typing, Reach-and-Return, and Curriculum Validation
   // =========================================================================
+  const presentation = await server.ssrLoadModule('/src/lib/typingTargetPresentation.ts');
+  const physicalPresentation = typingPlan.splitPhysicalKeyItemIntoUnits('KeyF KeyJ KeyK');
+  assert.equal(physicalPresentation.units.length, 3);
+  assert.deepEqual(
+    physicalPresentation.units.map((unit) => presentation.getKhmerTypingUnitPresentation(unit).khmer),
+    ['ថ', '◌្', 'ក'],
+    'Beginner physical drills must lead with Khmer glyphs, using a dotted circle for coeng',
+  );
+  assert.deepEqual(
+    physicalPresentation.units.map((unit) => presentation.getKhmerTypingUnitPresentation(unit).keyLabel),
+    ['F', 'J', 'K'],
+    'Physical keys remain visible as secondary cues',
+  );
+  assert.equal(physicalPresentation.units[1].key.code, 'KeyJ', 'Presentation must never alter input key codes');
   const foundations = await server.ssrLoadModule('/src/data/touchTypingFoundations.ts');
   const curriculum = await server.ssrLoadModule('/src/data/lessonCurriculum.ts');
 
