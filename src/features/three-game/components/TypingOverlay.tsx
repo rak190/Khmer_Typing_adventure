@@ -27,6 +27,8 @@ import {
   type HandSide,
 } from '../../../lib/fingerGuidance';
 import { khmerTextEquals } from '../../../lib/khmerText';
+import { getKhmerTypingUnitPresentation } from '../../../lib/typingTargetPresentation';
+import { handImages } from '../../../assets/assetManifest';
 import {
   getCurrentTargetText,
   getTypedText,
@@ -142,12 +144,12 @@ export default function TypingOverlay({
       if (!last || last.itemIndex !== idx) {
         groups.push({
           itemIndex: idx,
-          text: unit.value,
+          text: isPhysicalKeyMode ? getKhmerTypingUnitPresentation(unit).khmer : unit.value,
           startUnitIdx: unitIdx,
           endUnitIdx: unitIdx,
         });
       } else {
-        last.text += isPhysicalKeyMode ? ` ${unit.value}` : unit.value;
+        last.text += isPhysicalKeyMode ? ` ${getKhmerTypingUnitPresentation(unit).khmer}` : unit.value;
         last.endUnitIdx = unitIdx;
       }
     });
@@ -351,6 +353,13 @@ export default function TypingOverlay({
           <span className="font-mono text-[10px] text-slate-400">
             {hand === 'left' ? 'A • S • D • F' : 'J • K • L • ;'}
           </span>
+        </div>
+        <div className="relative mx-auto h-16 w-32 overflow-hidden rounded-lg bg-white/5">
+          <img
+            src={hand === 'left' ? handImages.leftTyping : handImages.rightTyping}
+            alt={hand === 'left' ? 'ទីតាំងដៃឆ្វេង' : 'ទីតាំងដៃស្តាំ'}
+            className="h-full w-full object-contain"
+          />
         </div>
         <div className="flex items-center justify-center gap-1">
           {fingers.map((f) => {
@@ -598,13 +607,35 @@ export default function TypingOverlay({
             data-target={currentTargetText}
             className="khmer-body min-h-[54px] text-center text-3xl sm:text-4xl font-bold leading-[1.8]"
           >
-            <span className="text-emerald-400">{typedText}</span>
-            {currentTargetText && (
-              <span className="rounded-lg bg-amber-500/30 px-1.5 py-0.5 text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-8">
-                {visibleTargetUnit(currentTargetText)}
-              </span>
+            {isPhysicalKeyMode ? (
+              <div className="flex flex-wrap items-center justify-center gap-1.5" data-testid="three-khmer-physical-targets">
+                {targetUnits.map((unit, index) => {
+                  const presentation = getKhmerTypingUnitPresentation(unit);
+                  return (
+                    <span key={index} className={`flex min-w-10 flex-col items-center rounded-lg border px-1.5 py-1 leading-tight ${
+                      index < completedCount
+                        ? 'border-emerald-400/40 bg-emerald-950/50 text-emerald-300'
+                        : index === completedCount
+                        ? 'border-amber-300 bg-amber-500/25 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.45)]'
+                        : 'border-white/10 bg-slate-800/60 text-slate-300'
+                    }`}>
+                      <span className="text-2xl font-bold">{presentation.khmer}</span>
+                      <span className="font-mono text-[10px] opacity-70">{presentation.keyLabel}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            ) : (
+              <>
+                <span className="text-emerald-400">{typedText}</span>
+                {currentTargetText && (
+                  <span className="rounded-lg bg-amber-500/30 px-1.5 py-0.5 text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-8">
+                    {visibleTargetUnit(currentTargetText)}
+                  </span>
+                )}
+                <span className="text-slate-400">{remainingText}</span>
+              </>
             )}
-            <span className="text-slate-400">{remainingText}</span>
           </div>
 
           {/* Active Key, Finger & Home-Row Reach Guidance Banner */}

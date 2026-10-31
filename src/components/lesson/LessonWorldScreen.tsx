@@ -592,6 +592,8 @@ export default function LessonWorldScreen({
           lessonTitle={`${world.title} - ${lesson.labelEn}`}
           skillFocus={lesson.objective}
           targetText={plan.targetText}
+          physicalUnits={plan.practiceMode === 'physical-key' ? targetUnits : undefined}
+          completedPhysicalInputs={runState.completedInputCount}
           typedText={typedText}
           currentText={currentTargetText}
           keyHint={visibleKeyHint}
