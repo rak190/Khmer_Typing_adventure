@@ -1,11 +1,15 @@
 import { motion } from 'framer-motion';
 import { cn } from '../../lib/cn';
 import { formatElapsedTime, type TypingMetricResult } from '../../lib/typingMetrics';
+import type { TypingUnit } from '../../lib/lessonTypingPlan';
+import { getKhmerTypingUnitPresentation } from '../../lib/typingTargetPresentation';
 
 type TypingTargetCardProps = {
   lessonTitle: string;
   skillFocus: string;
   targetText: string;
+  physicalUnits?: TypingUnit[];
+  completedPhysicalInputs?: number;
   typedText: string;
   currentText: string;
   keyHint?: string;
@@ -25,6 +29,8 @@ export default function TypingTargetCard({
   lessonTitle,
   skillFocus,
   targetText,
+  physicalUnits,
+  completedPhysicalInputs = 0,
   typedText,
   currentText,
   metrics,
@@ -70,9 +76,31 @@ export default function TypingTargetCard({
             <span>{metrics.acceptedCorrectInputs} / {metrics.totalRequiredInputs}</span>
           </div>
           <div data-testid="typing-target" data-target={currentText} className="khmer-body min-h-[116px] text-[38px] font-black leading-[1.75] text-white">
-            <span className="text-[#99FFC9]">{typedText}</span>
-            <span className="lesson-current-text">{visibleTarget(currentText)}</span>
-            <span className="text-white/48">{remainingText}</span>
+            {physicalUnits ? (
+              <div className="flex flex-wrap gap-2" data-testid="two-d-khmer-physical-targets">
+                {physicalUnits.map((unit, index) => {
+                  const target = getKhmerTypingUnitPresentation(unit);
+                  return (
+                    <span key={index} className={`flex min-w-12 flex-col items-center rounded-lg border px-2 py-1 ${
+                      index < completedPhysicalInputs
+                        ? 'border-emerald-300/70 bg-emerald-900/40 text-emerald-200'
+                        : index === completedPhysicalInputs
+                        ? 'border-amber-300 bg-amber-400/30 text-amber-100'
+                        : 'border-white/20 bg-slate-900/50 text-slate-300'
+                    }`}>
+                      <span className="text-[28px]">{target.khmer}</span>
+                      <span className="font-mono text-[11px] opacity-70">{target.keyLabel}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            ) : (
+              <>
+                <span className="text-[#99FFC9]">{typedText}</span>
+                <span className="lesson-current-text">{visibleTarget(currentText)}</span>
+                <span className="text-white/48">{remainingText}</span>
+              </>
+            )}
           </div>
         </div>
 
