@@ -1,6 +1,6 @@
 # Next steps
 
-Updated: 2026-10-31. Branch: `fix/3d-prototype-stabilization`.
+Updated: 2026-10-31. Branch: `feat/3d-world-map-integration`.
 
 ## Completed work
 
@@ -46,6 +46,13 @@ Updated: 2026-10-31. Branch: `fix/3d-prototype-stabilization`.
      - Added 3-stage progress stepper and mission prompt in `ExplorationHud.tsx`, intact Khmer stage item rune tiles in `TypingOverlay.tsx`, and 3-stage summary breakdown in `VictoryModal.tsx`.
      - Expanded `scripts/threePrototypeTests.mjs` and Playwright E2E verification (`verify3dBrowser.mjs`) to validate all 3 stages, 90%/90%/92% accuracy thresholds, stage locking, retry behavior, final lesson scoring, and replay reward deduplication.
 
+7. **Task 5 — World Map integration**:
+   - Initially reused Task 4 from commit `6a61f845`; subsequently merged `origin/main` after PR #18 to resolve the overlapping history in PR #19. The explicit availability registry enables only World 1 / Lesson 1; generic curriculum resolution is not evidence of 3D support.
+   - The map offers Khmer-labeled Play 2D / Play 3D choices. Both 3D routes validate IDs and existing map unlock rules; invalid, locked and unsupported lessons never mount the engine. Production routes require the existing login session. The bare `/3d-prototype` default is development-only.
+   - Added a 2D lesson route guard for the existing map locks, closing the pre-existing direct-URL shortcut without changing the 2D game.
+   - Route changes start a fresh lesson session. Replay resets stage/UI state while retaining the in-memory reward ledger to prevent duplicate rewards. Final summaries explain that results are temporary and unlock nothing.
+   - Regression coverage: `scripts/threePrototypeTests.mjs` and the exported Playwright flow in `scripts/verifyThreeIntegrationBrowser.mjs` (run against a development server with Firebase disabled). No new dependencies, production result writes or deployment; PR #19 remains for review and is not merged automatically.
+
 ## Remaining for future tasks
 
 1. **Manual school-hardware check**: Test `/3d-prototype` interactively on a target Cambodian school computer (integrated GPU) to confirm frame rate and keyboard layout comfort.
@@ -54,4 +61,3 @@ Updated: 2026-10-31. Branch: `fix/3d-prototype-stabilization`.
    - Wire `ThreeLessonPersistenceAdapter` to live student progress / teacher dashboard storage once approved.
    - Add World 1 Lessons 2–6 and Boss Battle 3D stage layouts using `resolveThreeLessonConfig(worldId, levelId)`.
    - Optional Web Audio sound effects (`public/audio/`) and touch/virtual joystick controls for tablet browsers.
-

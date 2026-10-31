@@ -170,6 +170,11 @@ export default function TypingOverlay({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Keep normal focus navigation and form controls available in the lesson UI.
+      if (event.code === 'Tab') return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (event.code === 'Space' && target?.closest('button, a')) return;
       if (event.code === 'Escape') {
         event.preventDefault();
         onCancel();
@@ -201,7 +206,7 @@ export default function TypingOverlay({
 
       const usingAltGr = event.getModifierState?.('AltGraph') || (event.ctrlKey && event.altKey);
       if ((event.ctrlKey || event.metaKey) && !usingAltGr) return;
-      if (['Space', 'Tab'].includes(event.code)) event.preventDefault();
+      if (event.code === 'Space') event.preventDefault();
       if (event.repeat) return;
 
       const keyboardInput = getKhmerKeyboardInput(event);

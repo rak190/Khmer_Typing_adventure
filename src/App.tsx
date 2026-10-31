@@ -20,8 +20,6 @@ const ThreePrototypePage = lazy(() => import('./pages/ThreePrototypePage'));
 const internalRoutesEnabled = import.meta.env.DEV;
 
 const publicRoutes = new Set([
-  '/3d-prototype',
-  '/three-game',
   '/about',
   '/contact',
   '/privacy',
@@ -81,7 +79,7 @@ export default function App() {
   const location = useLocation();
   const [session, setSession] = useState<AppSession | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
-  const isInternalRoute = internalRoutesEnabled && location.pathname === '/design-system';
+  const isInternalRoute = internalRoutesEnabled && (location.pathname === '/design-system' || location.pathname === '/3d-prototype');
   const isPublicRoute = publicRoutes.has(location.pathname) || isInternalRoute;
 
   useEffect(() => {
@@ -150,8 +148,8 @@ export default function App() {
             <Route path="/lessons" element={<PublicInfoPage />} />
             <Route path="/khmer-keyboard-guide" element={<PublicInfoPage />} />
             <Route path="/typing-practice" element={<PublicInfoPage />} />
-            <Route path="/3d-prototype" element={<ThreePrototypePage />} />
-            <Route path="/three-game" element={<Navigate to="/3d-prototype" replace />} />
+            <Route path="/3d-prototype" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
+            <Route path="/three-game" element={<ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </RouteErrorBoundary>

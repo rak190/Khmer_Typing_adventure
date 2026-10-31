@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isThreeLessonSupported } from '../data/threeLessonAvailability';
 import { ArrowLeft, Mail, Settings, Trophy } from 'lucide-react';
 import ActionModal from '../components/game-ui/ActionModal';
 import GameButton from '../components/game-ui/GameButton';
@@ -326,6 +327,7 @@ export default function WorldMapPage() {
   const [selectedId, setSelectedId] = useState<AdventureNodeId>(firstCurrentLesson.id);
   const selected = activeWorld.lessons.find((lesson) => lesson.id === selectedId) ?? firstCurrentLesson;
   const selectedState = getLessonState(activeWorld, selected);
+  const offersThreeLesson = isThreeLessonSupported(activeWorld.id, selected.id);
   const treasureRewards = buildTreasureRewards(studentProgress, treasureClaimIds);
   const dailyQuests = buildDailyQuests(studentProgress, undefined, dailyQuestClaimIds);
   const achievements = buildAchievementProgress(studentProgress);
@@ -381,12 +383,16 @@ export default function WorldMapPage() {
     setSelectedId(nextLesson.id);
   };
 
-  const startSelectedLesson = () => {
-    if (selectedState === 'locked') {
+  const startSelectedLesson = (mode: '2d' | '3d' = '2d') => {
+    if (selectedState === 'locked' || !isWorldUnlocked(activeWorld.id, worlds)) {
       setModal('locked');
       return;
     }
     const query = `world=${activeWorld.id}&level=${selected.id}`;
+    if (mode === '3d') {
+      if (offersThreeLesson) navigate(`/three-game?${query}`);
+      return;
+    }
     navigate(selected.id === 'boss' ? `/battle?${query}` : `/lesson?${query}`);
   };
 
@@ -579,18 +585,29 @@ export default function WorldMapPage() {
         <WorldProgressPanel world={activeWorld} />
         <RewardsPanel world={activeWorld} onViewRewards={() => setModal('rewards')} />
 
-        <div className="absolute bottom-[46px] right-[48px] z-40">
+        <div className="absolute bottom-[46px] right-[48px] z-40 flex w-[320px] flex-col">
+          {offersThreeLesson && selectedState !== 'locked' && isWorldUnlocked(activeWorld.id, worlds) && (
+            <GameButton
+              data-testid="map-play-3d"
+              variant="gold"
+              className="mb-3 w-[320px]"
+              onClick={() => startSelectedLesson('3d')}
+            >
+              រៀនក្នុងពិភព 3D (Play 3D)
+            </GameButton>
+          )}
           <button
             type="button"
+            data-testid="map-play-2d"
             className={`pointer-events-auto relative h-[82px] w-[320px] cursor-pointer overflow-hidden rounded-[32px] border-[4px] border-[#0C8B39] bg-gradient-to-b from-[#7CFF61] via-[#33D94F] to-[#15A947] px-7 text-[26px] font-bold text-white shadow-[inset_0_-11px_0_rgba(0,91,50,.34),0_6px_0_rgba(0,103,60,.72),0_16px_22px_rgba(0,43,74,.36)] transition hover:-translate-y-1 ${selectedState === 'locked' ? 'cursor-not-allowed grayscale' : ''}`}
-            onClick={startSelectedLesson}
+            onClick={() => startSelectedLesson()}
             aria-disabled={selectedState === 'locked'}
             title={selectedState === 'locked' ? lockedReason : undefined}
           >
             <span className="pointer-events-none absolute left-[14px] right-[14px] top-[7px] h-[27px] rounded-full bg-white/42" />
             <span className="relative flex items-center justify-center gap-3 drop-shadow-[0_2px_1px_rgba(0,101,45,.55)]">
               <span className="khmer-body text-[25px] font-bold leading-none">{selectedState === 'locked' ? 'ជាប់សោ' : selected.id === 'boss' ? 'ចាប់ផ្តើម Boss' : 'ចាប់ផ្តើម'}</span>
-              <span className="text-[25px] leading-none">{selectedState === 'locked' ? 'ជាប់សោ' : selected.id === 'boss' ? '' : `Level ${selected.id}`}</span>
+              <span className="text-[25px] leading-none">{selectedState === 'locked' ? 'ជាប់សោ' : selected.id === 'boss' ? '' : offersThreeLesson ? 'Play 2D' : `Level ${selected.id}`}</span>
               {selectedState !== 'locked' && <ArrowLeft className="rotate-180" size={34} strokeWidth={3.2} />}
             </span>
           </button>

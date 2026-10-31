@@ -418,6 +418,41 @@ try {
   assert.equal(lesson2Config.lesson.id, 2);
   assert.equal(lesson2Config.stages.length, 3);
 
+  // Task 5: data resolution must never imply public availability or bypass map locks.
+  const availability = await server.ssrLoadModule('/src/data/threeLessonAvailability.ts');
+  const adventure = await server.ssrLoadModule('/src/data/adventureWorlds.ts');
+  const curriculum = await server.ssrLoadModule('/src/data/lessonCurriculum.ts');
+  const freshWorlds = adventure.buildAdventureWorlds([]);
+  const access = (query, worlds = freshWorlds) => availability.getThreeLessonAccess(new URLSearchParams(query), worlds);
+  assert.equal(access('world=1&level=1').status, 'ready');
+  assert.equal(access('world=1&level=2').status, 'locked');
+  assert.equal(access('world=2&level=1').status, 'locked');
+  assert.equal(access('world=1&level=boss').status, 'locked');
+  for (const query of [
+    '', 'world=1', 'level=1', 'world=&level=1', 'world=1&level=',
+    'world=abc&level=1', 'world=0&level=1', 'world=-1&level=1',
+    'world=1.5&level=1', 'world=1&level=1.5', 'world=1e0&level=1',
+    'world=01&level=1', 'world=99&level=1', 'world=1&level=99',
+    'world=1&level=NaN', 'world=1&world=2&level=1', 'world=1&level=1&level=2',
+  ]) assert.equal(access(query).status, 'invalid', query);
+  const completedFirstLesson = adventure.buildAdventureWorlds([{
+    worldId: 1, lessonId: 1, score: 100, accuracy: 100, wpm: 10,
+    stars: 3, xpEarned: 80, coinsEarned: 10, bestStreak: 10, passed: true,
+  }]);
+  assert.equal(access('world=1&level=2', completedFirstLesson).status, 'unsupported');
+  assert.equal(access('world=1&level=1', completedFirstLesson).status, 'ready');
+  assert.equal(access('world=1&level=3', completedFirstLesson).status, 'locked');
+  for (const world of curriculum.lessonCurriculum) {
+    for (const lesson of world.levels) {
+      assert.equal(availability.isThreeLessonSupported(world.id, lesson.id), world.id === 1 && lesson.id === 1);
+    }
+  }
+  assert.equal(availability.isThreeLessonSupported(99, 1), false);
+  assert.equal(availability.isThreeLessonSupported(1, 99), false);
+  for (const [worldId, lessonId] of [[99, 1], [1, 99], [0, 1], [1, '1'], [NaN, 1]]) {
+    assert.throws(() => gameplayState.resolveThreeLessonConfig(worldId, lessonId), RangeError);
+  }
+
   // 7.2 Stage 1 typing items and 90% accuracy requirement
   assert.equal(
     gameplayState.getStageMinimumAccuracy(stage1, lessonConfig.lesson, lessonConfig.worldId),

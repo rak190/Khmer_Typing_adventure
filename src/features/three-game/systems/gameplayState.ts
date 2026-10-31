@@ -82,15 +82,15 @@ export function getPrototypeDefaultLesson(): {
 
 /**
  * Resolves any curriculum world and lesson into a reusable 3D lesson configuration.
- * Defaults to World 1, Lesson 1 ("ព្យញ្ជនៈដំបូង" / "First Consonants").
+ * Rejects unknown IDs. Route availability is checked separately before rendering.
  */
 export function resolveThreeLessonConfig(
   worldId = 1,
   levelId: AdventureNodeId = 1,
 ): ThreeLessonConfig {
-  const world = lessonCurriculum.find((w) => w.id === worldId) ?? lessonCurriculum[0];
-  const lesson =
-    world.levels.find((l) => String(l.id) === String(levelId)) ?? world.levels[0];
+  const world = lessonCurriculum.find((w) => w.id === worldId);
+  const lesson = world?.levels.find((l) => l.id === levelId);
+  if (!world || !lesson) throw new RangeError('Unknown 3D curriculum world or lesson.');
   const lessonMinimumAccuracy = getLessonMinimumAccuracy(lesson, world.id);
   const lessonSpeedTargetCpm = getLessonSpeedTargetCpm(lesson, world.id);
 

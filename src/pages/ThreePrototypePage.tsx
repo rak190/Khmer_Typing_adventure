@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import type { AdventureNodeId } from '../data/adventureWorlds';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { buildAdventureWorlds } from '../data/adventureWorlds';
+import { LESSON_PROGRESS_EVENT } from '../data/mockData';
+import { getThreeLessonAccess } from '../data/threeLessonAvailability';
 import ExplorationHud from '../features/three-game/components/ExplorationHud';
 
 import TypingOverlay from '../features/three-game/components/TypingOverlay';
@@ -36,6 +38,7 @@ import type {
   PrototypeReward,
   StageCompletionSummary,
   StageProgressState,
+  ThreeLessonConfig,
   TypingSessionState,
 } from '../features/three-game/types';
 import type { TypingMetricResult } from '../lib/typingMetrics';
@@ -44,18 +47,41 @@ const INITIAL_PLAYER_POSITION: Position3D = [0, 0, -6];
 
 export default function ThreePrototypePage() {
   const [searchParams] = useSearchParams();
-  const worldParam = Number(searchParams.get('world') || 1);
-  const levelParam = (searchParams.get('level') || 1) as AdventureNodeId;
+  const location = useLocation();
+  const [worlds, setWorlds] = useState(() => buildAdventureWorlds());
+  useEffect(() => {
+    const refresh = () => setWorlds(buildAdventureWorlds());
+    window.addEventListener(LESSON_PROGRESS_EVENT, refresh);
+    return () => window.removeEventListener(LESSON_PROGRESS_EVENT, refresh);
+  }, []);
+  // Keep the original bare prototype URL only as a development testing entry.
+  const params = import.meta.env.DEV && location.pathname === '/3d-prototype' && !location.search
+    ? new URLSearchParams('world=1&level=1') : searchParams;
+  const access = getThreeLessonAccess(params, worlds);
+  if (access.status !== 'ready') {
+    const message = access.status === 'invalid'
+      ? 'តំណមេរៀនមិនត្រឹមត្រូវ។ (Invalid world or lesson.)'
+      : access.status === 'locked'
+      ? 'សូមបញ្ចប់មេរៀនមុនសិន។ (This lesson is locked. Complete the earlier lessons on the map.)'
+      : 'មេរៀននេះមានតែ 2D ប៉ុណ្ណោះ។ (This lesson is available in 2D only.)';
+    return (
+      <div data-testid="three-lesson-unavailable" data-reason={access.status} className="grid min-h-screen place-items-center bg-slate-900 p-6 font-khmer text-white">
+        <div className="max-w-lg rounded-2xl border border-amber-400/40 bg-slate-800 p-6 text-center">
+          <h1 className="text-xl font-bold text-amber-300">{message}</h1>
+          {access.status === 'unsupported' && (
+            <Link className="mt-5 block rounded-xl bg-amber-400 p-3 font-bold text-slate-900" to={`${access.lesson.id === 'boss' ? '/battle' : '/lesson'}?world=${access.worldId}&level=${access.lesson.id}`}>
+              រៀនជា 2D (Play 2D)
+            </Link>
+          )}
+          <Link className="mt-5 block rounded-xl border border-white/30 p-3" to="/map">ត្រឡប់ទៅផែនទី (Return to World Map)</Link>
+        </div>
+      </div>
+    );
+  }
+  return <ThreeLessonSession key={`${location.key}:${location.search}`} lessonConfig={resolveThreeLessonConfig(access.worldId, access.lesson.id)} />;
+}
 
-  const lessonConfig = useMemo(
-    () =>
-      resolveThreeLessonConfig(
-        Number.isFinite(worldParam) && worldParam > 0 ? worldParam : 1,
-        levelParam,
-      ),
-    [levelParam, worldParam],
-  );
-
+function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig }) {
   const { worldId, lesson, stages, lessonSpeedTargetCpm } = lessonConfig;
 
   const [mode, setMode] = useState<GameMode>('exploration');
@@ -150,6 +176,7 @@ export default function ThreePrototypePage() {
   }, [handleCancelTyping, mode]);
 
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
     const win = window as unknown as {
       __threeGetPlayerPos?: () => Position3D;
       __threeGetLessonDebug?: () => {
@@ -350,6 +377,7 @@ export default function ThreePrototypePage() {
 
   const handleStageOpeningFinished = useCallback(
     (stageIdx = activeStageIndex) => {
+      if (mode !== 'opening' || stageIdx !== activeStageIndex || !stageStates[stageIdx]?.passed) return;
       setStageStates((prev) => setStageGateStatus(prev, stageIdx, 'open'));
       if (stageIdx === 0) {
         setGateState((prev) =>
@@ -362,7 +390,7 @@ export default function ThreePrototypePage() {
       );
       setShowModal(true);
     },
-    [activeStageIndex, stages.length],
+    [activeStageIndex, mode, stageStates, stages.length],
   );
 
   const handleGateOpeningFinished = useCallback(() => {
@@ -416,6 +444,8 @@ export default function ThreePrototypePage() {
     setActiveStageIndex(0);
     setStageSummary(null);
     setFinalLessonMetrics(null);
+    setReward(null);
+    setIsDuplicateReward(false);
     playerPositionRef.current = [0, 0, getStageAltarPositionZ(0) - 0.6];
     setIsNearGate(true);
     startStageTypingSession(0);

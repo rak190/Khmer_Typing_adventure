@@ -59,7 +59,7 @@ export default function VictoryModal({
       data-final-lesson-complete={isFinalLessonComplete ? 'true' : 'false'}
       className="absolute inset-0 z-30 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 font-khmer text-white select-none"
     >
-      <div className="relative w-full max-w-xl overflow-hidden rounded-3xl border-2 border-amber-500/60 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 p-6 sm:p-7 text-center shadow-[0_0_50px_rgba(245,158,11,0.3)] animate-in fade-in zoom-in-95 duration-300">
+      <div className="relative max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-3xl border-2 border-amber-500/60 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 p-6 sm:p-7 text-center shadow-[0_0_50px_rgba(245,158,11,0.3)] animate-in fade-in zoom-in-95 duration-300">
         {/* Glow backdrop */}
         <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-amber-500/20 blur-3xl" />
 
@@ -198,6 +198,10 @@ export default function VictoryModal({
         )}
 
         {/* Action Buttons */}
+        <p data-testid="three-temporary-results-notice" className="mt-3 text-xs leading-relaxed text-amber-200">
+          លទ្ធផល និងរង្វាន់សាកល្បងនេះមិនត្រូវបានរក្សាទុកជាអចិន្ត្រៃយ៍ទេ ហើយមិនបើកមេរៀនថ្មីទេ។
+          {' '}Prototype results and session rewards are temporary. They are not permanently saved and do not unlock lessons.
+        </p>
         <div className="mt-5 flex flex-col gap-2.5">
           {passed ? (
             <button
@@ -232,14 +236,15 @@ export default function VictoryModal({
               onClick={isFinalLessonComplete && onReplayLesson ? onReplayLesson : onRetry}
               className="flex-1 rounded-xl border border-white/20 bg-slate-800/80 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
             >
-              {isFinalLessonComplete ? 'លេងមេរៀនឡើងវិញ (Replay Lesson)' : 'អនុវត្តដំណាក់កាលនេះម្តងទៀត'}
+              {isFinalLessonComplete ? 'លេងមេរៀន 3D ឡើងវិញ (Replay 3D Lesson)' : 'អនុវត្តដំណាក់កាលនេះម្តងទៀត'}
             </button>
             <button
               type="button"
+              data-testid="three-summary-return-map"
               onClick={() => navigate('/map')}
               className="flex-1 rounded-xl border border-white/20 bg-slate-800/80 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
             >
-              ត្រឡប់ទៅ Map
+              ត្រឡប់ទៅផែនទី (Return to World Map)
             </button>
           </div>
         </div>
