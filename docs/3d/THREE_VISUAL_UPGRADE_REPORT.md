@@ -49,10 +49,34 @@ All 3D modeling, material assignment, pivot normalization, mesh joining, and `.g
 
 ---
 
-## 5. Character Upgrade Summary
+## 5. Character Upgrade Summary (Task 6.5 & 6.5A)
 
-- Implemented [`src/features/three-game/hooks/useGltfAsset.ts`](../../src/features/three-game/hooks/useGltfAsset.ts) to load and cache `.glb` scenes in memory with automatic shadow enablement and non-blocking fallback.
+- Implemented [`src/features/three-game/hooks/useGltfAsset.ts`](../../src/features/three-game/hooks/useGltfAsset.ts) to load and cache `.glb` scenes in memory with automatic base URL path resolution (`resolveModelUrl`), shadow enablement, and non-blocking fallback.
+- Created [`scripts/blender/create_stylized_hero.py`](../../scripts/blender/create_stylized_hero.py) producing `khmer_student_hero.glb` (809.1 KB, 32,096 triangles, 8 modular pivot groups) matching the canonical character reference sheet:
+  - **Art Direction & Anatomy**: Stylized Cambodian student adventurer with anime/Pixar chibi proportions, warm golden-tan skin (`#E8A87C`) with Subsurface Scattering and soft rosy blush cheeks.
+  - **Face & Hair**: Voluminous swept-back espresso hair with front bangs framing the golden headband; large expressive anime eyes with warm honey-brown irises, dark pupils, and dual bright white sparkle catchlights; cheerful upturned smiling mouth; and stylized button nose.
+  - **Headband & Royal Regalia**: Golden diadem circlet with scalloped beaded gold pearls and rising vertical diamond crest with a faceted, glowing azure sapphire gemstone.
+  - **Cambodian Adventurer Outfit**: Light cream/beige tunic and upper sleeves with gold cuffs; crossed golden *Royal Sangvar* ceremonial chest harness with center diamond sapphire brooch; golden pauldrons hugging shoulders.
+  - **Angkor Wat Cape**: Primary rich teal cape and cowl scarf with an embossed **Golden Angkor Wat 5-Tower Temple Silhouette** on the back.
+  - **Learning Satchel**: Brown leather adventurer satchel for learning materials slung diagonally across torso onto left hip.
+  - **Pants & Footwear**: Puffed red-brown / russet *Chong Kben* breeches (`#883322`); golden ankle cuffs (*kang cheung*); and brown leather adventurer boots with gold cross-straps.
+  - **Touch-Typing Hands**: Gold wrist cuffs (*kang dai*) with 5 articulated fingers (Thumb, Index, Middle, Ring, Pinky) arched in natural home-row touch-typing readiness.
 - Upgraded [`src/features/three-game/components/Character.tsx`](../../src/features/three-game/components/Character.tsx) to mount the 8 articulated mesh groups from `khmer_student_hero.glb` directly onto the animated R3F hierarchy (`bodyRef`, `chestRef`, `capeRef`, `headRef`, `leftArmRef`, `rightArmRef`, `leftLegRef`, `rightLegRef`), plus a ground contact shadow and dynamic explorer aura ring.
+
+---
+
+## 5.1. HUD Correction & Compact Bottom-Center Quest Bar (Task 6.5)
+
+- Redesigned [`src/features/three-game/components/ExplorationHud.tsx`](../../src/features/three-game/components/ExplorationHud.tsx) to resolve screen obstruction:
+  - **Removed Center Panel**: Eliminated the large proximity modal in the middle of the screen that previously obscured the player character, temple walkway, and Gopura gate. The center screen is now 100% unobstructed.
+  - **Compact Bottom-Center Quest Bar**: Added a floating pill-shaped quest bar docked at the bottom center (`max-w-xl mx-auto`), styled in a glowing amber/slate translucent gradient with warm golden border (`border-2 border-amber-400/80 shadow-[0_0_25px_rgba(245,158,11,0.35)]`).
+  - **Clear Khmer Guidance**: Prominently displays actionable instruction text:
+    - Exploring: `ដើរទៅកាន់អាសនៈ [W / ↑] ហើយចុច [E] ដើម្បីចាប់ផ្តើមដំណាក់កាលទី {N}`
+    - Near Altar: `ចុច [E] ឬ ចុចប៊ូតុងនេះ ដើម្បីចាប់ផ្តើមដំណាក់កាលទី {N}`
+    - Stage Completed: `✨ មេរៀនទាំងអស់បានសម្រេចជោគជ័យ! ដើរឆ្លងកាត់ទ្វារបុរាណ`
+  - **Accessible Start Button**: Includes an interactive `[E] ចាប់ផ្តើម` button with keyboard keycap and gold chevron that allows instant stage activation via touch, click, or pressing `[E]`/`[Enter]`.
+  - **Non-Overlapping Layout**: Movement hints (`[W][A][S][D] + [↑][←][↓][→]`) sit neatly on the bottom-left and collapse on mobile viewports so there is zero overlap.
+  - **Responsive Design**: Adapts gracefully across desktop (`1440×900`), tablet (`768×1024`), and phone (`390×844`) screens without obscuring the character or gate.
 
 ---
 

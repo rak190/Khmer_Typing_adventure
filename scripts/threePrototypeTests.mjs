@@ -1005,6 +1005,82 @@ try {
   assert.ok(victoryMarkup.includes('F (ថ)'), 'VictoryModal must display practiced key F (ថ)');
   assert.ok(victoryMarkup.includes('G (ង)'), 'VictoryModal must display practiced key G (ង)');
 
+  // 8.7 ExplorationHud: verify compact bottom-center quest bar and non-obstructing center layout
+  const ExplorationHudMod = await server.ssrLoadModule('/src/features/three-game/components/ExplorationHud.tsx');
+  const demoStages = lessonConfig.stages;
+  const demoInitialStageStates = gameplayState.createInitialStageProgressStates(demoStages);
+
+  const hudExploringMarkup = ReactDOMServer.renderToStaticMarkup(
+    React.createElement(
+      MemoryRouter,
+      {},
+      React.createElement(ExplorationHudMod.default, {
+        isNearGate: false,
+        gateStatus: 'closed',
+        lessonTitleKh: 'ព្យញ្ជនៈដំបូង',
+        lessonTitleEn: 'First Consonants',
+        stages: demoStages,
+        stageStates: demoInitialStageStates,
+        activeStageIndex: 0,
+        activeStageMinimumAccuracy: 90,
+        allStagesCompleted: false,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudExploringMarkup.includes('data-testid="three-exploration-hud"'), 'Must render ExplorationHud container');
+  assert.ok(hudExploringMarkup.includes('data-testid="three-back-to-map"'), 'Must render back to 2D Map button');
+  assert.ok(hudExploringMarkup.includes('data-testid="three-lesson-badge"'), 'Must render lesson badge');
+  assert.ok(hudExploringMarkup.includes('data-testid="three-stage-stepper"'), 'Must render multi-stage stepper');
+  assert.ok(hudExploringMarkup.includes('data-testid="three-unlock-gate-btn"'), 'Must render accessible start stage button');
+  assert.ok(hudExploringMarkup.includes('data-testid="three-movement-hints"'), 'Must render movement hints widget');
+  assert.ok(hudExploringMarkup.includes('[W / ↑]'), 'Must render movement keys in bottom quest bar');
+  assert.ok(hudExploringMarkup.includes('E'), 'Must render E key hint in start button');
+
+  // Verify ExplorationHud when near gate
+  const hudNearGateMarkup = ReactDOMServer.renderToStaticMarkup(
+    React.createElement(
+      MemoryRouter,
+      {},
+      React.createElement(ExplorationHudMod.default, {
+        isNearGate: true,
+        gateStatus: 'closed',
+        lessonTitleKh: 'ព្យញ្ជនៈដំបូង',
+        lessonTitleEn: 'First Consonants',
+        stages: demoStages,
+        stageStates: demoInitialStageStates,
+        activeStageIndex: 0,
+        activeStageMinimumAccuracy: 90,
+        allStagesCompleted: false,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudNearGateMarkup.includes('data-testid="three-unlock-gate-btn"'), 'Must render unlock button when near gate');
+  assert.ok(hudNearGateMarkup.includes('ចាប់ផ្តើម'), 'Must render Khmer start text');
+
+  // Verify ExplorationHud when gate is open
+  const hudOpenMarkup = ReactDOMServer.renderToStaticMarkup(
+    React.createElement(
+      MemoryRouter,
+      {},
+      React.createElement(ExplorationHudMod.default, {
+        isNearGate: false,
+        gateStatus: 'open',
+        lessonTitleKh: 'ព្យញ្ជនៈដំបូង',
+        lessonTitleEn: 'First Consonants',
+        stages: demoStages,
+        stageStates: demoInitialStageStates.map((s) => ({ ...s, status: 'open', passed: true })),
+        activeStageIndex: 0,
+        activeStageMinimumAccuracy: 90,
+        allStagesCompleted: true,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudOpenMarkup.includes('data-testid="three-gate-open-banner"'), 'Must render gate open celebration banner');
+  assert.ok(hudOpenMarkup.includes('ដើរឆ្លងកាត់ទ្វារបុរាណ'), 'Must instruct player to walk through the ancient gate');
+
 } finally {
   await server.close();
 }

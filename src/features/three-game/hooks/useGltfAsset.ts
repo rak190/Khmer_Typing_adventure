@@ -15,7 +15,16 @@ function enableShadows(root: THREE.Object3D) {
   });
 }
 
-export function loadCachedGltf(url: string): Promise<THREE.Group | null> {
+export function resolveModelUrl(url: string): string {
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const base = import.meta.env.BASE_URL ?? '/';
+  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  const cleanPath = url.startsWith('/') ? url.slice(1) : url;
+  return `${cleanBase}${cleanPath}`;
+}
+
+export function loadCachedGltf(rawUrl: string): Promise<THREE.Group | null> {
+  const url = resolveModelUrl(rawUrl);
   const cached = gltfCache.get(url);
   if (cached) {
     return Promise.resolve(cached);
@@ -35,7 +44,8 @@ export function loadCachedGltf(url: string): Promise<THREE.Group | null> {
         resolve(gltf.scene);
       },
       undefined,
-      () => {
+      (err) => {
+        console.warn(`[useGltfAsset] Failed to load GLB: ${url}`, err);
         gltfPending.delete(url);
         resolve(null);
       }
@@ -51,11 +61,12 @@ export function loadCachedGltf(url: string): Promise<THREE.Group | null> {
  * so multiple instances can be placed in the scene safely without blocking Suspense.
  */
 export function useGltfClone(url: string): THREE.Group | null {
-  const [template, setTemplate] = useState<THREE.Group | null>(() => gltfCache.get(url) ?? null);
+  const resolvedUrl = useMemo(() => resolveModelUrl(url), [url]);
+  const [template, setTemplate] = useState<THREE.Group | null>(() => gltfCache.get(resolvedUrl) ?? null);
 
   useEffect(() => {
     let active = true;
-    loadCachedGltf(url).then((scene) => {
+    loadCachedGltf(resolvedUrl).then((scene) => {
       if (active && scene) {
         setTemplate(scene);
       }
@@ -63,7 +74,7 @@ export function useGltfClone(url: string): THREE.Group | null {
     return () => {
       active = false;
     };
-  }, [url]);
+  }, [resolvedUrl]);
 
   return useMemo(() => {
     if (!template) return null;
