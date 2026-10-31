@@ -10,26 +10,31 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "npm run test:typing && npm run test:gamification",
+    "test": "npm run test:typing && npm run test:gamification && npm run test:3d",
+    "test:3d": "node scripts/threePrototypeTests.mjs",
     "test:typing": "node scripts/typingCoreTests.mjs",
     "test:gamification": "node scripts/gamificationCoreTests.mjs",
     "check": "npm run typecheck && npm run lint && npm run test",
     "deploy": "npm run build && gh-pages -d dist"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
     "firebase": "^12.6.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6",
-    "recharts": "^3.5.0"
+    "recharts": "^3.5.0",
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.187.0",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.22",
     "eslint": "^9.39.1",
