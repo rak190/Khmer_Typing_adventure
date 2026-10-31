@@ -322,21 +322,23 @@ export default function Character({
 
       {/* Animated Torso & Head Group */}
       <group ref={bodyRef}>
-        {/* Waist Belt & Pleated Chong Kben */}
-        {glbParts ? (
-          <primitive object={glbParts.waist} />
-        ) : (
-          <group>
-            <mesh castShadow receiveShadow position={[0, 0.79, 0]}>
-              <cylinderGeometry args={[0.24, 0.27, 0.34, 16]} />
-              <meshStandardMaterial color="#9A4212" roughness={0.68} />
-            </mesh>
-            <mesh castShadow position={[0, 0.91, 0]}>
-              <cylinderGeometry args={[0.25, 0.25, 0.08, 16]} />
-              <meshStandardMaterial color="#F59E0B" roughness={0.28} metalness={0.65} />
-            </mesh>
-          </group>
-        )}
+        {/* Waist Belt & Pleated Chong Kben (pivot Y = 0.88) */}
+        <group position={[0, 0.88, 0]}>
+          {glbParts ? (
+            <primitive object={glbParts.waist} />
+          ) : (
+            <group position={[0, -0.09, 0]}>
+              <mesh castShadow receiveShadow position={[0, 0.79, 0]}>
+                <cylinderGeometry args={[0.24, 0.27, 0.34, 16]} />
+                <meshStandardMaterial color="#9A4212" roughness={0.68} />
+              </mesh>
+              <mesh castShadow position={[0, 0.91, 0]}>
+                <cylinderGeometry args={[0.25, 0.25, 0.08, 16]} />
+                <meshStandardMaterial color="#F59E0B" roughness={0.28} metalness={0.65} />
+              </mesh>
+            </group>
+          )}
+        </group>
 
         {/* Chest, Teal Tunic, Golden Sangvar, Pauldrons & Satchel */}
         <group ref={chestRef} position={[0, 1.15, 0]}>
@@ -374,7 +376,7 @@ export default function Character({
         </group>
 
         {/* Expressive Head, Spiky Hair & Sapphire Diamond Diadem */}
-        <group ref={headRef} position={[0, 1.72, 0]}>
+        <group ref={headRef} position={[0, 1.62, 0]}>
           {glbParts ? (
             <primitive object={glbParts.head} />
           ) : (
@@ -401,7 +403,7 @@ export default function Character({
         </group>
 
         {/* Left Arm */}
-        <group ref={leftArmRef} position={[-0.34, 1.38, 0]}>
+        <group ref={leftArmRef} position={[-0.22, 1.34, 0]}>
           {glbParts ? (
             <primitive object={glbParts.leftArm} />
           ) : (
@@ -413,7 +415,7 @@ export default function Character({
         </group>
 
         {/* Right Arm */}
-        <group ref={rightArmRef} position={[0.34, 1.38, 0]}>
+        <group ref={rightArmRef} position={[0.22, 1.34, 0]}>
           {glbParts ? (
             <primitive object={glbParts.rightArm} />
           ) : (
@@ -423,30 +425,30 @@ export default function Character({
             </mesh>
           )}
         </group>
-      </group>
 
-      {/* Left Leg */}
-      <group ref={leftLegRef} position={[-0.15, 0.78, 0]}>
-        {glbParts ? (
-          <primitive object={glbParts.leftLeg} />
-        ) : (
-          <mesh castShadow position={[0, -0.32, 0]}>
-            <cylinderGeometry args={[0.085, 0.1, 0.56, 12]} />
-            <meshStandardMaterial color="#9A4212" roughness={0.68} />
-          </mesh>
-        )}
-      </group>
+        {/* Left Leg (articulated with pelvis) */}
+        <group ref={leftLegRef} position={[-0.14, 0.78, 0]}>
+          {glbParts ? (
+            <primitive object={glbParts.leftLeg} />
+          ) : (
+            <mesh castShadow position={[0, -0.32, 0]}>
+              <cylinderGeometry args={[0.085, 0.1, 0.56, 12]} />
+              <meshStandardMaterial color="#9A4212" roughness={0.68} />
+            </mesh>
+          )}
+        </group>
 
-      {/* Right Leg */}
-      <group ref={rightLegRef} position={[0.15, 0.78, 0]}>
-        {glbParts ? (
-          <primitive object={glbParts.rightLeg} />
-        ) : (
-          <mesh castShadow position={[0, -0.32, 0]}>
-            <cylinderGeometry args={[0.085, 0.1, 0.56, 12]} />
-            <meshStandardMaterial color="#9A4212" roughness={0.68} />
-          </mesh>
-        )}
+        {/* Right Leg (articulated with pelvis) */}
+        <group ref={rightLegRef} position={[0.14, 0.78, 0]}>
+          {glbParts ? (
+            <primitive object={glbParts.rightLeg} />
+          ) : (
+            <mesh castShadow position={[0, -0.32, 0]}>
+              <cylinderGeometry args={[0.085, 0.1, 0.56, 12]} />
+              <meshStandardMaterial color="#9A4212" roughness={0.68} />
+            </mesh>
+          )}
+        </group>
       </group>
     </group>
   );

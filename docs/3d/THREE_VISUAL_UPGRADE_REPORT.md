@@ -132,3 +132,41 @@ All automated checks pass with zero errors:
 
 - All Khmer Unicode cluster segmentation, opposite-hand Shift highlighting, reach-and-return finger guidance, and curriculum pass thresholds (90% / 92%) are 100% preserved.
 - All Task 6.1 Firebase security rules (`firestore.rules`), Cloud Functions (`functions/index.ts`), and student progress schemas remain untouched.
+
+---
+
+## 12. Task 6.5A — Polished 3D Hero Redesign & Visual Correction
+
+Based on user art direction feedback and the concept reference sheet, the previous primitive-assembled character was completely replaced with a sculpted, lovable Cambodian student adventurer matching `src/assets/profile/khmer-typing-hero-avatar.png`:
+
+### Visual & Sculpting Upgrades (`scripts/blender/build_polished_hero.py`)
+1. **Chibi Anime Facial Structure (3.5 Heads Tall)**:
+   - Modeled with sculpted cranium, soft contoured jaw, and gentle chin.
+   - Large expressive anime eyes featuring wet corneal gloss, warm amber-caramel irises (`#D97706`), deep black pupils, dual white specular catchlights, and winged upper lash lines (`#1E1008`).
+   - Soft rosy blush cheeks and gentle smiling lips.
+   - Adorable button nose with contoured bridge.
+2. **Volumetric Stylized Hair & Royal Diadem**:
+   - Sweeping front bangs resting naturally above the diadem.
+   - Dynamic crown spikes, side tufts framing cheeks, and voluminous nape curls.
+   - Ornate royal Khmer gold diadem band with beaded pearl trim.
+   - Signature vertical royal diamond crest enclosing a glowing cyan sapphire gem with emission (`#38BDF8`).
+   - Streaming teal ribbon tails (`#0D9488`) at the back.
+3. **Tailored Costume & Royal Sangvar**:
+   - Cream adventurer tunic (`#F5E6CC`) with folded V-collar and beveled edges keeping its tailored garment shape.
+   - Draped teal scarf/cowl (`#0D9488`) wrapping warmly around the neck base.
+   - Flush crossed golden *Sangvar* chest harness with central gemstone rosette medallion.
+   - Warm brown leather adventurer satchel with cross-body strap and gold buckle on the right hip.
+   - Golden shoulder pauldrons with beveled trim.
+4. **Single Continuous Cape with Angkor Wat 5-Tower Emblem**:
+   - Continuous cloth mesh with natural billow curve draping from shoulders down to calves.
+   - Prominently embossed golden Angkor Wat 5-tower silhouette with lotus spires and 3 tiered terrace galleries.
+5. **Puffed Chong Kben Breeches & Adventurer Boots**:
+   - Traditional russet Chong Kben bloomers (`#883322`) with golden filigree knee bands.
+   - Golden ankle cuffs (*kang cheung*) with gemstone studs.
+   - Rugged brown leather adventure boots with upturned toes, thick tread soles, and gold straps.
+
+### Technical & Kinematic Integration (`Character.tsx`)
+- **8 Joint Pivot Hierarchies**: `HeroWaistMesh` (0, 0.88, 0), `HeroChestMesh` (0, 1.15, 0), `HeroCapeMesh` (0, 1.44, -0.12), `HeroHeadMesh` (0, 1.62, 0), `HeroLeftArmMesh` (-0.22, 1.34, 0), `HeroRightArmMesh` (0.22, 1.34, 0), `HeroLeftLegMesh` (-0.14, 0.78, 0), `HeroRightLegMesh` (0.14, 0.78, 0).
+- **Zero-Gap Walking Kinematics**: Waist and legs coupled directly into the main body group, eliminating any pelvis-to-thigh separation during walking bob cycles.
+- **Natural Shoulder Placement**: Shoulder width tuned to `+/- 0.22m` directly under pauldrons, with arms resting naturally along the torso and touch-typing hands posed over the belt.
+- **Bottom-Center Quest Bar**: Preserved 100% intact from PR #25 without obstruction of the 3D hero or temple gate.
