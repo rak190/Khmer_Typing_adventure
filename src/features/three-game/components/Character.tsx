@@ -2,7 +2,12 @@ import { useFrame } from '@react-three/fiber';
 import { useRef, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import type { MovementInput } from '../hooks/usePlayerControls';
-import { clampCharacterPosition, computeMovementDelta, isPositionNearGate } from '../systems/gameplayState';
+import {
+  clampCharacterPosition,
+  clampMultiStageCharacterPosition,
+  computeMovementDelta,
+  isPositionNearStage,
+} from '../systems/gameplayState';
 import type { GameMode, GateStatus, Position3D } from '../types';
 
 type CharacterProps = {
@@ -10,6 +15,8 @@ type CharacterProps = {
   movement: MovementInput;
   mode: GameMode;
   gateStatus: GateStatus;
+  stageStatuses?: GateStatus[];
+  activeStageIndex?: number;
   isModalOpen?: boolean;
   onNearGateChange: (isNear: boolean) => void;
 };
@@ -21,6 +28,8 @@ export default function Character({
   movement,
   mode,
   gateStatus,
+  stageStatuses,
+  activeStageIndex = 0,
   isModalOpen = false,
   onNearGateChange,
 }: CharacterProps) {
@@ -38,6 +47,8 @@ export default function Character({
   const walkCycleRef = useRef<number>(0);
   const moveBlendRef = useRef<number>(0); // 0 = fully idle, 1 = fully walking
   const lastNearGateRef = useRef<boolean | null>(null);
+  const lastStageIndexRef = useRef<number>(activeStageIndex);
+
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
@@ -60,11 +71,15 @@ export default function Character({
       walkCycleRef.current += dt * 11;
     }
 
-    // Always enforce courtyard & gate collision bounds
-    const [clampedX, clampedZ] = clampCharacterPosition(curX, curZ, gateStatus);
+    // Always enforce courtyard & multi-stage barrier collision bounds
+    const [clampedX, clampedZ] =
+      stageStatuses && stageStatuses.length > 0
+        ? clampMultiStageCharacterPosition(curX, curZ, stageStatuses)
+        : clampCharacterPosition(curX, curZ, gateStatus);
     positionRef.current[0] = clampedX;
     positionRef.current[1] = curY;
     positionRef.current[2] = clampedZ;
+
 
     // Smoothly rotate character toward movement heading
     const angleDiff = Math.atan2(
@@ -128,13 +143,18 @@ export default function Character({
       headRef.current.rotation.x = -torsoLean * 0.4;
     }
 
-    // Notify React only when proximity milestone changes
-    const nearGate = isPositionNearGate(clampedX, clampedZ);
+    // Notify React only when proximity milestone or active stage changes
+    if (lastStageIndexRef.current !== activeStageIndex) {
+      lastStageIndexRef.current = activeStageIndex;
+      lastNearGateRef.current = null;
+    }
+    const nearGate = isPositionNearStage(clampedX, clampedZ, activeStageIndex);
     if (lastNearGateRef.current !== nearGate) {
       lastNearGateRef.current = nearGate;
       onNearGateChange(nearGate);
     }
   });
+
 
   return (
     <group ref={groupRef} position={[0, 0, -6]}>
