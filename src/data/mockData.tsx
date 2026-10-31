@@ -16,7 +16,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import { collection, deleteDoc, doc, getDocs, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import type { Achievement, KeyboardKeyData, LessonStage, PowerUp, Quest, ResourceState, Student } from '../types/game';
 import { auth, db } from '../lib/firebase';
 
@@ -42,6 +42,12 @@ export const LESSON_PROGRESS_EVENT = 'khmer-lesson-progress-change';
 export const LESSON_PROGRESS_STORAGE_KEY = 'khmer-lesson-progress-records';
 
 export const mockLessonProgress: LessonProgressRecord[] = [];
+let cacheUid: string | undefined;
+function cacheKey() {
+  const uid = auth?.currentUser?.uid;
+  if (uid !== cacheUid) { cacheUid = uid; mockLessonProgress.splice(0); }
+  return `${LESSON_PROGRESS_STORAGE_KEY}:${uid ?? 'demo'}`;
+}
 
 function getStorage(): Storage | null {
   return typeof window !== 'undefined' ? window.localStorage : null;
@@ -110,7 +116,7 @@ function emitLessonProgressChange() {
 
 function loadCachedLessonProgressRecords() {
   try {
-    const saved = getStorage()?.getItem(LESSON_PROGRESS_STORAGE_KEY);
+    const saved = getStorage()?.getItem(cacheKey());
     return saved ? normalizeStoredProgress(JSON.parse(saved) as unknown) : [];
   } catch {
     return [];
@@ -119,7 +125,7 @@ function loadCachedLessonProgressRecords() {
 
 function saveCachedLessonProgressRecords(records: LessonProgressRecord[]) {
   try {
-    getStorage()?.setItem(LESSON_PROGRESS_STORAGE_KEY, JSON.stringify(records));
+    getStorage()?.setItem(cacheKey(), JSON.stringify(records));
   } catch {
     // Cache failures should not block lesson completion.
   }
@@ -149,6 +155,7 @@ function syncMockLessonProgress(records: LessonProgressRecord[], notify = false)
 }
 
 export function getLessonProgressRecords() {
+  cacheKey();
   if (mockLessonProgress.length === 0) {
     syncMockLessonProgress(loadCachedLessonProgressRecords());
   }
@@ -174,31 +181,13 @@ export function saveMockLessonProgress(progress: LessonProgressRecord) {
 }
 
 export async function resetLessonProgressRecords() {
+  if (auth?.currentUser) return;
   syncMockLessonProgress([], true);
-  try {
-    getStorage()?.removeItem(LESSON_PROGRESS_STORAGE_KEY);
-  } catch {
-    // Ignore cache cleanup failures.
-  }
-
-  const userId = auth?.currentUser?.uid;
-  if (!db || !userId) return;
-
-  const snapshot = await getDocs(collection(db, 'students', userId, 'lessonProgress'));
-  await Promise.all(snapshot.docs.map((item) => deleteDoc(item.ref)));
+  getStorage()?.removeItem(cacheKey());
 }
 
 export async function saveLessonProgressToFirebase(progress: LessonProgressRecord) {
-  const userId = auth?.currentUser?.uid;
-  if (!db || !userId) {
-    console.warn('Firebase user is not ready. Lesson progress was kept in memory only.');
-    return progress;
-  }
-
-  await setDoc(
-    doc(db, 'students', userId, 'lessonProgress', getProgressId(progress)),
-    { ...normalizeStoredProgress([progress])[0], updatedAt: serverTimestamp() },
-  );
+  if (auth?.currentUser) throw new Error('Trusted completion service required');
   return progress;
 }
 
@@ -209,7 +198,8 @@ export function subscribeLessonProgressFromFirebase(userId: string) {
   }
 
   return onSnapshot(collection(db, 'students', userId, 'lessonProgress'), (snapshot) => {
-    const records = normalizeStoredProgress(snapshot.docs.map((item) => item.data()));
+    if (auth?.currentUser?.uid !== userId) return;
+    const records = normalizeStoredProgress(snapshot.docs.filter(item => item.id !== "foundation-home-row").map((item) => item.data()));
     syncMockLessonProgress(mergeProgressRecords(records), true);
   }, (error) => {
     console.error('Unable to sync lesson progress from Firebase.', error);

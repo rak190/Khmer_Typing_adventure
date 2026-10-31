@@ -1,5 +1,5 @@
 import type { CurriculumLevel } from '../data/lessonCurriculum';
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import {
   isStructuredLessonUnlocked,
@@ -14,7 +14,7 @@ export const STUDENT_PROGRESS_STORAGE_KEY = 'khmer-typing-student-progress';
 export const STUDENT_PROGRESS_EVENT = 'khmer-student-progress-change';
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
-type StudentProgressDocument = StudentProgress & { updatedAt?: unknown };
+
 
 export type WeakKeyCategory = 'character' | 'vowel' | 'coeng' | 'mark' | 'key';
 
@@ -139,6 +139,12 @@ export function createEmptyStudentProgress(): StudentProgress {
 }
 
 let cachedStudentProgress = createEmptyStudentProgress();
+let cacheUid: string | undefined;
+function cacheKey() {
+  const uid = auth?.currentUser?.uid;
+  if (uid !== cacheUid) { cacheUid = uid; cachedStudentProgress = createEmptyStudentProgress(); }
+  return `${STUDENT_PROGRESS_STORAGE_KEY}:${uid ?? 'demo'}`;
+}
 
 function emitStudentProgressChange() {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(STUDENT_PROGRESS_EVENT));
@@ -170,7 +176,7 @@ function stripUndefined<T>(value: T): T {
 
 function cacheStudentProgress(progress: StudentProgress, storage = getStorage()) {
   try {
-    storage?.setItem(STUDENT_PROGRESS_STORAGE_KEY, JSON.stringify(stripUndefined(progress)));
+    storage?.setItem(storage === getStorage() ? cacheKey() : STUDENT_PROGRESS_STORAGE_KEY, JSON.stringify(stripUndefined(progress)));
   } catch {
     // Cache failures should never block lesson completion.
   }
@@ -261,7 +267,7 @@ export function loadStudentProgress(storage?: StorageLike): StudentProgress {
   const activeStorage = storage ?? getStorage();
 
   try {
-    const saved = activeStorage?.getItem(STUDENT_PROGRESS_STORAGE_KEY);
+    const saved = activeStorage?.getItem(storage ? STUDENT_PROGRESS_STORAGE_KEY : cacheKey());
     if (!saved) return cachedStudentProgress;
     const parsed = JSON.parse(saved) as Partial<StudentProgress>;
     return normalizeStudentProgress(parsed);
@@ -271,6 +277,7 @@ export function loadStudentProgress(storage?: StorageLike): StudentProgress {
 }
 
 export function saveStudentProgress(progress: StudentProgress, storage?: StorageLike) {
+  if (!storage && auth?.currentUser) throw new Error("Trusted completion service required");
   if (storage) {
     cacheStudentProgress(progress, storage);
     return progress;
@@ -280,17 +287,12 @@ export function saveStudentProgress(progress: StudentProgress, storage?: Storage
   cacheStudentProgress(progress);
   emitStudentProgressChange();
 
-  const progressRef = studentProgressDocRef();
-  if (progressRef) {
-    void setDoc(progressRef, { ...stripUndefined(progress), updatedAt: serverTimestamp() } satisfies StudentProgressDocument);
-  } else {
-    console.warn('Firebase user is not ready. Student progress was kept in memory only.');
-  }
 
   return progress;
 }
 
 export function resetStudentProgress(storage?: StorageLike) {
+  if (!storage && auth?.currentUser) return;
   if (storage) {
     storage.removeItem(STUDENT_PROGRESS_STORAGE_KEY);
     return;
@@ -305,13 +307,11 @@ export function resetStudentProgress(storage?: StorageLike) {
   }
   emitStudentProgressChange();
 
-  const progressRef = studentProgressDocRef();
-  if (progressRef) {
-    void setDoc(progressRef, { ...stripUndefined(emptyProgress), updatedAt: serverTimestamp() } satisfies StudentProgressDocument);
-  }
+
 }
 
 export function subscribeStudentProgressFromFirebase(userId: string) {
+  cacheKey();
   const progressRef = studentProgressDocRef(userId);
   if (!progressRef) {
     cachedStudentProgress = createEmptyStudentProgress();
@@ -320,9 +320,10 @@ export function subscribeStudentProgressFromFirebase(userId: string) {
   }
 
   return onSnapshot(progressRef, (snapshot) => {
+    if (auth?.currentUser?.uid !== userId) return;
     cachedStudentProgress = snapshot.exists()
       ? normalizeStudentProgress(snapshot.data() as Partial<StudentProgress>)
-      : loadStudentProgress();
+      : createEmptyStudentProgress();
     cacheStudentProgress(cachedStudentProgress);
     emitStudentProgressChange();
   }, (error) => {
@@ -502,7 +503,7 @@ export function getStudentDashboardStats(progress: StudentProgress) {
 
   return {
     totalLessons,
-    totalLessonsCompleted: progress.completedLessons.length,
+    totalLessonsCompleted: progress.completedLessons.filter(id => !/^\d+:/.test(id) && id !== 'foundation-home-row').length,
     currentWorld: nextLesson?.worldTitle ?? 'Adventure Complete',
     currentLessonTitle: nextLesson?.lessonTitle ?? 'Final Boss Complete',
     currentLevel: progress.currentLevel,

@@ -37,6 +37,7 @@ export default defineConfig(({ mode }) => {
       },
     ],
     server: {
+      watch: { ignored: ['**/.local/**', '**/functions/lib/**'] },
       host: '127.0.0.1',
       port: 5173,
     },

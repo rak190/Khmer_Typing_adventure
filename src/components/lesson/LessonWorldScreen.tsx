@@ -1,3 +1,7 @@
+import CompletionSaveStatus from './CompletionSaveStatus';
+import { auth } from '../../lib/firebase';
+import { submitLessonAttempt } from '../../lib/lessonCompletion';
+import { CURRICULUM_VERSION } from '../../lib/completionContract';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameScreen from '../layout/GameScreen';
@@ -7,12 +11,11 @@ import { SettingsPanel } from '../game-ui/FeaturePanels';
 import { backgroundImages } from '../../assets/assetManifest';
 import {
   resetLessonProgressRecords,
-  saveLessonProgressToFirebase,
   saveMockLessonProgress,
 } from '../../data/mockData';
 import { findKhmerKeyByCode, getKhmerKeyboardInput } from '../../data/keyboardMap';
 import type { CurriculumLevel, CurriculumWorld } from '../../data/lessonCurriculum';
-import { FOUNDATION_LESSON_ID } from '../../data/touchTypingFoundations';
+import { createKeyPracticeTracker, FOUNDATION_LESSON_ID } from '../../data/touchTypingFoundations';
 import { getStructuredLessonByRoute } from '../../data/typingProgression';
 import { countKhmerCharacters, countKhmerWords, khmerTextEquals } from '../../lib/khmerText';
 import {
@@ -191,6 +194,12 @@ export default function LessonWorldScreen({
   const economy = useEconomyState();
   const feedbackTimeoutRef = useRef<number | undefined>(undefined);
   const progressSavedRef = useRef(false);
+  const [committedReward, setCommittedReward] = useState({ XP:0, coins:0, gems:0 });
+  const [saveMessage, setSaveMessage] = useState('');
+  const attemptIdRef = useRef(crypto.randomUUID());
+  const attemptUidRef = useRef(auth?.currentUser?.uid);
+  const foundationTrackerRef = useRef(createKeyPracticeTracker());
+  const stageErrorsRef = useRef<Record<string, number>>({});
 
   const activeTarget =
     targetUnits[Math.min(runState.completedInputCount, Math.max(0, targetUnits.length - 1))];
@@ -223,12 +232,12 @@ export default function LessonWorldScreen({
     worldId: structuredLesson?.worldId ?? world.id,
     lessonId: resultLessonId,
   });
-  const finalXpEarned = rewardCalculation.xpEarned;
+  const finalXpEarned = auth?.currentUser ? committedReward.XP : rewardCalculation.xpEarned;
   const displayedXpEarned = runState.finished
     ? finalXpEarned
     : Math.min(40, runState.completedInputCount * 2);
-  const coinsEarned = runState.finished ? rewardCalculation.coinsEarned : 0;
-  const gemsEarned = runState.finished ? rewardCalculation.gemsEarned : 0;
+  const coinsEarned = auth?.currentUser ? committedReward.coins : runState.finished ? rewardCalculation.coinsEarned : 0;
+  const gemsEarned = auth?.currentUser ? committedReward.gems : runState.finished ? rewardCalculation.gemsEarned : 0;
   const questStages = getQuestStages(
     runState.completedInputCount,
     targetUnits.length,
@@ -289,6 +298,10 @@ export default function LessonWorldScreen({
     setFeedback(null);
     setNewBadges([]);
     progressSavedRef.current = false;
+    foundationTrackerRef.current.reset();
+    stageErrorsRef.current = {};
+    attemptIdRef.current = crypto.randomUUID();
+    setCommittedReward({ XP:0, coins:0, gems:0 });
   }
 
   function handleResetProgress() {
@@ -333,6 +346,7 @@ export default function LessonWorldScreen({
       activeTarget.practiceMode === 'physical-key' ||
       activeTarget.practiceMode === 'hand-position';
 
+    if (practiceMode === 'foundation') foundationTrackerRef.current.recordKeyAttempt(activeTarget.key.code, code, isPhysicalKeyMode ? code === activeTarget.key.code : khmerTextEquals(value, activeTarget.value), inputSource);
     if (isPhysicalKeyMode && inputSource === 'virtual') {
       // Do not count a virtual mouse click as verified physical-key mastery in Mode A
       showFeedback({
@@ -379,6 +393,7 @@ export default function LessonWorldScreen({
       return;
     }
 
+    if (activeTarget.stageId) stageErrorsRef.current[activeTarget.stageId] = (stageErrorsRef.current[activeTarget.stageId] ?? 0) + 1;
     updateRunState((current) => ({
       ...current,
       incorrectInputs: current.incorrectInputs + 1,
@@ -465,6 +480,37 @@ export default function LessonWorldScreen({
   useEffect(() => {
     if (!runState.finished || progressSavedRef.current) return;
 
+    if (auth?.currentUser?.uid !== attemptUidRef.current) {
+      progressSavedRef.current = true;
+      queueMicrotask(() => setSaveMessage('Account changed. Restart this lesson before saving.'));
+      return;
+    }
+    if (auth?.currentUser && practiceMode === 'weak') {
+      progressSavedRef.current = true;
+      queueMicrotask(() => setSaveMessage('Adaptive practice is local-only pending trusted identity support.'));
+      return;
+    }
+    if (auth?.currentUser) {
+      progressSavedRef.current = true;
+      const foundationStages = practiceMode === 'foundation' ? lesson.stages.map(stage => {
+        const count = targetUnits.filter(unit => unit.stageId === stage.id).length;
+        const accuracy = count ? Math.max(0, Math.round((count - (stageErrorsRef.current[stage.id] ?? 0)) / count * 100)) : 0;
+        return { id:stage.id, accuracy, completed:count > 0 && accuracy >= stage.accuracyGoal };
+      }) : [];
+      const attempt = {
+        attemptId: attemptIdRef.current, lessonId: practiceMode === 'foundation' ? FOUNDATION_LESSON_ID : `${world.id}:${lesson.id}`,
+        version: CURRICULUM_VERSION, mode: practiceMode === 'foundation' ? 'foundation' as const : '2d' as const,
+        category: practiceMode === 'foundation' ? 'mixed' as const : 'unicode-output' as const,
+        completedAt: new Date().toISOString(),
+        metrics: { accuracy: metrics.accuracy, cpm: metrics.cpm, score: metrics.finalScore, stars: metrics.stars, mistakes: metrics.errorCount, backspaces: metrics.backspaceCount, elapsedSeconds: metrics.elapsedSeconds, passed: metrics.passed && (practiceMode !== 'foundation' || foundationStages.every(stage => stage.completed)) },
+        stages: foundationStages, weakKeys,
+        ...(practiceMode === 'foundation' ? { foundation: foundationTrackerRef.current.getSummary() } : {}),
+      };
+      queueMicrotask(() => setSaveMessage('Saving?'));
+      void submitLessonAttempt(attempt).then(saved => { setCommittedReward(saved.reward); setSaveMessage(`Saved ? XP ${saved.reward.XP} ? coins ${saved.reward.coins}`); }).catch(error => setSaveMessage(`Save failed / pending on this device: ${error.message}`));
+      return;
+    }
+
     // Foundation practice keeps rewards temporary until Task 6 and does not mutate production Firebase or World 1-6 map progress
     if (practiceMode === 'foundation') {
       progressSavedRef.current = true;
@@ -525,7 +571,7 @@ export default function LessonWorldScreen({
 
     if (practiceMode === 'curriculum' && metrics.passed) {
       saveMockLessonProgress(progressRecord);
-      void saveLessonProgressToFirebase(progressRecord);
+
     }
 
     progressSavedRef.current = true;
@@ -536,6 +582,7 @@ export default function LessonWorldScreen({
     lesson.id,
     lesson.labelEn,
     lesson.objective,
+    lesson.stages,
     metrics,
     minimumAccuracy,
     plan.targetText,
@@ -546,6 +593,7 @@ export default function LessonWorldScreen({
     runState.finished,
     speedTargetCpm,
     structuredLesson,
+    targetUnits,
     weakKeys,
     world.id,
   ]);
@@ -553,6 +601,7 @@ export default function LessonWorldScreen({
   if (!activeTarget) {
     return (
       <PageTransition className="h-screen overflow-hidden bg-[#0A6FB5]">
+      <CompletionSaveStatus message={saveMessage} />
         <GameScreen
           background={backgroundImages.lesson}
           fit="stretch"
@@ -569,6 +618,7 @@ export default function LessonWorldScreen({
 
   return (
     <PageTransition className="h-screen overflow-hidden bg-[#0A6FB5]">
+      <CompletionSaveStatus message={saveMessage} />
       <GameScreen
         background={backgroundImages.lesson}
         fit="stretch"

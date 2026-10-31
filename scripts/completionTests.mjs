@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import { build } from 'esbuild';
+import { mkdir } from 'node:fs/promises';
+await mkdir('.local/tests', { recursive:true });
+await build({ entryPoints:['src/lib/completionContract.ts'], bundle:true, platform:'node', format:'esm', outfile:'.local/tests/contract.mjs' });
+const { resolveLessonIdentity, validateLessonAttempt, CURRICULUM_VERSION } = await import('../.local/tests/contract.mjs');
+assert.equal(resolveLessonIdentity('w1-home-runes').id,'1:1');
+assert.equal(resolveLessonIdentity('1:1').legacyId,'w1-home-runes');
+assert.notEqual(resolveLessonIdentity('foundation-home-row').id,'1:1');
+const attempt = { attemptId:'test-attempt-00000001', lessonId:'1:1', version:CURRICULUM_VERSION, mode:'2d', category:'unicode-output', completedAt:new Date().toISOString(), metrics:{ accuracy:95, cpm:30, score:9000, stars:2, mistakes:1, backspaces:0, elapsedSeconds:60, passed:true }, stages:[] };
+assert.equal(validateLessonAttempt(attempt).id,'1:1');
+assert.throws(() => validateLessonAttempt({ ...attempt, XP:9999 }));
+assert.throws(() => validateLessonAttempt({ ...attempt, mode:'3d' }));
+assert.throws(() => validateLessonAttempt({ ...attempt, lessonId:'1:2', mode:'3d' }));
+assert.throws(() => validateLessonAttempt({ ...attempt, metrics:{ ...attempt.metrics, cpm:NaN } }));
+assert.throws(() => validateLessonAttempt({ ...attempt, lessonId:'foundation-home-row' }));
+assert.throws(() => validateLessonAttempt({ ...attempt, attemptId:'../bad' }));
+assert.equal(validateLessonAttempt({ ...attempt, metrics:{ ...attempt.metrics, accuracy:50, stars:1, passed:false } }).id,'1:1');
+console.log('Completion identity and validation tests passed');
+
