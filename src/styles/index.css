@@ -1277,6 +1277,7 @@ a:focus-visible {
 
 .boss-fighter-name {
   position: absolute;
+  top: clamp(-0.72rem, -1.1vh, -0.38rem);
   z-index: 10;
   display: grid;
   gap: 0.12rem;
@@ -1299,6 +1300,14 @@ a:focus-visible {
   line-height: 1;
 }
 
+.boss-fighter-side--player .boss-fighter-name {
+  left: clamp(0.45rem, 1.4vw, 1rem);
+}
+
+.boss-fighter-side--enemy .boss-fighter-name {
+  right: clamp(0.45rem, 1.4vw, 1rem);
+}
+
 .boss-character-stage {
   position: absolute;
   inset: 0;
@@ -1308,11 +1317,11 @@ a:focus-visible {
 }
 
 .boss-character-stage--player {
-  transform: translateY(4%);
+  transform: translateY(10%);
 }
 
 .boss-character-stage--enemy {
-  transform: translateY(1%);
+  transform: translateY(8%);
 }
 
 .boss-character-glow {
@@ -1362,17 +1371,17 @@ a:focus-visible {
 .boss-player-character {
   position: relative;
   z-index: 1;
-  height: clamp(226px, 92%, 318px);
-  width: clamp(200px, 80%, 282px);
+  height: clamp(246px, 98%, 346px);
+  width: clamp(218px, 88%, 308px);
   filter:
     drop-shadow(0 24px 22px rgba(0, 0, 0, 0.2))
     drop-shadow(0 0 20px rgba(255, 228, 122, 0.24));
-  animation: bossPlayerIdle 2.9s ease-in-out infinite;
+  animation: none;
   transform-origin: 50% 90%;
 }
 
 .boss-player-character--attack {
-  animation: bossPlayerAttack 0.34s ease-out, bossPlayerIdle 2.9s ease-in-out infinite 0.34s;
+  animation: bossPlayerAttack 0.34s ease-out;
 }
 
 .boss-enemy-character {
@@ -1383,12 +1392,12 @@ a:focus-visible {
   filter:
     drop-shadow(0 26px 22px rgba(0, 0, 0, 0.32))
     drop-shadow(0 0 18px rgba(255, 92, 74, 0.22));
-  animation: bossEnemyIdle 3.2s ease-in-out infinite;
+  animation: none;
   transform-origin: 50% 88%;
 }
 
 .boss-enemy-character--hit {
-  animation: bossEnemyHit 0.38s ease-out, bossEnemyIdle 3.2s ease-in-out infinite 0.38s;
+  animation: bossEnemyHit 0.38s ease-out;
 }
 
 .boss-enemy-character--defeated {

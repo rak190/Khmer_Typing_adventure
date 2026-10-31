@@ -16,9 +16,12 @@ const ShopPage = lazy(() => import('./pages/ShopPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const DesignSystemPage = lazy(() => import('./pages/DesignSystemPage'));
 const PublicInfoPage = lazy(() => import('./pages/PublicInfoPage'));
+const ThreePrototypePage = lazy(() => import('./pages/ThreePrototypePage'));
 const internalRoutesEnabled = import.meta.env.DEV;
 
 const publicRoutes = new Set([
+  '/3d-prototype',
+  '/three-game',
   '/about',
   '/contact',
   '/privacy',
@@ -147,6 +150,8 @@ export default function App() {
             <Route path="/lessons" element={<PublicInfoPage />} />
             <Route path="/khmer-keyboard-guide" element={<PublicInfoPage />} />
             <Route path="/typing-practice" element={<PublicInfoPage />} />
+            <Route path="/3d-prototype" element={<ThreePrototypePage />} />
+            <Route path="/three-game" element={<Navigate to="/3d-prototype" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </RouteErrorBoundary>

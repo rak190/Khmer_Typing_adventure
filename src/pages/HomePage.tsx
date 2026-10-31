@@ -41,6 +41,7 @@ import {
 
 const navItems = [
   { label: 'ទំព័រដើម', to: '/', icon: Home, active: true },
+  { label: '3D Prototype (ថ្មី)', to: '/3d-prototype', icon: Sparkles },
   { label: 'Lessons', to: '/lessons', icon: BookOpen, chevron: true },
   { label: 'Practice', to: '/typing-practice', icon: Gamepad2 },
   { label: 'Boss Battles Login', to: '/battle', icon: Swords },
