@@ -80,6 +80,51 @@ export function clampCharacterPosition(
   return [clampedX, clampedZ];
 }
 
+/**
+ * Computes world movement delta and target facing rotation from player input.
+ * In this 3D camera coordinate space (camera at negative Z looking toward positive Z):
+ * - movement.forward moves toward +Z (gate direction, rotation = 0)
+ * - movement.backward moves toward -Z (camera direction, rotation = PI)
+ * - movement.left moves toward +X (screen-left, rotation = PI/2)
+ * - movement.right moves toward -X (screen-right, rotation = -PI/2)
+ * Diagonals are normalized so speed remains constant.
+ */
+export function computeMovementDelta(
+  movement: MovementInput,
+  canMove: boolean,
+): {
+  moveX: number;
+  moveZ: number;
+  dirX: number;
+  dirZ: number;
+  isMoving: boolean;
+  targetRotation: number;
+} {
+  if (!canMove) {
+    return { moveX: 0, moveZ: 0, dirX: 0, dirZ: 0, isMoving: false, targetRotation: 0 };
+  }
+
+  let moveX = 0;
+  let moveZ = 0;
+
+  if (movement.forward) moveZ += 1;
+  if (movement.backward) moveZ -= 1;
+  if (movement.left) moveX += 1; // Screen-left
+  if (movement.right) moveX -= 1; // Screen-right
+
+  const isMoving = moveX !== 0 || moveZ !== 0;
+  if (!isMoving) {
+    return { moveX: 0, moveZ: 0, dirX: 0, dirZ: 0, isMoving: false, targetRotation: 0 };
+  }
+
+  const length = Math.hypot(moveX, moveZ);
+  const dirX = moveX / length;
+  const dirZ = moveZ / length;
+  const targetRotation = Math.atan2(dirX, dirZ);
+
+  return { moveX, moveZ, dirX, dirZ, isMoving, targetRotation };
+}
+
 export function computePrototypeMetrics(
   units: TypingUnit[],
   completedCount: number,

@@ -13,6 +13,8 @@ try {
   const khmerText = await server.ssrLoadModule('/src/lib/khmerText.ts');
   const keyboardMap = await server.ssrLoadModule('/src/data/keyboardMap.ts');
   const typingPlanMod = await server.ssrLoadModule('/src/lib/lessonTypingPlan.ts');
+  const fingerGuidanceMod = await server.ssrLoadModule('/src/lib/fingerGuidance.ts');
+  const THREE = await server.ssrLoadModule('three');
 
   // 1. Default curriculum lesson & minimum accuracy target (90%, not 75% or 70%)
   const defaultLesson = gameplayState.getPrototypeDefaultLesson();
@@ -200,6 +202,127 @@ try {
     { forward: false, backward: false, left: false, right: false },
     'Previously held keys must remain cleared after returning to exploration',
   );
+
+  // 4.1 Movement direction mapping, camera projection, diagonal normalization, and rotation
+  // Camera stands at negative Z looking along +Z toward the gate.
+  // In this camera frame:
+  // - world +X projects to negative NDC X (screen-left)
+  // - world -X projects to positive NDC X (screen-right)
+  const cam = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 100);
+  cam.position.set(0, 2.6, -5.6);
+  cam.lookAt(0, 1.35, 1.6);
+  cam.updateMatrixWorld();
+
+  const posLeftWorld = new THREE.Vector3(2, 1.5, 0).project(cam);
+  const posRightWorld = new THREE.Vector3(-2, 1.5, 0).project(cam);
+  assert.ok(
+    posLeftWorld.x < 0,
+    `World +X must project to screen-left (negative NDC X), got ${posLeftWorld.x}`,
+  );
+  assert.ok(
+    posRightWorld.x > 0,
+    `World -X must project to screen-right (positive NDC X), got ${posRightWorld.x}`,
+  );
+
+  // A / ArrowLeft -> moves screen-left (world +X)
+  const leftMove = gameplayState.computeMovementDelta({ forward: false, backward: false, left: true, right: false }, true);
+  assert.equal(leftMove.isMoving, true);
+  assert.ok(leftMove.dirX > 0, 'Left movement must have positive dirX (world +X = screen-left)');
+  assert.equal(leftMove.dirZ, 0);
+  assert.ok(
+    Math.abs(leftMove.targetRotation - Math.PI / 2) < 1e-6,
+    'Character must face screen-left (PI/2 rad)',
+  );
+
+  // D / ArrowRight -> moves screen-right (world -X)
+  const rightMove = gameplayState.computeMovementDelta({ forward: false, backward: false, left: false, right: true }, true);
+  assert.equal(rightMove.isMoving, true);
+  assert.ok(rightMove.dirX < 0, 'Right movement must have negative dirX (world -X = screen-right)');
+  assert.equal(rightMove.dirZ, 0);
+  assert.ok(
+    Math.abs(rightMove.targetRotation - (-Math.PI / 2)) < 1e-6,
+    'Character must face screen-right (-PI/2 rad)',
+  );
+
+  // W / ArrowUp -> moves forward (world +Z toward gate)
+  const forwardMove = gameplayState.computeMovementDelta({ forward: true, backward: false, left: false, right: false }, true);
+  assert.equal(forwardMove.isMoving, true);
+  assert.equal(forwardMove.dirX, 0);
+  assert.ok(forwardMove.dirZ > 0, 'Forward movement must have positive dirZ (+Z = toward gate)');
+  assert.equal(forwardMove.targetRotation, 0, 'Character must face forward (0 rad)');
+
+  // S / ArrowDown -> moves backward (world -Z away from gate)
+  const backwardMove = gameplayState.computeMovementDelta({ forward: false, backward: true, left: false, right: false }, true);
+  assert.equal(backwardMove.isMoving, true);
+  assert.equal(backwardMove.dirX, 0);
+  assert.ok(backwardMove.dirZ < 0, 'Backward movement must have negative dirZ (-Z = away from gate)');
+  assert.ok(
+    Math.abs(Math.abs(backwardMove.targetRotation) - Math.PI) < 1e-6,
+    'Character must face backward (PI rad)',
+  );
+
+  // Diagonal normalization
+  const diagForwardLeft = gameplayState.computeMovementDelta({ forward: true, backward: false, left: true, right: false }, true);
+  assert.equal(diagForwardLeft.isMoving, true);
+  const diagLength = Math.hypot(diagForwardLeft.dirX, diagForwardLeft.dirZ);
+  assert.ok(Math.abs(diagLength - 1.0) < 1e-6, `Diagonal speed must be normalized to 1.0, got ${diagLength}`);
+  assert.ok(
+    Math.abs(diagForwardLeft.targetRotation - Math.PI / 4) < 1e-6,
+    'Forward-left diagonal must face PI/4 rad',
+  );
+
+  const diagForwardRight = gameplayState.computeMovementDelta({ forward: true, backward: false, left: false, right: true }, true);
+  assert.ok(Math.abs(Math.hypot(diagForwardRight.dirX, diagForwardRight.dirZ) - 1.0) < 1e-6);
+
+  // Movement disabled during typing (canMove = false)
+  const disabledMove = gameplayState.computeMovementDelta({ forward: true, backward: false, left: true, right: false }, false);
+  assert.equal(disabledMove.isMoving, false);
+  assert.equal(disabledMove.dirX, 0);
+  assert.equal(disabledMove.dirZ, 0);
+
+  // 4.2 Keyboard guidance: Opposite-hand Shift highlighting & modifier key handling
+  const keyK = keyboardMap.findKhmerKeyByCode('KeyK');
+  assert.ok(keyK);
+  assert.equal(keyK.hand, 'right', 'KeyK is operated by the right hand');
+
+  // Shift + K (គ) -> KeyK is right hand, so opposite-hand Shift is ShiftLeft
+  const shiftKRequired = fingerGuidanceMod.getRequiredShiftKeyCode(keyK, true);
+  assert.equal(shiftKRequired, 'ShiftLeft', 'Shift + KeyK must highlight ShiftLeft (opposite hand)');
+
+  // KeyK without Shift (ក) -> no Shift highlight
+  const baseKRequired = fingerGuidanceMod.getRequiredShiftKeyCode(keyK, false);
+  assert.equal(baseKRequired, null, 'Non-shift KeyK must not highlight any Shift key');
+
+  // Shift + A (ាំ) -> KeyA is left hand, so opposite-hand Shift is ShiftRight
+  const keyA = keyboardMap.findKhmerKeyByCode('KeyA');
+  assert.ok(keyA);
+  assert.equal(keyA.hand, 'left', 'KeyA is operated by the left hand');
+  const shiftARequired = fingerGuidanceMod.getRequiredShiftKeyCode(keyA, true);
+  assert.equal(shiftARequired, 'ShiftRight', 'Shift + KeyA must highlight ShiftRight (opposite hand)');
+
+  // Shift + D (ឌ) -> KeyD is left hand, so opposite-hand Shift is ShiftRight
+  const keyD = keyboardMap.findKhmerKeyByCode('KeyD');
+  assert.ok(keyD);
+  assert.equal(keyD.hand, 'left', 'KeyD is operated by the left hand');
+  const shiftDRequired = fingerGuidanceMod.getRequiredShiftKeyCode(keyD, true);
+  assert.equal(shiftDRequired, 'ShiftRight', 'Shift + KeyD must highlight ShiftRight (opposite hand)');
+
+  // Shift-only keydown must return null (not count as input or mistake)
+  const shiftLeftOnly = keyboardMap.getKhmerKeyboardInput({
+    code: 'ShiftLeft',
+    shiftKey: true,
+    ctrlKey: false,
+    altKey: false,
+  });
+  assert.equal(shiftLeftOnly, null, 'Pressing ShiftLeft alone must produce null (not typed input)');
+
+  const shiftRightOnly = keyboardMap.getKhmerKeyboardInput({
+    code: 'ShiftRight',
+    shiftKey: true,
+    ctrlKey: false,
+    altKey: false,
+  });
+  assert.equal(shiftRightOnly, null, 'Pressing ShiftRight alone must produce null (not typed input)');
 
   // 5. Gate collision bounds and retry/restart session reset
   const [closedX, closedZ] = gameplayState.clampCharacterPosition(0, 10, 'closed');

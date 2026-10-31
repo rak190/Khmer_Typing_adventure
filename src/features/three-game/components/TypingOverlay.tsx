@@ -13,7 +13,7 @@ import {
   khmerKeyboardRows,
   type KhmerKeyboardKey,
 } from '../../../data/keyboardMap';
-import { getFingerGuidance } from '../../../lib/fingerGuidance';
+import { getFingerGuidance, getRequiredShiftKeyCode } from '../../../lib/fingerGuidance';
 import { khmerTextEquals } from '../../../lib/khmerText';
 import {
   getCurrentTargetText,
@@ -97,6 +97,10 @@ export default function TypingOverlay({
     return getFingerGuidance(activeTarget.key, shiftRequired);
   }, [activeTarget, shiftRequired]);
 
+  const requiredShiftCode = useMemo(() => {
+    return activeTarget ? getRequiredShiftKeyCode(activeTarget.key, shiftRequired) : null;
+  }, [activeTarget, shiftRequired]);
+
   const onTypedValueRef = useRef(onTypedValue);
   const onBackspaceRef = useRef(onBackspace);
   const activeTargetRef = useRef(activeTarget);
@@ -141,6 +145,21 @@ export default function TypingOverlay({
       if (event.code === 'Backspace') {
         event.preventDefault();
         onBackspaceRef.current();
+        return;
+      }
+
+      // Ignore modifier-only key events so pressing Shift alone does not count as input or mistake
+      if ([
+        'ShiftLeft',
+        'ShiftRight',
+        'AltLeft',
+        'AltRight',
+        'ControlLeft',
+        'ControlRight',
+        'MetaLeft',
+        'MetaRight',
+        'CapsLock',
+      ].includes(event.code)) {
         return;
       }
 
@@ -342,36 +361,50 @@ export default function TypingOverlay({
         >
           <div className="space-y-1 sm:space-y-1.5">
             {khmerKeyboardRows.map((row, rowIndex) => (
-              <div key={rowIndex} className="flex justify-center gap-1 sm:gap-1.5">
-                {row.map((keyData: KhmerKeyboardKey) => {
-                  const isBackspace = keyData.action === 'backspace';
-                  const isTarget = activeTarget?.key.code === keyData.code;
-                  const isShiftTarget = shiftRequired && keyData.action === 'shift';
-                  const isAltGrTarget = altgrRequired && keyData.action === 'altgr';
-                  const isFeedback = feedback?.code === keyData.code;
-                  const isDisabled = Boolean(keyData.disabled && !isBackspace);
+                <div key={rowIndex} className="flex justify-center gap-1 sm:gap-1.5">
+                  {row.map((keyData: KhmerKeyboardKey) => {
+                    const isBackspace = keyData.action === 'backspace';
+                    const isTarget = activeTarget?.key.code === keyData.code;
+                    const isShiftTarget = Boolean(requiredShiftCode && requiredShiftCode === keyData.code);
+                    const isAltGrTarget = Boolean(
+                      altgrRequired &&
+                        keyData.action === 'altgr' &&
+                        (keyData.code === 'AltRight' || keyData.code === 'AltLeft'),
+                    );
+                    const isFeedback = feedback?.code === keyData.code;
+                    const isDisabled = Boolean(keyData.disabled && !isBackspace);
 
-                  let keyBg = 'bg-slate-800 text-slate-200 border-slate-700';
-                  if (isDisabled) keyBg = 'bg-slate-900/50 text-slate-600 border-transparent';
-                  else if (isFeedback && feedback.state === 'correct') keyBg = 'bg-emerald-600 text-white border-emerald-400 scale-105';
-                  else if (isFeedback && feedback.state === 'wrong') keyBg = 'bg-coral text-white border-red-300 scale-105';
-                  else if (isTarget) keyBg = 'bg-amber-500 text-slate-950 border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.8)] scale-105 font-bold';
-                  else if (isShiftTarget || isAltGrTarget) keyBg = 'bg-purple-600 text-white border-purple-400 animate-pulse';
+                    let keyBg = 'bg-slate-800 text-slate-200 border-slate-700';
+                    if (isFeedback && feedback.state === 'correct') {
+                      keyBg = 'bg-emerald-600 text-white border-emerald-400 scale-105';
+                    } else if (isFeedback && feedback.state === 'wrong') {
+                      keyBg = 'bg-coral text-white border-red-300 scale-105';
+                    } else if (isTarget) {
+                      keyBg =
+                        'bg-amber-500 text-slate-950 border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.8)] scale-105 font-bold';
+                    } else if (isShiftTarget || isAltGrTarget) {
+                      keyBg =
+                        'bg-purple-600 text-white border-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.7)] animate-pulse font-bold scale-105';
+                    } else if (isDisabled) {
+                      keyBg = 'bg-slate-900/50 text-slate-600 border-transparent';
+                    }
 
-                  const displayKhmer = isBackspace
-                    ? '⌫'
-                    : shiftRequired && keyData.shiftKhmer
-                    ? keyData.shiftKhmer
-                    : altgrRequired && keyData.altgrKhmer
-                    ? keyData.altgrKhmer
-                    : keyData.khmer || keyData.latin;
+                    const displayKhmer = isBackspace
+                      ? '⌫'
+                      : shiftRequired && keyData.shiftKhmer
+                      ? keyData.shiftKhmer
+                      : altgrRequired && keyData.altgrKhmer
+                      ? keyData.altgrKhmer
+                      : keyData.khmer || keyData.latin;
 
-                  return (
-                    <button
-                      type="button"
-                      key={`${rowIndex}-${keyData.latin}-${keyData.code}`}
-                      data-key-code={keyData.code}
-                      disabled={isDisabled}
+                    return (
+                      <button
+                        type="button"
+                        key={`${rowIndex}-${keyData.latin}-${keyData.code}`}
+                        data-key-code={keyData.code}
+                        data-is-target={isTarget ? 'true' : undefined}
+                        data-is-shift-target={isShiftTarget ? 'true' : undefined}
+                        disabled={isDisabled}
                       onClick={() => {
                         if (isBackspace) {
                           onBackspaceRef.current();

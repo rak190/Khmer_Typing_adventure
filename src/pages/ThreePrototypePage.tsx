@@ -92,6 +92,14 @@ export default function ThreePrototypePage() {
     }
   }, [handleCancelTyping, mode]);
 
+  useEffect(() => {
+    (window as unknown as { __threeGetPlayerPos?: () => Position3D }).__threeGetPlayerPos = () =>
+      playerPositionRef.current;
+    return () => {
+      delete (window as unknown as { __threeGetPlayerPos?: () => Position3D }).__threeGetPlayerPos;
+    };
+  }, []);
+
   const movement = usePlayerControls(
     mode,
     () => {
@@ -237,6 +245,9 @@ export default function ThreePrototypePage() {
           gateState={gateState}
           movement={movement}
           isModalOpen={showModal}
+          streak={sessionState.streak}
+          completedCount={sessionState.completedCount}
+          incorrectCount={sessionState.incorrectCount}
           onNearGateChange={setIsNearGate}
           onGateOpeningFinished={handleGateOpeningFinished}
         />

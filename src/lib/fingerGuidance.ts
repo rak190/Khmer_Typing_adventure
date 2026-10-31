@@ -72,3 +72,18 @@ export function getFingerGuidance(key: KhmerKeyboardKey, shiftRequired: boolean)
     shiftRequired,
   };
 }
+
+/**
+ * Returns the exact opposite-hand Shift key code ('ShiftLeft' or 'ShiftRight')
+ * for a key that requires Shift, or null if Shift is not required.
+ */
+export function getRequiredShiftKeyCode(
+  key: KhmerKeyboardKey,
+  shiftRequired: boolean,
+): 'ShiftLeft' | 'ShiftRight' | null {
+  if (!shiftRequired) return null;
+  const guidance = getFingerGuidance(key, true);
+  const shiftHighlight = guidance.highlights.find((h) => h.role === 'shift');
+  if (!shiftHighlight) return null;
+  return shiftHighlight.hand === 'left' ? 'ShiftLeft' : 'ShiftRight';
+}
