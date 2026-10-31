@@ -56,5 +56,53 @@ try {
   assert.equal(foundation.data.firstClear,true);
   assert.equal((await getDoc(doc(studentDb,`students/${user.user.uid}/lessonProgress/1:1`))).data().score,9000);
   assert.equal((await getDoc(doc(studentDb,`students/${user.user.uid}/lessonProgress/foundation-home-row`))).data().passed,true);
-  console.log('Emulator rules, authenticated callable and concurrent idempotency passed');
+
+  // Profile Update Hardening Tests
+  const updateProfile = httpsCallable(functions, 'updateUserProfile');
+  await assert.rejects(updateProfile({ displayName: '' }));
+  await assert.rejects(updateProfile({ displayName: 'a'.repeat(45) }));
+  const profRes = await updateProfile({ displayName: 'Dev Staging User', equippedAvatarId: 'avatar_angkor-01' });
+  assert.equal(profRes.data.success, true);
+  assert.equal(profRes.data.profile.displayName, 'Dev Staging User');
+
+  // Shop & Economy Mutation Hardening Tests
+  const purchase = httpsCallable(functions, 'purchaseShopItem');
+  await env.withSecurityRulesDisabled(async ctx => {
+    await setDoc(doc(ctx.firestore(), `users/${user.user.uid}`), { coins: 1000, gems: 50, hearts: 5, maxHearts: 5 }, { merge: true });
+  });
+  const buyRes = await purchase({ itemId: 'retry-token' });
+  assert.equal(buyRes.data.success, true);
+  assert.equal(buyRes.data.economy.coins, 700); // 1000 - 300 cost
+  await assert.rejects(purchase({ itemId: 'angkor-treasure-bundle' })); // coming soon
+  await assert.rejects(purchase({ itemId: 'nonexistent-item' })); // unknown item
+
+  // Inventory Consumption Hardening Tests
+  const consume = httpsCallable(functions, 'consumeInventoryItem');
+  const consumeRes = await consume({ itemId: 'retry-token' });
+  assert.equal(consumeRes.data.success, true);
+  assert.equal(consumeRes.data.quantity, 0);
+  await assert.rejects(consume({ itemId: 'retry-token' })); // now 0 quantity
+
+  // Boss Attempt Heart Deduction Hardening Tests
+  const prepareBoss = httpsCallable(functions, 'prepareBossAttempt');
+  const bossAttempt1 = await prepareBoss({ attemptId: 'boss-att-1' });
+  assert.equal(bossAttempt1.data.usedRetryToken, false);
+  assert.equal(bossAttempt1.data.economy.hearts, 4);
+  const bossAttemptDup = await prepareBoss({ attemptId: 'boss-att-1' });
+  assert.equal(bossAttemptDup.data.economy.hearts, 4); // idempotent
+
+  // Heart Refill Check
+  const refill = httpsCallable(functions, 'refillHearts');
+  const refillRes = await refill();
+  assert.equal(refillRes.data.success, true);
+
+  // Claim Achievement Rejection (Locked)
+  const claimAch = httpsCallable(functions, 'claimAchievementReward');
+  await assert.rejects(claimAch({ achievementId: 'boss-victor' }));
+
+  // Claim Daily Quest Rejection (No recorded progress)
+  const claimQuest = httpsCallable(functions, 'claimDailyQuestReward');
+  await assert.rejects(claimQuest({ questId: 'complete-lesson' }));
+
+  console.log('Emulator rules, authenticated callable, economy hardening, and concurrent idempotency passed');
 } finally { await env.cleanup(); }

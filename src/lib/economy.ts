@@ -6,14 +6,10 @@ import {
   doc,
   getDoc,
   getDocs,
-  increment,
   onSnapshot,
-  runTransaction,
-  serverTimestamp,
-  type Transaction,
 } from 'firebase/firestore';
-import { auth, db, getDemoSession, type AppSession } from './firebase';
-import { countKhmerCharacters } from './khmerText';
+import { httpsCallable } from 'firebase/functions';
+import { auth, db, functions, getDemoSession, type AppSession } from './firebase';
 import type { RewardAmount } from './playerFeatures';
 import type { StudentLessonResult } from './studentProgress';
 import { SHOP_ITEMS, type ShopItemEffect } from '../data/shopItems';
@@ -141,6 +137,20 @@ export function getActiveEconomyUserId(session?: AppSession | null) {
   return session?.userId ?? auth?.currentUser?.uid ?? getDemoSession()?.userId;
 }
 
+export function isOnlineBackendAvailable(userId?: string): boolean {
+  const allowOnline =
+    import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true' ||
+    (import.meta.env.VITE_FIREBASE_STAGE === 'staging' && Boolean(functions));
+  return Boolean(
+    allowOnline &&
+    functions &&
+    auth?.currentUser?.uid &&
+    (!userId || auth.currentUser.uid === userId)
+  );
+}
+
+
+
 export function loadCachedEconomy(userId = getActiveEconomyUserId()): EconomyState {
   const storage = getStorage();
   if (!storage) return defaultEconomy;
@@ -228,40 +238,22 @@ function userDoc(userId: string) {
   return doc(db, 'users', userId);
 }
 
-function inventoryDoc(userId: string, itemId: string) {
-  if (!db) return null;
-  return doc(db, 'users', userId, 'inventory', itemId);
-}
 
-function economyEventDoc(userId: string) {
-  if (!db) return null;
-  return doc(collection(db, 'users', userId, 'economyEvents'));
-}
 
-function lessonResultDoc(userId: string, resultId: string) {
-  if (!db) return null;
-  return doc(db, 'users', userId, 'lessonResults', resultId);
-}
 
-function rewardClaimDoc(userId: string, claimId: string) {
-  if (!db) return null;
-  return doc(db, 'users', userId, 'rewardClaims', claimId);
-}
 
-function bossAttemptDoc(userId: string, attemptId: string) {
-  if (!db) return null;
-  return doc(db, 'users', userId, 'bossAttempts', attemptId);
-}
+
+
+
+
+
 
 function dailyQuestDoc(userId: string, date: string) {
   if (!db) return null;
   return doc(db, 'users', userId, 'dailyQuests', date);
 }
 
-function achievementDoc(userId: string, achievementId: string) {
-  if (!db) return null;
-  return doc(db, 'users', userId, 'achievements', achievementId);
-}
+
 
 function toDateKey(date = new Date()) {
   return date.toISOString().slice(0, 10);
@@ -303,21 +295,7 @@ function applyLocalEconomy(updater: (economy: EconomyState) => EconomyState, use
   return next;
 }
 
-function economyFirestoreFields(economy: EconomyState) {
-  const data: Partial<EconomyState> = {
-    coins: economy.coins,
-    gems: economy.gems,
-    hearts: economy.hearts,
-    maxHearts: economy.maxHearts,
-    typingXP: economy.typingXP,
-    level: economy.level,
-    streak: economy.streak,
-    longestStreak: economy.longestStreak,
-  };
-  if (economy.lastPracticeDate) data.lastPracticeDate = economy.lastPracticeDate;
-  if (economy.lastHeartRefillAt) data.lastHeartRefillAt = economy.lastHeartRefillAt;
-  return data;
-}
+
 
 export async function ensureUserEconomy(userId: string, displayName?: string) {
   void displayName;
@@ -357,25 +335,24 @@ export async function getHeartState(userId = getActiveEconomyUserId()) {
 
 export async function refillHeartsIfNeeded(userId = getActiveEconomyUserId()) {
   if (!userId) return loadCachedEconomy();
-  const ref = userDoc(userId);
-  const now = new Date();
 
-  if (!ref) {
-    return applyLocalEconomy((state) => applyHeartRefill(state, now), userId);
+  if (isOnlineBackendAvailable(userId)) {
+    try {
+      const callable = httpsCallable<void, { success: boolean; hearts: number; maxHearts: number }>(functions!, 'refillHearts');
+      const response = await callable();
+      if (response.data?.hearts !== undefined) {
+        const cached = loadCachedEconomy(userId);
+        const next = { ...cached, hearts: response.data.hearts, maxHearts: response.data.maxHearts ?? cached.maxHearts };
+        saveCachedEconomy(next, userId);
+        return next;
+      }
+    } catch (err) {
+      console.warn('Backend refill hearts check failed:', err);
+    }
   }
 
-  return runTransaction(db!, async (transaction) => {
-    const snapshot = await transaction.get(ref);
-    const current = normalizeEconomy(snapshot.exists() ? snapshot.data() as Partial<EconomyState> : defaultEconomy);
-    const next = applyHeartRefill(current, now);
-    transaction.set(ref, {
-      ...economyFirestoreFields(next),
-      updatedAt: serverTimestamp(),
-      createdAt: snapshot.exists() ? snapshot.data().createdAt ?? serverTimestamp() : serverTimestamp(),
-    }, { merge: true });
-    saveCachedEconomy(next, userId);
-    return next;
-  });
+  const now = new Date();
+  return applyLocalEconomy((state) => applyHeartRefill(state, now), userId);
 }
 
 export async function canStartBoss(userId = getActiveEconomyUserId()) {
@@ -383,37 +360,16 @@ export async function canStartBoss(userId = getActiveEconomyUserId()) {
   return state.hearts > 0;
 }
 
-export async function spendHeartForBoss(userId = getActiveEconomyUserId()) {
+export async function spendHeartForBoss(userId = getActiveEconomyUserId()): Promise<EconomyState> {
   if (!userId) throw new Error('Not enough hearts.');
-  const ref = userDoc(userId);
-  const now = new Date();
-
-  if (!ref) {
-    const state = applyHeartRefill(loadCachedEconomy(userId), now);
-    if (state.hearts <= 0) throw new Error('Not enough hearts.');
-    return applyLocalEconomy((current) => ({ ...current, hearts: Math.max(0, applyHeartRefill(current, now).hearts - 1) }), userId);
+  if (isOnlineBackendAvailable(userId)) {
+    const result = await prepareBossAttempt(userId);
+    return result.economy;
   }
-
-  return runTransaction(db!, async (transaction) => {
-    const snapshot = await transaction.get(ref);
-    const current = applyHeartRefill(normalizeEconomy(snapshot.exists() ? snapshot.data() as Partial<EconomyState> : defaultEconomy), now);
-    if (current.hearts <= 0) throw new Error('Not enough hearts.');
-    const next = { ...current, hearts: current.hearts - 1 };
-    transaction.set(ref, { ...economyFirestoreFields(next), updatedAt: serverTimestamp() }, { merge: true });
-    const eventRef = economyEventDoc(userId);
-    if (eventRef) {
-      transaction.set(eventRef, {
-        type: 'spend',
-        amount: -1,
-        currency: 'hearts',
-        source: 'boss-attempt',
-        metadata: {},
-        createdAt: serverTimestamp(),
-      });
-    }
-    saveCachedEconomy(next, userId);
-    return next;
-  });
+  const now = new Date();
+  const state = applyHeartRefill(loadCachedEconomy(userId), now);
+  if (state.hearts <= 0) throw new Error('Not enough hearts.');
+  return applyLocalEconomy((current) => ({ ...current, hearts: Math.max(0, applyHeartRefill(current, now).hearts - 1) }), userId);
 }
 
 function updateStreakFields(current: EconomyState, date = toDateKey()) {
@@ -430,46 +386,12 @@ function updateStreakFields(current: EconomyState, date = toDateKey()) {
   };
 }
 
-async function consumeInventoryInTransaction(
-  transaction: Transaction,
-  userId: string,
-  itemId: string,
-) {
-  const itemRef = inventoryDoc(userId, itemId);
-  if (!itemRef) return false;
-  const snapshot = await transaction.get(itemRef);
-  const quantity = snapshot.exists() ? cleanNumber(snapshot.data().quantity, 0) : 0;
-  if (quantity <= 0) return false;
-  transaction.set(itemRef, {
-    itemId,
-    quantity: quantity - 1,
-    owned: quantity - 1 > 0 || snapshot.data()?.owned === true,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
-  return true;
-}
+
 
 export async function updateStreakAfterPractice(userId = getActiveEconomyUserId()) {
   if (!userId) return loadCachedEconomy();
-  const ref = userDoc(userId);
   const date = toDateKey();
-
-  if (!ref) {
-    return applyLocalEconomy((current) => updateStreakFields(current, date), userId);
-  }
-
-  return runTransaction(db!, async (transaction) => {
-    const snapshot = await transaction.get(ref);
-    const current = normalizeEconomy(snapshot.exists() ? snapshot.data() as Partial<EconomyState> : defaultEconomy);
-    let next = updateStreakFields(current, date);
-    const gap = current.lastPracticeDate ? differenceInDays(current.lastPracticeDate, date) : 1;
-    if (gap === 2 && current.lastPracticeDate && await consumeInventoryInTransaction(transaction, userId, 'streak-freeze')) {
-      next = { ...current, streak: current.streak + 1, longestStreak: Math.max(current.longestStreak, current.streak + 1), lastPracticeDate: date };
-    }
-    transaction.set(ref, { ...economyFirestoreFields({ ...next, level: calculateLevelFromXP(next.typingXP) }), updatedAt: serverTimestamp() }, { merge: true });
-    saveCachedEconomy(next, userId);
-    return next;
-  });
+  return applyLocalEconomy((current) => updateStreakFields(current, date), userId);
 }
 
 export async function consumeStreakFreezeIfNeeded(userId = getActiveEconomyUserId()) {
@@ -482,34 +404,11 @@ export async function awardCoins(userId: string, amount: number, source: string)
 }
 
 export async function spendCoins(userId: string, amount: number, source: string) {
+  void source;
   if (amount <= 0) return loadCachedEconomy(userId);
-  const ref = userDoc(userId);
-  if (!ref) {
-    const current = loadCachedEconomy(userId);
-    if (current.coins < amount) throw new Error('Not enough coins.');
-    return applyLocalEconomy((state) => ({ ...state, coins: state.coins - amount }), userId);
-  }
-
-  return runTransaction(db!, async (transaction) => {
-    const snapshot = await transaction.get(ref);
-    const current = normalizeEconomy(snapshot.exists() ? snapshot.data() as Partial<EconomyState> : defaultEconomy);
-    if (current.coins < amount) throw new Error('Not enough coins.');
-    const next = { ...current, coins: current.coins - amount };
-    transaction.set(ref, { coins: next.coins, updatedAt: serverTimestamp() }, { merge: true });
-    const eventRef = economyEventDoc(userId);
-    if (eventRef) {
-      transaction.set(eventRef, {
-        type: 'spend',
-        amount: -amount,
-        currency: 'coins',
-        source,
-        metadata: {},
-        createdAt: serverTimestamp(),
-      });
-    }
-    saveCachedEconomy(next, userId);
-    return next;
-  });
+  const current = loadCachedEconomy(userId);
+  if (current.coins < amount) throw new Error('Not enough coins.');
+  return applyLocalEconomy((state) => ({ ...state, coins: state.coins - amount }), userId);
 }
 
 export async function awardTypingXP(userId: string, amount: number, source: string) {
@@ -518,60 +417,20 @@ export async function awardTypingXP(userId: string, amount: number, source: stri
 
 export async function updateLevelAfterXP(userId = getActiveEconomyUserId()) {
   if (!userId) return loadCachedEconomy();
-  const ref = userDoc(userId);
-  if (!ref) {
-    return applyLocalEconomy((state) => ({ ...state, level: calculateLevelFromXP(state.typingXP) }), userId);
-  }
-
-  return runTransaction(db!, async (transaction) => {
-    const snapshot = await transaction.get(ref);
-    const current = normalizeEconomy(snapshot.exists() ? snapshot.data() as Partial<EconomyState> : defaultEconomy);
-    const next = { ...current, level: calculateLevelFromXP(current.typingXP) };
-    transaction.set(ref, { level: next.level, updatedAt: serverTimestamp() }, { merge: true });
-    saveCachedEconomy(next, userId);
-    return next;
-  });
+  return applyLocalEconomy((state) => ({ ...state, level: calculateLevelFromXP(state.typingXP) }), userId);
 }
 
 async function updateCurrency(userId: string, currency: 'coins' | 'gems' | 'typingXP', amount: number, source: string) {
-  const ref = userDoc(userId);
-  if (!ref) {
-    return applyLocalEconomy((state) => {
-      const nextTypingXP = currency === 'typingXP' ? state.typingXP + amount : state.typingXP;
-      return {
-        ...state,
-        [currency]: state[currency] + amount,
-        typingXP: nextTypingXP,
-        level: calculateLevelFromXP(nextTypingXP),
-      };
-    }, userId);
-  }
-
-  return runTransaction(db!, async (transaction) => {
-    const snapshot = await transaction.get(ref);
-    const current = normalizeEconomy(snapshot.exists() ? snapshot.data() as Partial<EconomyState> : defaultEconomy);
-    const nextTypingXP = currency === 'typingXP' ? current.typingXP + amount : current.typingXP;
-    const next = {
-      ...current,
-      [currency]: current[currency] + amount,
+  void source;
+  return applyLocalEconomy((state) => {
+    const nextTypingXP = currency === 'typingXP' ? state.typingXP + amount : state.typingXP;
+    return {
+      ...state,
+      [currency]: state[currency] + amount,
       typingXP: nextTypingXP,
       level: calculateLevelFromXP(nextTypingXP),
     };
-    transaction.set(ref, { [currency]: next[currency], typingXP: next.typingXP, level: next.level, updatedAt: serverTimestamp() }, { merge: true });
-    const eventRef = economyEventDoc(userId);
-    if (eventRef) {
-      transaction.set(eventRef, {
-        type: 'award',
-        amount,
-        currency,
-        source,
-        metadata: {},
-        createdAt: serverTimestamp(),
-      });
-    }
-    saveCachedEconomy(next, userId);
-    return next;
-  });
+  }, userId);
 }
 
 type PurchaseShopItemOptions = {
@@ -595,71 +454,35 @@ export async function purchaseShopItem(userId: string, itemId: string, options?:
   if (!item) throw new Error('Shop item not found.');
   const cost = purchaseCost(item, options);
 
-  const userRef = userDoc(userId);
-  const itemRef = inventoryDoc(userId, itemId);
-  if (!userRef || !itemRef) {
-    const current = loadCachedEconomy(userId);
-    if (current[item.currency] < cost) throw new Error(notEnoughCurrencyMessage(item.currency));
-    const inventory = loadCachedInventory(userId);
-    const existing = inventory.find((entry) => entry.itemId === itemId);
-    if (!item.consumable && existing?.owned === true) throw new Error('Already owned.');
-    applyLocalEconomy((state) => ({ ...state, [item.currency]: Math.max(0, state[item.currency] - cost) }), userId);
-    const nextInventory = existing
-      ? inventory.map((entry) => entry.itemId === itemId ? { ...entry, quantity: item.consumable ? entry.quantity + 1 : entry.quantity, owned: true, updatedAt: new Date().toISOString() } : entry)
-      : [...inventory, { itemId, quantity: item.consumable ? 1 : 0, owned: true, updatedAt: new Date().toISOString() }];
+  if (isOnlineBackendAvailable(userId)) {
+    const callable = httpsCallable<{ itemId: string }, {
+      success: boolean;
+      economy: Partial<EconomyState>;
+      inventoryItem: EconomyInventoryItem;
+    }>(functions!, 'purchaseShopItem');
+    const response = await callable({ itemId });
+    const nextEconomy = normalizeEconomy(response.data.economy);
+    saveCachedEconomy(nextEconomy, userId);
+    const currentInventory = loadCachedInventory(userId);
+    const updated = response.data.inventoryItem;
+    const nextInventory = currentInventory.some((entry) => entry.itemId === itemId)
+      ? currentInventory.map((entry) => entry.itemId === itemId ? updated : entry)
+      : [...currentInventory, updated];
     saveCachedInventory(nextInventory, userId);
-    return { economy: loadCachedEconomy(userId), inventory: nextInventory };
+    return { economy: nextEconomy, inventory: nextInventory };
   }
 
-  const result = await runTransaction(db!, async (transaction) => {
-    const userSnapshot = await transaction.get(userRef);
-    const current = normalizeEconomy(userSnapshot.exists() ? userSnapshot.data() as Partial<EconomyState> : defaultEconomy);
-    if (current[item.currency] < cost) throw new Error(notEnoughCurrencyMessage(item.currency));
-
-    const inventorySnapshot = await transaction.get(itemRef);
-    if (!item.consumable && inventorySnapshot.exists() && inventorySnapshot.data().owned === true) {
-      throw new Error('Already owned.');
-    }
-    const currentQuantity = inventorySnapshot.exists() ? cleanNumber(inventorySnapshot.data().quantity, 0) : 0;
-    const nextQuantity = item.consumable ? currentQuantity + 1 : currentQuantity;
-    const nextEconomy = { ...current, [item.currency]: Math.max(0, current[item.currency] - cost) };
-
-    transaction.set(userRef, { [item.currency]: nextEconomy[item.currency], updatedAt: serverTimestamp() }, { merge: true });
-    transaction.set(itemRef, {
-      itemId,
-      quantity: nextQuantity,
-      owned: true,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-    const eventRef = economyEventDoc(userId);
-    if (eventRef) {
-      transaction.set(eventRef, {
-        type: 'purchase',
-        amount: -cost,
-        currency: item.currency,
-        source: options?.source ?? itemId,
-        metadata: { itemId, listPrice: item.cost, paid: cost },
-        createdAt: serverTimestamp(),
-      });
-    }
-    return {
-      economy: nextEconomy,
-      inventoryItem: {
-        itemId,
-        quantity: nextQuantity,
-        owned: true,
-        updatedAt: new Date().toISOString(),
-      } satisfies EconomyInventoryItem,
-    };
-  });
-
-  saveCachedEconomy(result.economy, userId);
-  const currentInventory = loadCachedInventory(userId);
-  const nextInventory = currentInventory.some((entry) => entry.itemId === itemId)
-    ? currentInventory.map((entry) => entry.itemId === itemId ? result.inventoryItem : entry)
-    : [...currentInventory, result.inventoryItem];
+  const current = loadCachedEconomy(userId);
+  if (current[item.currency] < cost) throw new Error(notEnoughCurrencyMessage(item.currency));
+  const inventory = loadCachedInventory(userId);
+  const existing = inventory.find((entry) => entry.itemId === itemId);
+  if (!item.consumable && existing?.owned === true) throw new Error('Already owned.');
+  applyLocalEconomy((state) => ({ ...state, [item.currency]: Math.max(0, state[item.currency] - cost) }), userId);
+  const nextInventory = existing
+    ? inventory.map((entry) => entry.itemId === itemId ? { ...entry, quantity: item.consumable ? entry.quantity + 1 : entry.quantity, owned: true, updatedAt: new Date().toISOString() } : entry)
+    : [...inventory, { itemId, quantity: item.consumable ? 1 : 0, owned: true, updatedAt: new Date().toISOString() }];
   saveCachedInventory(nextInventory, userId);
-  return { economy: result.economy, inventory: nextInventory };
+  return { economy: loadCachedEconomy(userId), inventory: nextInventory };
 }
 
 async function refreshInventoryCache(userId: string) {
@@ -722,449 +545,157 @@ export async function getDailyQuestClaimIds(date = toDateKey(), userId = getActi
 }
 
 export async function consumeInventoryItem(userId: string, itemId: string) {
-  const itemRef = inventoryDoc(userId, itemId);
-  if (!itemRef) {
-    const inventory = loadCachedInventory(userId);
-    const existing = inventory.find((item) => item.itemId === itemId);
-    if (!existing || existing.quantity <= 0) return false;
-    saveCachedInventory(inventory.map((item) => item.itemId === itemId ? { ...item, quantity: item.quantity - 1 } : item), userId);
-    return true;
+  if (isOnlineBackendAvailable(userId)) {
+    try {
+      const callable = httpsCallable<{ itemId: string }, { success: boolean; itemId: string; quantity: number }>(functions!, 'consumeInventoryItem');
+      const response = await callable({ itemId });
+      const inventory = loadCachedInventory(userId);
+      const nextInventory = inventory.map((item) =>
+        item.itemId === itemId ? { ...item, quantity: response.data.quantity, owned: response.data.quantity > 0 } : item
+      );
+      saveCachedInventory(nextInventory, userId);
+      return true;
+    } catch (err) {
+      console.warn('Backend consume inventory item failed:', err);
+      return false;
+    }
   }
 
-  return runTransaction(db!, async (transaction) => consumeInventoryInTransaction(transaction, userId, itemId));
+  const inventory = loadCachedInventory(userId);
+  const existing = inventory.find((item) => item.itemId === itemId);
+  if (!existing || existing.quantity <= 0) return false;
+  saveCachedInventory(inventory.map((item) => item.itemId === itemId ? { ...item, quantity: item.quantity - 1 } : item), userId);
+  return true;
 }
 
 export async function claimEconomyReward(userId: string, claimId: string, reward: RewardAmount, rewardType: string) {
-  const claimKey = `${rewardType}:${claimId}`;
-  const claimRef = rewardClaimDoc(userId, claimKey);
-  const userRef = userDoc(userId);
-
-  if (!claimRef || !userRef) {
-    const claims = readCachedSet(rewardClaimsCacheKey(userId));
-    if (claims.has(claimKey)) throw new Error('Already claimed.');
-    claims.add(claimKey);
-    writeCachedSet(rewardClaimsCacheKey(userId), claims);
-    applyLocalEconomy((state) => {
-      const typingXP = state.typingXP + (reward.XP ?? 0);
-      return {
-        ...state,
-        coins: state.coins + (reward.coins ?? 0),
-        gems: state.gems + (reward.gems ?? 0),
-        typingXP,
-        level: calculateLevelFromXP(typingXP),
-      };
-    }, userId);
-    return loadCachedEconomy(userId);
+  if (rewardType === 'achievement' && isOnlineBackendAvailable(userId)) {
+    const callable = httpsCallable<{ achievementId: string }, { success: boolean; reward: RewardAmount; economy: Partial<EconomyState> }>(functions!, 'claimAchievementReward');
+    const response = await callable({ achievementId: claimId });
+    const nextEconomy = normalizeEconomy(response.data.economy);
+    saveCachedEconomy(nextEconomy, userId);
+    addCachedRewardClaim(userId, rewardType, claimId);
+    return nextEconomy;
   }
 
-  return runTransaction(db!, async (transaction) => {
-    const claimSnapshot = await transaction.get(claimRef);
-    if (claimSnapshot.exists()) throw new Error('Already claimed.');
-    const userSnapshot = await transaction.get(userRef);
-    const current = normalizeEconomy(userSnapshot.exists() ? userSnapshot.data() as Partial<EconomyState> : defaultEconomy);
-    const typingXP = current.typingXP + (reward.XP ?? 0);
-    const next = {
-      ...current,
-      coins: current.coins + (reward.coins ?? 0),
-      gems: current.gems + (reward.gems ?? 0),
+  const claimKey = `${rewardType}:${claimId}`;
+  const claims = readCachedSet(rewardClaimsCacheKey(userId));
+  if (claims.has(claimKey)) throw new Error('Already claimed.');
+  claims.add(claimKey);
+  writeCachedSet(rewardClaimsCacheKey(userId), claims);
+  applyLocalEconomy((state) => {
+    const typingXP = state.typingXP + (reward.XP ?? 0);
+    return {
+      ...state,
+      coins: state.coins + (reward.coins ?? 0),
+      gems: state.gems + (reward.gems ?? 0),
       typingXP,
       level: calculateLevelFromXP(typingXP),
     };
-
-    transaction.set(userRef, { ...economyFirestoreFields(next), updatedAt: serverTimestamp() }, { merge: true });
-    transaction.set(claimRef, { rewardId: claimId, rewardType, claimedAt: serverTimestamp() });
-    const eventRef = economyEventDoc(userId);
-    if (eventRef) {
-      transaction.set(eventRef, {
-        type: 'claim',
-        amount: (reward.coins ?? 0) + (reward.gems ?? 0) + (reward.XP ?? 0),
-        currency: 'mixed',
-        source: claimId,
-        metadata: { rewardType, reward },
-        createdAt: serverTimestamp(),
-      });
-    }
-    saveCachedEconomy(next, userId);
-    addCachedRewardClaim(userId, rewardType, claimId);
-    return next;
-  });
+  }, userId);
+  return loadCachedEconomy(userId);
 }
 
 export async function claimDailyQuestReward(userId: string, questId: string, reward: RewardAmount, date = toDateKey()) {
-  const ref = dailyQuestDoc(userId, date);
-  const userRef = userDoc(userId);
-  if (!ref || !userRef) {
-    const claims = readCachedSet(dailyClaimsCacheKey(userId));
-    const key = `${date}:${questId}`;
-    if (claims.has(key)) throw new Error('Already claimed.');
-    claims.add(key);
-    writeCachedSet(dailyClaimsCacheKey(userId), claims);
-    return claimEconomyReward(userId, key, reward, 'dailyQuest');
+  if (isOnlineBackendAvailable(userId)) {
+    const callable = httpsCallable<{ questId: string; date?: string }, { success: boolean; reward: RewardAmount; economy: Partial<EconomyState> }>(functions!, 'claimDailyQuestReward');
+    const response = await callable({ questId, date });
+    const nextEconomy = normalizeEconomy(response.data.economy);
+    saveCachedEconomy(nextEconomy, userId);
+    addCachedDailyQuestClaim(userId, date, questId);
+    return nextEconomy;
   }
 
-  return runTransaction(db!, async (transaction) => {
-    const questSnapshot = await transaction.get(ref);
-    const data = questSnapshot.exists() ? questSnapshot.data() as { claimedRewards?: string[] } : {};
-    const claimedRewards = Array.isArray(data.claimedRewards) ? data.claimedRewards.filter((item): item is string => typeof item === 'string') : [];
-    if (claimedRewards.includes(questId)) throw new Error('Already claimed.');
-
-    const userSnapshot = await transaction.get(userRef);
-    const current = normalizeEconomy(userSnapshot.exists() ? userSnapshot.data() as Partial<EconomyState> : defaultEconomy);
-    const typingXP = current.typingXP + (reward.XP ?? 0);
-    const next = {
-      ...current,
-      coins: current.coins + (reward.coins ?? 0),
-      gems: current.gems + (reward.gems ?? 0),
-      typingXP,
-      level: calculateLevelFromXP(typingXP),
-    };
-
-    transaction.set(userRef, { ...economyFirestoreFields(next), updatedAt: serverTimestamp() }, { merge: true });
-    transaction.set(ref, {
-      date,
-      claimedRewards: [...claimedRewards, questId],
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-    const eventRef = economyEventDoc(userId);
-    if (eventRef) {
-      transaction.set(eventRef, {
-        type: 'claim',
-        amount: (reward.coins ?? 0) + (reward.gems ?? 0) + (reward.XP ?? 0),
-        currency: 'mixed',
-        source: questId,
-        metadata: { reward },
-        createdAt: serverTimestamp(),
-      });
-    }
-    saveCachedEconomy(next, userId);
-    addCachedDailyQuestClaim(userId, date, questId);
-    return next;
-  });
+  const claims = readCachedSet(dailyClaimsCacheKey(userId));
+  const key = `${date}:${questId}`;
+  if (claims.has(key)) throw new Error('Already claimed.');
+  claims.add(key);
+  writeCachedSet(dailyClaimsCacheKey(userId), claims);
+  return claimEconomyReward(userId, key, reward, 'dailyQuest');
 }
 
-function resultMode(result: StudentLessonResult): 'lesson' | 'boss' | 'challenge' {
-  if (result.difficulty === 'boss' || result.lessonId.includes('boss')) return 'boss';
-  return 'lesson';
-}
 
 function resultDocId(result: StudentLessonResult) {
   return `${result.lessonId}-${Date.parse(result.completedAt) || Date.now()}`.replace(/[^\w-]/g, '-');
 }
 
-function dailyQuestProgressForResult(result: StudentLessonResult) {
-  const isBoss = resultMode(result) === 'boss';
-  const typedCharacters = countKhmerCharacters(result.targetText);
 
-  return {
-    completeLesson: {
-      id: 'complete-lesson',
-      progress: increment(!isBoss && result.passed ? 1 : 0),
-      total: 1,
-      reward: { coins: 60, XP: 40 },
-    },
-    typeKhmerCharacters: {
-      id: 'type-khmer-characters',
-      progress: increment(typedCharacters),
-      total: 40,
-      reward: { coins: 50, XP: 35 },
-    },
-    accuracyTarget: {
-      id: 'accuracy-target',
-      progress: increment(result.accuracy >= 95 ? 1 : 0),
-      total: 1,
-      reward: { coins: 80, gems: 1 },
-    },
-    attemptBoss: {
-      id: 'attempt-boss',
-      progress: increment(isBoss ? 1 : 0),
-      total: 1,
-      reward: { coins: 90, gems: 2, XP: 50 },
-    },
-    threeStars: {
-      id: 'earn-3-stars',
-      progress: increment(result.stars >= 3 ? 1 : 0),
-      total: 1,
-      reward: { coins: 70, XP: 45 },
-    },
-  };
-}
 
-function achievementRewardForResult(result: StudentLessonResult) {
-  const rewards: Array<{ achievementId: string; progress: number; reward: RewardAmount }> = [];
-  if (result.passed) rewards.push({ achievementId: 'first-steps', progress: 1, reward: { coins: 50 } });
-  if (result.accuracy >= 95) rewards.push({ achievementId: 'accuracy-monk-economy', progress: 1, reward: { gems: 1 } });
-  if (result.accuracy === 100 && result.mistakes === 0) rewards.push({ achievementId: 'no-mistake-warrior-economy', progress: 1, reward: { coins: 100 } });
-  if (result.difficulty === 'boss' || result.lessonId.includes('boss')) rewards.push({ achievementId: 'boss-challenger', progress: 1, reward: { XP: 30 } });
-  if ((result.difficulty === 'boss' || result.lessonId.includes('boss')) && result.passed) rewards.push({ achievementId: 'boss-victor', progress: 1, reward: { gems: 2 } });
-  return rewards;
-}
 
-async function unlockAchievementsForResult(
-  transaction: Transaction,
-  userId: string,
-  result: StudentLessonResult,
-  current: EconomyState,
-) {
-  let next = current;
-  const achievements = achievementRewardForResult(result);
-  const achievementEntries = [];
 
-  for (const achievement of achievements) {
-    const ref = achievementDoc(userId, achievement.achievementId);
-    if (!ref) continue;
-    const snapshot = await transaction.get(ref);
-    achievementEntries.push({ achievement, ref, snapshot });
-  }
 
-  const streakRef = next.streak >= 3 ? achievementDoc(userId, 'streak-starter') : null;
-  const streakSnapshot = streakRef ? await transaction.get(streakRef) : null;
-
-  for (const { achievement, ref, snapshot } of achievementEntries) {
-    if (snapshot.exists() && snapshot.data().rewardClaimed === true) continue;
-
-    const typingXP = next.typingXP + (achievement.reward.XP ?? 0);
-    next = {
-      ...next,
-      coins: next.coins + (achievement.reward.coins ?? 0),
-      gems: next.gems + (achievement.reward.gems ?? 0),
-      typingXP,
-      level: calculateLevelFromXP(typingXP),
-    };
-    transaction.set(ref, {
-      achievementId: achievement.achievementId,
-      unlocked: true,
-      progress: achievement.progress,
-      rewardClaimed: true,
-      unlockedAt: serverTimestamp(),
-    }, { merge: true });
-  }
-  if (streakRef && (!streakSnapshot?.exists() || streakSnapshot.data().rewardClaimed !== true)) {
-    next = { ...next, coins: next.coins + 100 };
-    transaction.set(streakRef, {
-      achievementId: 'streak-starter',
-      unlocked: true,
-      progress: next.streak,
-      rewardClaimed: true,
-      unlockedAt: serverTimestamp(),
-    }, { merge: true });
-  }
-  return next;
-}
 
 export async function saveCompletedResultToEconomy(result: StudentLessonResult, userId = getActiveEconomyUserId()) {
   if (!userId) return loadCachedEconomy();
-  const userRef = userDoc(userId);
   const docId = resultDocId(result);
-  const resultRef = lessonResultDoc(userId, docId);
   const date = toDateKey(new Date(result.completedAt));
 
-  if (!userRef || !resultRef) {
-    const claims = readCachedSet(rewardClaimsCacheKey(userId));
-    const resultClaimKey = `result:${docId}`;
-    if (claims.has(resultClaimKey)) return loadCachedEconomy(userId);
-    claims.add(resultClaimKey);
-    writeCachedSet(rewardClaimsCacheKey(userId), claims);
-    return applyLocalEconomy((state) => {
-      const afterStreak = updateStreakFields(state, date);
-      const typingXP = afterStreak.typingXP + result.XP;
-      return {
-        ...afterStreak,
-        coins: afterStreak.coins + (result.coinsEarned ?? 0),
-        gems: afterStreak.gems + (result.gemsEarned ?? 0),
-        typingXP,
-        level: calculateLevelFromXP(typingXP),
-      };
-    }, userId);
-  }
+  const claims = readCachedSet(rewardClaimsCacheKey(userId));
+  const resultClaimKey = `result:${docId}`;
+  if (claims.has(resultClaimKey)) return loadCachedEconomy(userId);
+  claims.add(resultClaimKey);
+  writeCachedSet(rewardClaimsCacheKey(userId), claims);
 
-  return runTransaction(db!, async (transaction) => {
-    const userSnapshot = await transaction.get(userRef);
-    const resultSnapshot = await transaction.get(resultRef);
-    const current = normalizeEconomy(userSnapshot.exists() ? userSnapshot.data() as Partial<EconomyState> : defaultEconomy);
-    if (resultSnapshot.exists()) {
-      saveCachedEconomy(current, userId);
-      return current;
-    }
-
-    let next = updateStreakFields(current, date);
-    const gap = current.lastPracticeDate ? differenceInDays(current.lastPracticeDate, date) : 1;
-    const streakFreezeRef = gap === 2 && current.lastPracticeDate ? inventoryDoc(userId, 'streak-freeze') : null;
-    const streakFreezeSnapshot = streakFreezeRef ? await transaction.get(streakFreezeRef) : null;
-    const streakFreezeQuantity = streakFreezeSnapshot?.exists() ? cleanNumber(streakFreezeSnapshot.data().quantity, 0) : 0;
-    const usedStreakFreeze = streakFreezeQuantity > 0;
-    if (usedStreakFreeze) {
-      const streak = current.streak + 1;
-      next = { ...current, streak, longestStreak: Math.max(current.longestStreak, streak), lastPracticeDate: date };
-    }
-    const typingXP = next.typingXP + result.XP;
-    next = {
-      ...next,
-      coins: next.coins + (result.coinsEarned ?? 0),
-      gems: next.gems + (result.gemsEarned ?? 0),
+  return applyLocalEconomy((state) => {
+    const afterStreak = updateStreakFields(state, date);
+    const typingXP = afterStreak.typingXP + result.XP;
+    return {
+      ...afterStreak,
+      coins: afterStreak.coins + (result.coinsEarned ?? 0),
+      gems: afterStreak.gems + (result.gemsEarned ?? 0),
       typingXP,
       level: calculateLevelFromXP(typingXP),
     };
-    next = await unlockAchievementsForResult(transaction, userId, result, next);
-
-    if (streakFreezeRef && usedStreakFreeze) {
-      transaction.set(streakFreezeRef, {
-        itemId: 'streak-freeze',
-        quantity: streakFreezeQuantity - 1,
-        owned: streakFreezeQuantity - 1 > 0 || streakFreezeSnapshot?.data()?.owned === true,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-    }
-    transaction.set(userRef, { ...economyFirestoreFields(next), updatedAt: serverTimestamp() }, { merge: true });
-    transaction.set(resultRef, {
-      lessonId: result.lessonId,
-      mode: resultMode(result),
-      worldId: result.worldId,
-      skillFocus: result.skillFocus,
-      accuracy: result.accuracy,
-      cpm: result.CPM,
-      wpm: result.WPM,
-      mistakes: result.mistakes,
-      backspaces: result.backspaces,
-      stars: result.stars,
-      passed: result.passed,
-      xpEarned: result.XP,
-      coinsEarned: result.coinsEarned ?? 0,
-      gemsEarned: result.gemsEarned ?? 0,
-      rewardReasons: result.rewardReasons ?? [],
-      completedAt: result.completedAt,
-      createdAt: serverTimestamp(),
-    });
-    const dailyRef = dailyQuestDoc(userId, date);
-    if (dailyRef) {
-      transaction.set(dailyRef, {
-        date,
-        quests: dailyQuestProgressForResult(result),
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-    }
-    const eventRef = economyEventDoc(userId);
-    if (eventRef) {
-      transaction.set(eventRef, {
-        type: 'lessonReward',
-        amount: (result.coinsEarned ?? 0) + result.XP + (result.gemsEarned ?? 0),
-        currency: 'mixed',
-        source: result.lessonId,
-        metadata: { coins: result.coinsEarned ?? 0, XP: result.XP, gems: result.gemsEarned ?? 0 },
-        createdAt: serverTimestamp(),
-      });
-    }
-    saveCachedEconomy(next, userId);
-    return next;
-  });
+  }, userId);
 }
 
-export async function prepareBossAttempt(userId = getActiveEconomyUserId(), attemptId?: string) {
+export async function prepareBossAttempt(userId = getActiveEconomyUserId(), attemptId?: string): Promise<{ usedRetryToken: boolean; economy: EconomyState }> {
   if (!userId) throw new Error('Not enough hearts.');
+
+  if (isOnlineBackendAvailable(userId)) {
+    const callable = httpsCallable<{ attemptId?: string }, {
+      usedRetryToken: boolean;
+      economy: Partial<EconomyState>;
+    }>(functions!, 'prepareBossAttempt');
+    const response = await callable({ attemptId });
+    const nextEconomy = normalizeEconomy(response.data.economy);
+    saveCachedEconomy(nextEconomy, userId);
+    if (response.data.usedRetryToken) {
+      const inventory = loadCachedInventory(userId);
+      const retryItem = inventory.find((item) => item.itemId === 'retry-token');
+      const retryQty = Math.max(0, (retryItem?.quantity ?? 1) - 1);
+      const nextInventory = inventory.map((item) =>
+        item.itemId === 'retry-token' ? { ...item, quantity: retryQty, owned: retryQty > 0 } : item
+      );
+      saveCachedInventory(nextInventory, userId);
+    }
+    return { usedRetryToken: response.data.usedRetryToken, economy: nextEconomy };
+  }
+
   const attemptKey = attemptId ? `boss-attempt:${attemptId}` : undefined;
   const attemptRetryKey = attemptId ? `boss-attempt-retry:${attemptId}` : undefined;
-  const userRef = userDoc(userId);
-  const retryRef = inventoryDoc(userId, 'retry-token');
-  const attemptRef = attemptId ? bossAttemptDoc(userId, attemptId) : null;
+  if (attemptKey) {
+    const claims = readCachedSet(rewardClaimsCacheKey(userId));
+    if (claims.has(attemptKey)) return { usedRetryToken: attemptRetryKey ? claims.has(attemptRetryKey) : false, economy: loadCachedEconomy(userId) };
+  }
 
-  if (!userRef || !retryRef) {
-    if (attemptKey) {
-      const claims = readCachedSet(rewardClaimsCacheKey(userId));
-      if (claims.has(attemptKey)) return { usedRetryToken: attemptRetryKey ? claims.has(attemptRetryKey) : false, economy: loadCachedEconomy(userId) };
-    }
-
-    const usedRetryToken = await consumeInventoryItem(userId, 'retry-token');
-    if (usedRetryToken) {
-      if (attemptKey) {
-        const claims = readCachedSet(rewardClaimsCacheKey(userId));
-        claims.add(attemptKey);
-        if (attemptRetryKey) claims.add(attemptRetryKey);
-        writeCachedSet(rewardClaimsCacheKey(userId), claims);
-      }
-      return { usedRetryToken: true, economy: loadCachedEconomy(userId) };
-    }
-    const economy = await spendHeartForBoss(userId);
+  const usedRetryToken = await consumeInventoryItem(userId, 'retry-token');
+  if (usedRetryToken) {
     if (attemptKey) {
       const claims = readCachedSet(rewardClaimsCacheKey(userId));
       claims.add(attemptKey);
+      if (attemptRetryKey) claims.add(attemptRetryKey);
       writeCachedSet(rewardClaimsCacheKey(userId), claims);
     }
-    return { usedRetryToken: false, economy };
+    return { usedRetryToken: true, economy: loadCachedEconomy(userId) };
   }
-
-  const result = await runTransaction(db!, async (transaction) => {
-    const attemptSnapshot = attemptRef ? await transaction.get(attemptRef) : null;
-    const userSnapshot = await transaction.get(userRef);
-    const retrySnapshot = await transaction.get(retryRef);
-    const current = applyHeartRefill(normalizeEconomy(userSnapshot.exists() ? userSnapshot.data() as Partial<EconomyState> : defaultEconomy));
-
-    if (attemptSnapshot?.exists()) {
-      return {
-        usedRetryToken: attemptSnapshot.data().usedRetryToken === true,
-        economy: current,
-        retryQuantity: retrySnapshot.exists() ? cleanNumber(retrySnapshot.data().quantity, 0) : 0,
-        consumedRetryToken: false,
-      };
-    }
-
-    const retryQuantity = retrySnapshot.exists() ? cleanNumber(retrySnapshot.data().quantity, 0) : 0;
-    const useRetryToken = retryQuantity > 0;
-    if (!useRetryToken && current.hearts <= 0) throw new Error('Not enough hearts.');
-
-    const next = useRetryToken ? current : { ...current, hearts: current.hearts - 1 };
-    transaction.set(userRef, { ...economyFirestoreFields(next), updatedAt: serverTimestamp() }, { merge: true });
-
-    if (useRetryToken) {
-      transaction.set(retryRef, {
-        itemId: 'retry-token',
-        quantity: retryQuantity - 1,
-        owned: retryQuantity - 1 > 0 || retrySnapshot.data()?.owned === true,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-    }
-
-    if (attemptRef) {
-      transaction.set(attemptRef, {
-        attemptId,
-        usedRetryToken: useRetryToken,
-        spentHeart: !useRetryToken,
-        createdAt: serverTimestamp(),
-      });
-    }
-
-    const eventRef = economyEventDoc(userId);
-    if (eventRef) {
-      const metadata = attemptId
-        ? useRetryToken
-          ? { attemptId, itemId: 'retry-token' }
-          : { attemptId }
-        : {};
-      transaction.set(eventRef, {
-        type: useRetryToken ? 'consume' : 'spend',
-        amount: -1,
-        currency: useRetryToken ? 'retry-token' : 'hearts',
-        source: 'boss-attempt',
-        metadata,
-        createdAt: serverTimestamp(),
-      });
-    }
-
-    return {
-      usedRetryToken: useRetryToken,
-      economy: next,
-      retryQuantity: useRetryToken ? retryQuantity - 1 : retryQuantity,
-      consumedRetryToken: useRetryToken,
-    };
-  });
-
-  saveCachedEconomy(result.economy, userId);
-  if (result.consumedRetryToken) {
-    const inventory = loadCachedInventory(userId);
-    const nextInventory = inventory.some((item) => item.itemId === 'retry-token')
-      ? inventory.map((item) => item.itemId === 'retry-token' ? { ...item, quantity: result.retryQuantity, owned: result.retryQuantity > 0, updatedAt: new Date().toISOString() } : item)
-      : [{ itemId: 'retry-token', quantity: result.retryQuantity, owned: result.retryQuantity > 0, updatedAt: new Date().toISOString() }];
-    saveCachedInventory(nextInventory, userId);
+  const economy = await spendHeartForBoss(userId);
+  if (attemptKey) {
+    const claims = readCachedSet(rewardClaimsCacheKey(userId));
+    claims.add(attemptKey);
+    writeCachedSet(rewardClaimsCacheKey(userId), claims);
   }
-  return { usedRetryToken: result.usedRetryToken, economy: result.economy };
+  return { usedRetryToken: false, economy };
 }
 
 export function getInventoryQuantity(inventory: EconomyInventoryItem[], itemId: string) {

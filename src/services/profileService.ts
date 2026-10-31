@@ -1,9 +1,10 @@
-import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { DEFAULT_AVATAR_ID, DEFAULT_FRAME_ID } from '../data/avatars';
 import { DEFAULT_TITLE_ID } from '../data/playerTitles';
 import { DEFAULT_SKIN_ID } from '../data/profileSkins';
 import { DEFAULT_THEME_ID, PROFILE_THEMES, resolveProfileThemeId } from '../data/profileThemes';
-import { db } from '../lib/firebase';
+import { auth, db, functions } from '../lib/firebase';
 import { getActiveEconomyUserId, loadCachedInventory, type EconomyInventoryItem } from '../lib/economy';
 import { USER_PROFILE_EVENT, USER_PROFILE_STORAGE_KEY } from '../lib/userProfile';
 
@@ -127,10 +128,6 @@ function userRef(uid: string) {
   return db ? doc(db, 'users', uid) : null;
 }
 
-function privateProfileRef(uid: string) {
-  return db ? doc(db, 'users', uid, 'profile', 'private') : null;
-}
-
 export async function getUserProfile(uid = getActiveEconomyUserId()) {
   if (!uid) return loadCachedGameProfile(uid);
   const ref = userRef(uid);
@@ -142,29 +139,36 @@ export async function getUserProfile(uid = getActiveEconomyUserId()) {
   return profile;
 }
 
-async function updateProfileFields(uid: string | undefined, fields: Partial<GameProfile>, privateFields?: Record<string, unknown>) {
+async function updateProfileFields(uid: string | undefined, fields: Partial<GameProfile>) {
   const userId = uid ?? getActiveEconomyUserId();
   const current = loadCachedGameProfile(userId);
   const next = saveCachedGameProfile({ ...current, ...fields, updatedAt: new Date().toISOString() }, userId);
 
   if (!userId) return next;
-  const ref = userRef(userId);
-  if (!ref) return next;
 
-  await setDoc(ref, { ...fields, updatedAt: serverTimestamp() }, { merge: true });
-  if (privateFields) {
-    const privateRef = privateProfileRef(userId);
-    if (privateRef) await setDoc(privateRef, privateFields, { merge: true });
+  // Use trusted Cloud Function backend when connected to Firebase to prevent client-side permission-denied errors
+  if (functions && auth?.currentUser && auth.currentUser.uid === userId) {
+    try {
+      const callable = httpsCallable<Partial<GameProfile>, { success: boolean; profile: Record<string, string> }>(functions, 'updateUserProfile');
+      await callable({
+        displayName: fields.displayName,
+        equippedAvatarId: fields.equippedAvatarId,
+        equippedSkinId: fields.equippedSkinId,
+        equippedThemeId: fields.equippedThemeId,
+        equippedTitleId: fields.equippedTitleId,
+        equippedFrameId: fields.equippedFrameId,
+      });
+    } catch (err) {
+      console.warn('Backend profile update failed; cached locally', err);
+    }
   }
+
   return next;
 }
 
 export async function updateDisplayName(uid: string | undefined, name: string) {
   const displayName = name.trim().replace(/\s+/g, ' ');
-  return updateProfileFields(uid, { displayName }, {
-    lastNameChangeAt: serverTimestamp(),
-    createdAt: serverTimestamp(),
-  });
+  return updateProfileFields(uid, { displayName });
 }
 
 export function saveProfile(uid: string | undefined, profile: Pick<GameProfile, 'displayName' | 'equippedAvatarId' | 'equippedSkinId' | 'equippedThemeId' | 'equippedTitleId'>) {
