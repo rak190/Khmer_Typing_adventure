@@ -141,3 +141,4 @@ export type ThreeLessonPersistenceAdapter = {
   recordLessonCompletion: (payload: ThreeLessonCompletionPayload) => void;
   getCompletions: () => ThreeLessonCompletionPayload[];
 };
+
