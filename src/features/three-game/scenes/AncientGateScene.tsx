@@ -59,6 +59,8 @@ export default function AncientGateScene({
         stageStatuses={stageStatuses}
         activeStageIndex={activeStageIndex}
         isModalOpen={isModalOpen}
+        completedCount={completedCount}
+        incorrectCount={incorrectCount}
         onNearGateChange={onNearGateChange}
       />
 
