@@ -35,22 +35,17 @@ export default function VictoryModal({
 
   const isFinalStage = stageSummary ? stageSummary.isFinalStage : true;
   const isFinalLessonComplete = passed && isFinalStage;
-  const displayMetrics = isFinalLessonComplete && finalLessonMetrics
-    ? finalLessonMetrics
-    : stageSummary?.metrics ?? null;
+  const totalStageCount = stages.length || 3;
+  const displayMetrics =
+    isFinalLessonComplete && finalLessonMetrics
+      ? finalLessonMetrics
+      : stageSummary?.metrics ?? null;
 
-  const displayAccuracy = displayMetrics
-    ? displayMetrics.accuracy
-    : reward?.accuracy ?? 0;
-  const displayCpm = displayMetrics
-    ? displayMetrics.cpm
-    : reward?.cpm ?? 0;
-  const displayStars = displayMetrics
-    ? displayMetrics.stars
-    : reward?.stars ?? 0;
-  const displayScore = displayMetrics
-    ? displayMetrics.finalScore
-    : reward?.score ?? 0;
+  const displayAccuracy = displayMetrics ? displayMetrics.accuracy : reward?.accuracy ?? 0;
+  const displayCpm = displayMetrics ? displayMetrics.cpm : reward?.cpm ?? 0;
+  const displayStars = displayMetrics ? displayMetrics.stars : reward?.stars ?? 0;
+  const displayScore = displayMetrics ? displayMetrics.finalScore : reward?.score ?? 0;
+  const foundationSummary = stageSummary?.foundationPracticeSummary ?? null;
 
   return (
     <div
@@ -71,7 +66,7 @@ export default function VictoryModal({
         {/* Title */}
         <h2 data-testid="three-modal-title" className="text-xl sm:text-2xl font-black text-amber-300">
           {isFinalLessonComplete
-            ? 'បញ្ចប់មេរៀនទាំង 3 ដំណាក់កាលដោយជោគជ័យ!'
+            ? `បញ្ចប់មេរៀនទាំង ${totalStageCount} ដំណាក់កាលដោយជោគជ័យ!`
             : passed && stageSummary
             ? `ដំណាក់កាលទី ${stageSummary.stageIndex + 1} បានបើកហើយ! • ${stageSummary.titleKh}`
             : passed
@@ -82,7 +77,7 @@ export default function VictoryModal({
         </h2>
         <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-300 font-sans">
           {isFinalLessonComplete
-            ? 'Lesson Complete! All 3 Ancient Khmer Stages Unlocked!'
+            ? `Lesson Complete! All ${totalStageCount} Ancient Khmer Stages Unlocked!`
             : passed && stageSummary
             ? `${stageSummary.titleEn} unlocked! Proceed to Stage ${stageSummary.stageIndex + 2}.`
             : `Need at least ${minimumAccuracy}% accuracy to unlock this stage barrier.`}
@@ -125,7 +120,10 @@ export default function VictoryModal({
 
           <div className="rounded-2xl border border-white/10 bg-slate-800/70 p-2.5">
             <div className="text-[11px] font-bold text-slate-400">ល្បឿន (CPM)</div>
-            <div data-testid="three-modal-cpm" className="text-xl sm:text-2xl font-black text-amber-400 font-sans">
+            <div
+              data-testid="three-modal-cpm"
+              className="text-xl sm:text-2xl font-black text-amber-400 font-sans"
+            >
               {displayCpm}
             </div>
           </div>
@@ -134,7 +132,10 @@ export default function VictoryModal({
             <>
               <div className="rounded-2xl border border-white/10 bg-slate-800/70 p-2.5">
                 <div className="text-[11px] font-bold text-slate-400">ពិន្ទុ XP រៀនសូត្រ</div>
-                <div data-testid="three-modal-xp" className="text-lg sm:text-xl font-black text-blue-400 font-sans">
+                <div
+                  data-testid="three-modal-xp"
+                  className="text-lg sm:text-xl font-black text-blue-400 font-sans"
+                >
                   +{isDuplicateReward ? 0 : reward.xpEarned} XP
                 </div>
               </div>
@@ -162,7 +163,7 @@ export default function VictoryModal({
           </div>
         )}
 
-        {/* 3-Stage Summary Breakdown on Final Completion */}
+        {/* Stage Summary Breakdown on Final Completion */}
         {isFinalLessonComplete && stages.length > 0 && stageStates.length > 0 && (
           <div
             data-testid="three-modal-stage-breakdown"
@@ -187,8 +188,10 @@ export default function VictoryModal({
                       </span>
                     </div>
                     <div className="font-sans text-slate-300">
-                      <span className="font-bold text-emerald-400">{stState?.bestAccuracy ?? 0}%</span> •{' '}
-                      <span className="font-bold text-amber-300">{stState?.bestCpm ?? 0} CPM</span>
+                      <span className="font-bold text-emerald-400">
+                        {stState?.bestAccuracy ?? 0}%
+                      </span>{' '}
+                      • <span className="font-bold text-amber-300">{stState?.bestCpm ?? 0} CPM</span>
                     </div>
                   </div>
                 );
@@ -197,10 +200,69 @@ export default function VictoryModal({
           </div>
         )}
 
+        {/* Foundation Practice Summary (Keys Practiced, Strong/Weak Keys, Next Lesson Guidance) */}
+        {isFinalLessonComplete && foundationSummary && (
+          <div
+            data-testid="three-foundation-practice-summary"
+            className="my-3 rounded-2xl border border-emerald-500/40 bg-emerald-950/35 p-3.5 text-left space-y-2"
+          >
+            <div className="text-xs font-black text-emerald-300">
+              ✋ សង្ខេបការហាត់ទីតាំងដៃ និងគ្រាប់ចុច (Touch-Typing Foundation Summary)
+            </div>
+            <p className="text-xs text-slate-200">{foundationSummary.feedbackKh}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="rounded-xl border border-white/10 bg-slate-900/80 p-2">
+                <div className="font-bold text-amber-300 mb-1">
+                  គ្រាប់ចុចដែលបានហាត់ ({foundationSummary.keysPracticed.length}):
+                </div>
+                <div
+                  data-testid="three-foundation-keys-practiced"
+                  className="flex flex-wrap gap-1 font-mono"
+                >
+                  {foundationSummary.keysPracticed.map((k) => (
+                    <span
+                      key={k.code}
+                      className="rounded bg-slate-800 px-1.5 py-0.5 text-[11px] text-white border border-white/15"
+                    >
+                      {k.latin} ({k.khmer})
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-slate-900/80 p-2 space-y-1">
+                <div>
+                  <span className="font-bold text-emerald-400">គ្រាប់ចុចខ្លាំង (Strong): </span>
+                  <span data-testid="three-foundation-strong-keys" className="font-mono text-slate-200">
+                    {foundationSummary.strongKeys.length > 0
+                      ? foundationSummary.strongKeys.map((k) => k.latin).join(', ')
+                      : 'កំពុងកសាងបទពិសោធន៍'}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-bold text-coral">គ្រាប់ចុចត្រូវហាត់បន្ថែម (Weak): </span>
+                  <span data-testid="three-foundation-weak-keys" className="font-mono text-slate-200">
+                    {foundationSummary.weakKeys.length > 0
+                      ? foundationSummary.weakKeys.map((k) => `${k.latin}(${k.accuracy}%)`).join(', ')
+                      : 'គ្មានកំហុស (100%)'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div
+              data-testid="three-foundation-next-guidance"
+              className="rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-xs text-amber-200 font-semibold"
+            >
+              <div>{foundationSummary.nextLessonGuidanceKh}</div>
+              <div className="text-[11px] text-slate-300 font-sans mt-0.5">
+                {foundationSummary.nextLessonGuidanceEn}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <p data-testid="three-temporary-results-notice" className="mt-3 text-xs leading-relaxed text-amber-200">
-          លទ្ធផល និងរង្វាន់សាកល្បងនេះមិនត្រូវបានរក្សាទុកជាអចិន្ត្រៃយ៍ទេ ហើយមិនបើកមេរៀនថ្មីទេ។
-          {' '}Prototype results and session rewards are temporary. They are not permanently saved and do not unlock lessons.
+          លទ្ធផល និងរង្វាន់សាកល្បងនេះមិនត្រូវបានរក្សាទុកជាអចិន្ត្រៃយ៍ទេ ហើយមិនបើកមេរៀនថ្មីទេ។ Prototype results and session rewards are temporary. They are not permanently saved and do not unlock lessons.
         </p>
         <div className="mt-5 flex flex-col gap-2.5">
           {passed ? (
@@ -236,7 +298,9 @@ export default function VictoryModal({
               onClick={isFinalLessonComplete && onReplayLesson ? onReplayLesson : onRetry}
               className="flex-1 rounded-xl border border-white/20 bg-slate-800/80 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
             >
-              {isFinalLessonComplete ? 'លេងមេរៀន 3D ឡើងវិញ (Replay 3D Lesson)' : 'អនុវត្តដំណាក់កាលនេះម្តងទៀត'}
+              {isFinalLessonComplete
+                ? 'លេងមេរៀន 3D ឡើងវិញ (Replay 3D Lesson)'
+                : 'អនុវត្តដំណាក់កាលនេះម្តងទៀត'}
             </button>
             <button
               type="button"

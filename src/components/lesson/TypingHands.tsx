@@ -47,7 +47,12 @@ function HandCard({
       )}
       data-active={isActive}
     >
-      <div className={cn('lesson-side-hand-figure', hand === 'left' ? 'lesson-side-hand-figure--left' : 'lesson-side-hand-figure--right')}>
+      <div
+        className={cn(
+          'lesson-side-hand-figure',
+          hand === 'left' ? 'lesson-side-hand-figure--left' : 'lesson-side-hand-figure--right',
+        )}
+      >
         <img
           src={image}
           alt=""
@@ -64,10 +69,17 @@ function HandCard({
                 'lesson-finger-marker',
                 markerPositions[hand][finger],
                 highlight?.role === 'target' && 'lesson-finger-marker--target',
-                highlight?.role === 'shift' && 'lesson-finger-marker--shift',
+                (highlight?.role === 'shift' || highlight?.role === 'altgr') &&
+                  'lesson-finger-marker--shift',
               )}
             >
-              {highlight ? <span className="sr-only">{highlight.role === 'shift' ? 'Shift finger' : 'Target finger'}</span> : null}
+              {highlight ? (
+                <span className="sr-only">
+                  {highlight.role === 'shift' || highlight.role === 'altgr'
+                    ? 'Modifier finger'
+                    : 'Target finger'}
+                </span>
+              ) : null}
             </span>
           );
         })}
@@ -83,6 +95,7 @@ function TypingHands({ guidance }: TypingHandsProps) {
       data-testid="typing-hand-hints"
       data-active-finger={guidance.activeFinger}
       data-shift-required={guidance.shiftRequired}
+      data-home-key={guidance.homeKeyCode}
     >
       <HandCard hand="left" guidance={guidance} />
       <HandCard hand="right" guidance={guidance} />

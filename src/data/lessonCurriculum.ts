@@ -2,6 +2,8 @@ import type { AdventureNodeId } from './adventureWorlds';
 
 export type LessonStageKind = 'warmup' | 'pattern' | 'word' | 'phrase' | 'sentence' | 'boss';
 
+export type StagePracticeMode = 'physical-key' | 'unicode-output' | 'hand-position';
+
 export type CurriculumStage = {
   id: string;
   kind: LessonStageKind;
@@ -14,6 +16,10 @@ export type CurriculumStage = {
   accuracyGoal: number;
   items: string[];
   hint?: string;
+  practiceMode?: StagePracticeMode;
+  physicalKeyCodes?: string[];
+  untimed?: boolean;
+  postureInstructionsKh?: string[];
 };
 
 export type CurriculumLevel = {

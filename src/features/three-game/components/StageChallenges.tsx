@@ -1,7 +1,11 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { getStagePositionZ } from '../systems/gameplayState';
+import {
+  getPhysicalBarrierStatuses,
+  getStageBarrierIndex,
+  getStagePositionZ,
+} from '../systems/gameplayState';
 import type { GateStatus } from '../types';
 
 type StageBarrierProps = {
@@ -470,36 +474,40 @@ export default function StageChallenges({
   incorrectCount = 0,
   onStageOpeningFinished,
 }: StageChallengesProps) {
-  const stage2Status = stageStatuses[1] ?? 'closed';
-  const stage3Status = stageStatuses[2] ?? 'closed';
-  const stage1Open = stageStatuses[0] === 'open';
-  const stage2Open = stageStatuses[1] === 'open';
+  const barrierStatuses = getPhysicalBarrierStatuses(stageStatuses);
+  const activeBarrierIndex = getStageBarrierIndex(activeStageIndex, stageStatuses.length);
+  const stage2Status = barrierStatuses[1] ?? 'closed';
+  const stage3Status = barrierStatuses[2] ?? 'closed';
+  const stage1Open = barrierStatuses[0] === 'open';
+  const stage2Open = barrierStatuses[1] === 'open';
+  const barrier2StageIdx = stageStatuses.length === 5 ? 3 : 1;
+  const barrier3StageIdx = stageStatuses.length === 5 ? 4 : 2;
 
   return (
     <group>
-      {stageStatuses.length > 1 && (
+      {barrierStatuses.length > 1 && (
         <TwinStonesChallenge
           stageIndex={1}
           status={stage2Status}
-          isActiveStage={activeStageIndex === 1}
+          isActiveStage={activeBarrierIndex === 1}
           isLocked={!stage1Open}
-          streak={activeStageIndex === 1 ? streak : 0}
-          completedCount={activeStageIndex === 1 ? completedCount : 0}
-          incorrectCount={activeStageIndex === 1 ? incorrectCount : 0}
-          onOpeningFinished={() => onStageOpeningFinished?.(1)}
+          streak={activeBarrierIndex === 1 ? streak : 0}
+          completedCount={activeBarrierIndex === 1 ? completedCount : 0}
+          incorrectCount={activeBarrierIndex === 1 ? incorrectCount : 0}
+          onOpeningFinished={() => onStageOpeningFinished?.(barrier2StageIdx)}
         />
       )}
 
-      {stageStatuses.length > 2 && (
+      {barrierStatuses.length > 2 && (
         <JunglePathChallenge
           stageIndex={2}
           status={stage3Status}
-          isActiveStage={activeStageIndex === 2}
+          isActiveStage={activeBarrierIndex === 2}
           isLocked={!stage2Open}
-          streak={activeStageIndex === 2 ? streak : 0}
-          completedCount={activeStageIndex === 2 ? completedCount : 0}
-          incorrectCount={activeStageIndex === 2 ? incorrectCount : 0}
-          onOpeningFinished={() => onStageOpeningFinished?.(2)}
+          streak={activeBarrierIndex === 2 ? streak : 0}
+          completedCount={activeBarrierIndex === 2 ? completedCount : 0}
+          incorrectCount={activeBarrierIndex === 2 ? incorrectCount : 0}
+          onOpeningFinished={() => onStageOpeningFinished?.(barrier3StageIdx)}
         />
       )}
     </group>

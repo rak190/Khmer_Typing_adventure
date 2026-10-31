@@ -3,8 +3,11 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { buildAdventureWorlds } from '../data/adventureWorlds';
 import { LESSON_PROGRESS_EVENT } from '../data/mockData';
 import { getThreeLessonAccess } from '../data/threeLessonAvailability';
+import {
+  createKeyPracticeTracker,
+  FOUNDATION_LESSON_ID,
+} from '../data/touchTypingFoundations';
 import ExplorationHud from '../features/three-game/components/ExplorationHud';
-
 import TypingOverlay from '../features/three-game/components/TypingOverlay';
 import VictoryModal from '../features/three-game/components/VictoryModal';
 import { usePlayerControls } from '../features/three-game/hooks/usePlayerControls';
@@ -21,11 +24,14 @@ import {
   createPrototypeRewardLedger,
   createStageTypingPlan,
   createTypingSessionState,
+  doesStageUnlockPhysicalBarrier,
   getStageAltarPositionZ,
+  getStageBarrierIndex,
   getStageMinimumAccuracy,
   getStagePositionZ,
   isPositionNearStage,
   recordStageAttemptResult,
+  resolveFoundationLessonConfig,
   resolveThreeLessonConfig,
   setStageGateStatus,
   shouldUnlockStage,
@@ -55,34 +61,53 @@ export default function ThreePrototypePage() {
     return () => window.removeEventListener(LESSON_PROGRESS_EVENT, refresh);
   }, []);
   // Keep the original bare prototype URL only as a development testing entry.
-  const params = import.meta.env.DEV && location.pathname === '/3d-prototype' && !location.search
-    ? new URLSearchParams('world=1&level=1') : searchParams;
+  const params =
+    import.meta.env.DEV && location.pathname === '/3d-prototype' && !location.search
+      ? new URLSearchParams('world=1&level=1')
+      : searchParams;
   const access = getThreeLessonAccess(params, worlds);
   if (access.status !== 'ready') {
-    const message = access.status === 'invalid'
-      ? 'តំណមេរៀនមិនត្រឹមត្រូវ។ (Invalid world or lesson.)'
-      : access.status === 'locked'
-      ? 'សូមបញ្ចប់មេរៀនមុនសិន។ (This lesson is locked. Complete the earlier lessons on the map.)'
-      : 'មេរៀននេះមានតែ 2D ប៉ុណ្ណោះ។ (This lesson is available in 2D only.)';
+    const message =
+      access.status === 'invalid'
+        ? 'តំណមេរៀនមិនត្រឹមត្រូវ។ (Invalid world or lesson.)'
+        : access.status === 'locked'
+        ? 'សូមបញ្ចប់មេរៀនមុនសិន។ (This lesson is locked. Complete the earlier lessons on the map.)'
+        : 'មេរៀននេះមានតែ 2D ប៉ុណ្ណោះ។ (This lesson is available in 2D only.)';
     return (
-      <div data-testid="three-lesson-unavailable" data-reason={access.status} className="grid min-h-screen place-items-center bg-slate-900 p-6 font-khmer text-white">
+      <div
+        data-testid="three-lesson-unavailable"
+        data-reason={access.status}
+        className="grid min-h-screen place-items-center bg-slate-900 p-6 font-khmer text-white"
+      >
         <div className="max-w-lg rounded-2xl border border-amber-400/40 bg-slate-800 p-6 text-center">
           <h1 className="text-xl font-bold text-amber-300">{message}</h1>
           {access.status === 'unsupported' && (
-            <Link className="mt-5 block rounded-xl bg-amber-400 p-3 font-bold text-slate-900" to={`${access.lesson.id === 'boss' ? '/battle' : '/lesson'}?world=${access.worldId}&level=${access.lesson.id}`}>
+            <Link
+              className="mt-5 block rounded-xl bg-amber-400 p-3 font-bold text-slate-900"
+              to={`${
+                access.lesson.id === 'boss' ? '/battle' : '/lesson'
+              }?world=${access.worldId}&level=${access.lesson.id}`}
+            >
               រៀនជា 2D (Play 2D)
             </Link>
           )}
-          <Link className="mt-5 block rounded-xl border border-white/30 p-3" to="/map">ត្រឡប់ទៅផែនទី (Return to World Map)</Link>
+          <Link className="mt-5 block rounded-xl border border-white/30 p-3" to="/map">
+            ត្រឡប់ទៅផែនទី (Return to World Map)
+          </Link>
         </div>
       </div>
     );
   }
-  return <ThreeLessonSession key={`${location.key}:${location.search}`} lessonConfig={resolveThreeLessonConfig(access.worldId, access.lesson.id)} />;
+  const lessonConfig = access.isFoundation
+    ? resolveFoundationLessonConfig()
+    : resolveThreeLessonConfig(access.worldId, access.lesson.id);
+
+  return <ThreeLessonSession key={`${location.key}:${location.search}`} lessonConfig={lessonConfig} />;
 }
 
 function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig }) {
-  const { worldId, lesson, stages, lessonSpeedTargetCpm } = lessonConfig;
+  const { worldId, lesson, stages, lessonSpeedTargetCpm, isFoundationLesson } = lessonConfig;
+  const lessonRewardKey = isFoundationLesson ? FOUNDATION_LESSON_ID : lesson.id;
 
   const [mode, setMode] = useState<GameMode>('exploration');
   const playerPositionRef = useRef<Position3D>([...INITIAL_PLAYER_POSITION]);
@@ -91,7 +116,12 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     createInitialStageProgressStates(stages),
   );
   const [isNearGate, setIsNearGate] = useState<boolean>(() =>
-    isPositionNearStage(INITIAL_PLAYER_POSITION[0], INITIAL_PLAYER_POSITION[2], 0),
+    isPositionNearStage(
+      INITIAL_PLAYER_POSITION[0],
+      INITIAL_PLAYER_POSITION[2],
+      0,
+      stages.length,
+    ),
   );
   const [gateState, setGateState] = useState<GateState>({ status: 'closed', openProgress: 0 });
 
@@ -101,11 +131,12 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     [activeStage, lesson, worldId],
   );
 
-  // Typing challenge state, in-memory reward ledger, and persistence adapter
+  // Typing challenge state, in-memory reward ledger, persistence adapter, and key practice tracker
   const nextAttemptIdRef = useRef(1);
   const lessonCompletionCounterRef = useRef(0);
   const rewardLedgerRef = useRef(createPrototypeRewardLedger());
   const persistenceAdapterRef = useRef(createInMemoryLessonPersistenceAdapter());
+  const keyPracticeTrackerRef = useRef(createKeyPracticeTracker());
 
   const [typingPlan, setTypingPlan] = useState(() =>
     createStageTypingPlan(stages[0], lesson.focusKeys),
@@ -121,14 +152,8 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
   const [isDuplicateReward, setIsDuplicateReward] = useState(false);
   const [nowTime, setNowTime] = useState<number | null>(null);
 
-  const stageStatuses = useMemo(
-    () => stageStates.map((s) => s.status),
-    [stageStates],
-  );
-  const allCompleted = useMemo(
-    () => areAllStagesCompleted(stageStates),
-    [stageStates],
-  );
+  const stageStatuses = useMemo(() => stageStates.map((s) => s.status), [stageStates]);
+  const allCompleted = useMemo(() => areAllStagesCompleted(stageStates), [stageStates]);
 
   useEffect(() => {
     if (
@@ -156,7 +181,6 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     },
     [lesson.focusKeys, stages],
   );
-
 
   const handleStartTyping = useCallback(() => {
     if (!canAccessStage(activeStageIndex, activeStageIndex, stageStates)) return;
@@ -249,18 +273,182 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     worldId,
   ]);
 
+  const finalizeStageAttempt = useCallback(
+    (completedSession: TypingSessionState, finalElapsedMs: number) => {
+      const stageMetrics = computeStageMetrics(
+        typingPlan.units,
+        completedSession.completedCount,
+        completedSession.incorrectCount,
+        completedSession.backspaceCount,
+        completedSession.bestStreak,
+        finalElapsedMs,
+        activeStage,
+        lesson,
+        worldId,
+      );
+
+      const passed = shouldUnlockStage(stageMetrics);
+      const isFinalStage = activeStageIndex >= stages.length - 1;
+      const unlocksPhysicalBarrier = doesStageUnlockPhysicalBarrier(
+        activeStageIndex,
+        stages.length,
+      );
+      const nextStatus = passed
+        ? unlocksPhysicalBarrier
+          ? 'opening'
+          : 'open'
+        : 'closed';
+
+      const nextStageStates = recordStageAttemptResult(
+        stageStates,
+        activeStageIndex,
+        stageMetrics,
+        completedSession,
+        typingPlan.units,
+        finalElapsedMs,
+        nextStatus,
+      );
+
+      setStageStates(nextStageStates);
+      setStageSummary({
+        stageIndex: activeStageIndex,
+        stageId: activeStage.id,
+        titleKh: activeStage.titleKh,
+        titleEn: activeStage.titleEn,
+        kind: activeStage.kind,
+        minimumAccuracy: activeStageMinimumAccuracy,
+        passed,
+        metrics: stageMetrics,
+        isFinalStage,
+        foundationPracticeSummary: isFoundationLesson
+          ? keyPracticeTrackerRef.current.getSummary()
+          : null,
+      });
+
+      if (passed) {
+        persistenceAdapterRef.current.recordStageCompletion(
+          worldId,
+          lessonRewardKey,
+          nextStageStates[activeStageIndex],
+        );
+
+        const activeBarrierIndex = getStageBarrierIndex(activeStageIndex, stages.length);
+        if (unlocksPhysicalBarrier && activeBarrierIndex === 0) {
+          setGateState({ status: 'opening', openProgress: 0 });
+        }
+
+        if (isFinalStage) {
+          const aggregatedMetrics = computeFinalLessonMetrics(
+            nextStageStates,
+            lesson,
+            worldId,
+          );
+          const { reward: claimedReward, duplicate } =
+            rewardLedgerRef.current.claimLessonReward(
+              worldId,
+              lessonRewardKey,
+              aggregatedMetrics,
+              lessonSpeedTargetCpm,
+              completedSession.attemptId,
+            );
+          setFinalLessonMetrics(aggregatedMetrics);
+          setReward(claimedReward);
+          setIsDuplicateReward(duplicate);
+
+          lessonCompletionCounterRef.current += 1;
+          persistenceAdapterRef.current.recordLessonCompletion({
+            worldId,
+            lessonId: lessonRewardKey,
+            lessonCompletionIndex: lessonCompletionCounterRef.current,
+            stageStates: nextStageStates,
+            finalMetrics: aggregatedMetrics,
+            reward: claimedReward,
+            completedAt: Date.now(),
+          });
+        }
+
+        if (unlocksPhysicalBarrier) {
+          setMode('opening');
+        } else {
+          setMode('exploration');
+          setShowModal(true);
+        }
+      } else {
+        setMode('exploration');
+        setShowModal(true);
+      }
+    },
+    [
+      activeStage,
+      activeStageIndex,
+      activeStageMinimumAccuracy,
+      isFoundationLesson,
+      lesson,
+      lessonRewardKey,
+      lessonSpeedTargetCpm,
+      stageStates,
+      stages.length,
+      typingPlan.units,
+      worldId,
+    ],
+  );
+
+  // Untimed completion handler for Stage 1 (Learn Hand Position)
+  const handleCompleteHandPositionStage = useCallback(() => {
+    if (mode !== 'typing' || activeStage.practiceMode !== 'hand-position') return;
+    const now = performance.now();
+    typingPlan.units.forEach((u) => {
+      keyPracticeTrackerRef.current.recordKeyAttempt(u.key.code, u.key.code, true, 'physical');
+    });
+    const completedSession: TypingSessionState = {
+      ...sessionState,
+      startedAt: sessionState.startedAt ?? now - 4000,
+      endedAt: now,
+      completedCount: typingPlan.units.length,
+      streak: typingPlan.units.length,
+      bestStreak: Math.max(sessionState.bestStreak, typingPlan.units.length),
+      finished: true,
+    };
+    setSessionState(completedSession);
+    finalizeStageAttempt(completedSession, 4000);
+  }, [activeStage.practiceMode, finalizeStageAttempt, mode, sessionState, typingPlan.units]);
+
   const handleTypedValue = useCallback(
-    (value: string) => {
+    (value: string, code: string, inputSource: 'physical' | 'virtual' = 'physical') => {
       if (mode !== 'typing' || sessionState.finished) return;
+      const activeTarget = typingPlan.units[sessionState.completedCount];
+      if (!activeTarget) return;
+
+      const isPhysicalMode =
+        activeTarget.practiceMode === 'physical-key' ||
+        activeTarget.practiceMode === 'hand-position';
+
+      // In Mode A (physical-key practice), do not count virtual mouse clicks as verified physical-key mastery
+      if (isPhysicalMode && inputSource === 'virtual') {
+        keyPracticeTrackerRef.current.recordKeyAttempt(
+          activeTarget.key.code,
+          code,
+          code === activeTarget.key.code,
+          'virtual',
+        );
+        return;
+      }
 
       const now = performance.now();
       setNowTime(now);
 
-      const { nextState, justFinished } = applyTypedInput(
+      const { nextState, matched, justFinished } = applyTypedInput(
         sessionState,
         typingPlan.units,
         value,
         now,
+        code,
+      );
+      keyPracticeTrackerRef.current.recordKeyAttempt(
+        activeTarget.key.code,
+        code,
+        matched,
+        inputSource,
       );
       setSessionState(nextState);
 
@@ -269,105 +457,10 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           1,
           (nextState.endedAt ?? now) - (nextState.startedAt ?? now),
         );
-        const stageMetrics = computeStageMetrics(
-          typingPlan.units,
-          nextState.completedCount,
-          nextState.incorrectCount,
-          nextState.backspaceCount,
-          nextState.bestStreak,
-          finalElapsedMs,
-          activeStage,
-          lesson,
-          worldId,
-        );
-
-        const passed = shouldUnlockStage(stageMetrics);
-        const isFinalStage = activeStageIndex >= stages.length - 1;
-        const nextStageStates = recordStageAttemptResult(
-          stageStates,
-          activeStageIndex,
-          stageMetrics,
-          nextState,
-          typingPlan.units,
-          finalElapsedMs,
-          passed ? 'opening' : 'closed',
-        );
-
-        setStageStates(nextStageStates);
-        setStageSummary({
-          stageIndex: activeStageIndex,
-          stageId: activeStage.id,
-          titleKh: activeStage.titleKh,
-          titleEn: activeStage.titleEn,
-          kind: activeStage.kind,
-          minimumAccuracy: activeStageMinimumAccuracy,
-          passed,
-          metrics: stageMetrics,
-          isFinalStage,
-        });
-
-        if (passed) {
-          persistenceAdapterRef.current.recordStageCompletion(
-            worldId,
-            lesson.id,
-            nextStageStates[activeStageIndex],
-          );
-
-          if (activeStageIndex === 0) {
-            setGateState({ status: 'opening', openProgress: 0 });
-          }
-
-          if (isFinalStage) {
-            const aggregatedMetrics = computeFinalLessonMetrics(
-              nextStageStates,
-              lesson,
-              worldId,
-            );
-            const { reward: claimedReward, duplicate } =
-              rewardLedgerRef.current.claimLessonReward(
-                worldId,
-                lesson.id,
-                aggregatedMetrics,
-                lessonSpeedTargetCpm,
-                nextState.attemptId,
-              );
-            setFinalLessonMetrics(aggregatedMetrics);
-            setReward(claimedReward);
-            setIsDuplicateReward(duplicate);
-
-            lessonCompletionCounterRef.current += 1;
-            persistenceAdapterRef.current.recordLessonCompletion({
-              worldId,
-              lessonId: lesson.id,
-              lessonCompletionIndex: lessonCompletionCounterRef.current,
-              stageStates: nextStageStates,
-              finalMetrics: aggregatedMetrics,
-              reward: claimedReward,
-              completedAt: Date.now(),
-            });
-          }
-
-          setMode('opening');
-        } else {
-          // Stage accuracy below goal: barrier remains locked and retry modal is presented
-          setMode('exploration');
-          setShowModal(true);
-        }
+        finalizeStageAttempt(nextState, finalElapsedMs);
       }
     },
-    [
-      activeStage,
-      activeStageIndex,
-      activeStageMinimumAccuracy,
-      lesson,
-      lessonSpeedTargetCpm,
-      mode,
-      sessionState,
-      stageStates,
-      stages.length,
-      typingPlan.units,
-      worldId,
-    ],
+    [finalizeStageAttempt, mode, sessionState, typingPlan.units],
   );
 
   const handleBackspace = useCallback(() => {
@@ -377,9 +470,16 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
 
   const handleStageOpeningFinished = useCallback(
     (stageIdx = activeStageIndex) => {
-      if (mode !== 'opening' || stageIdx !== activeStageIndex || !stageStates[stageIdx]?.passed) return;
+      if (
+        mode !== 'opening' ||
+        stageIdx !== activeStageIndex ||
+        !stageStates[stageIdx]?.passed
+      ) {
+        return;
+      }
       setStageStates((prev) => setStageGateStatus(prev, stageIdx, 'open'));
-      if (stageIdx === 0) {
+      const barrierIndex = getStageBarrierIndex(stageIdx, stages.length);
+      if (barrierIndex === 0) {
         setGateState((prev) =>
           prev.status === 'open' ? prev : { status: 'open', openProgress: 1.0 },
         );
@@ -394,8 +494,9 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
   );
 
   const handleGateOpeningFinished = useCallback(() => {
-    handleStageOpeningFinished(0);
-  }, [handleStageOpeningFinished]);
+    const firstBarrierStageIdx = stages.length === 5 ? 1 : 0;
+    handleStageOpeningFinished(firstBarrierStageIdx);
+  }, [handleStageOpeningFinished, stages.length]);
 
   // Fallback timer in case WebGL requestAnimationFrame is throttled in background/headless tabs
   useEffect(() => {
@@ -413,12 +514,12 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       setActiveStageIndex(nextIdx);
       startStageTypingSession(nextIdx);
       // Advance player along the temple causeway to the next stage's altar
-      const nextAltarZ = getStageAltarPositionZ(nextIdx) - 0.5;
+      const nextAltarZ = getStageAltarPositionZ(nextIdx, stages.length) - 0.5;
       playerPositionRef.current = [0, 0, nextAltarZ];
       setIsNearGate(true);
       setMode('exploration');
     } else {
-      const finalSanctuaryZ = getStagePositionZ(stages.length - 1) + 2.5;
+      const finalSanctuaryZ = getStagePositionZ(stages.length - 1, stages.length) + 2.5;
       playerPositionRef.current = [0, 0, finalSanctuaryZ];
       setMode('completed');
     }
@@ -426,19 +527,21 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
 
   const handleRetryChallenge = useCallback(() => {
     setStageStates((prev) => setStageGateStatus(prev, activeStageIndex, 'closed'));
-    if (activeStageIndex === 0) {
+    const barrierIdx = getStageBarrierIndex(activeStageIndex, stages.length);
+    if (barrierIdx === 0 && doesStageUnlockPhysicalBarrier(activeStageIndex, stages.length)) {
       setGateState({ status: 'closed', openProgress: 0 });
     }
-    const altarZ = getStageAltarPositionZ(activeStageIndex);
+    const altarZ = getStageAltarPositionZ(activeStageIndex, stages.length);
     if (playerPositionRef.current[2] > altarZ) {
       playerPositionRef.current = [0, 0, altarZ - 0.6];
       setIsNearGate(true);
     }
     startStageTypingSession(activeStageIndex);
     setMode('typing');
-  }, [activeStageIndex, startStageTypingSession]);
+  }, [activeStageIndex, stages.length, startStageTypingSession]);
 
   const handleReplayLesson = useCallback(() => {
+    keyPracticeTrackerRef.current.reset();
     setStageStates(createInitialStageProgressStates(stages));
     setGateState({ status: 'closed', openProgress: 0 });
     setActiveStageIndex(0);
@@ -446,7 +549,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     setFinalLessonMetrics(null);
     setReward(null);
     setIsDuplicateReward(false);
-    playerPositionRef.current = [0, 0, getStageAltarPositionZ(0) - 0.6];
+    playerPositionRef.current = [0, 0, getStageAltarPositionZ(0, stages.length) - 0.6];
     setIsNearGate(true);
     startStageTypingSession(0);
     setMode('exploration');
@@ -461,6 +564,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       data-gate-status={activeStageStatus}
       data-active-stage={activeStageIndex + 1}
       data-all-stages-completed={allCompleted ? 'true' : 'false'}
+      data-foundation-lesson={isFoundationLesson ? 'true' : undefined}
       className="relative h-screen w-screen overflow-hidden bg-black select-none"
     >
       {/* 3D R3F Canvas Viewport */}
@@ -515,9 +619,9 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           onBackspace={handleBackspace}
           onCancel={handleCancelTyping}
           onRestart={handleRestartTyping}
+          onCompleteHandPositionStage={handleCompleteHandPositionStage}
         />
       )}
-
 
       {showModal && (
         <VictoryModal

@@ -1,6 +1,10 @@
 import { motion } from 'framer-motion';
 import { memo } from 'react';
-import type { KhmerKeyboardKey } from '../../data/keyboardMap';
+import {
+  hasTactileBump,
+  isHomeRowRestKeyCode,
+  type KhmerKeyboardKey,
+} from '../../data/keyboardMap';
 import { cn } from '../../lib/cn';
 
 type KeyboardKeyProps = {
@@ -51,18 +55,19 @@ function displayKeyLabel(keyData: KhmerKeyboardKey) {
 
 function KeyboardKey({ keyData, state = 'normal', onPress }: KeyboardKeyProps) {
   const physicalLabel = physicalCodeLabel(keyData.code, keyData.action);
-  const isActionKey = Boolean(keyData.action && keyData.action !== 'space');
-  const disabled = (state === 'disabled' || keyData.disabled) && state !== 'shift-target';
+  const shiftLabel = !keyData.action ? keyData.shiftKhmer : undefined;
   const displayLabel = displayKeyLabel(keyData);
-  const shiftLabel = !isActionKey && keyData.shiftKhmer && keyData.shiftKhmer !== keyData.khmer ? keyData.shiftKhmer : '';
+  const isBackspace = keyData.action === 'backspace';
+  const isActionKey = Boolean(keyData.action);
+  const disabled = Boolean(keyData.disabled && !isBackspace);
+  const isHomeKey = isHomeRowRestKeyCode(keyData.code);
+  const isTactileBump = hasTactileBump(keyData.code);
 
   return (
     <motion.button
       type="button"
       disabled={disabled}
       onClick={() => onPress(keyData.code)}
-      animate={state === 'wrong' ? { x: [-7, 7, -5, 5, 0], y: [0, 5, 0] } : state === 'correct' ? { y: [0, 5, 0], scale: [1, 0.98, 1.06, 1] } : state === 'target' ? { y: [0, -2, 0] } : undefined}
-      transition={{ duration: state === 'wrong' ? 0.36 : 0.45 }}
       whileHover={disabled ? undefined : { y: -2 }}
       whileTap={disabled ? undefined : { y: 5, scale: 0.97 }}
       className={cn(
@@ -83,14 +88,29 @@ function KeyboardKey({ keyData, state = 'normal', onPress }: KeyboardKeyProps) {
       data-key-altgr={keyData.altgrKhmer ?? ''}
       data-key-code={keyData.code}
       data-key-action={keyData.action ?? ''}
+      data-home-key={isHomeKey ? 'true' : undefined}
+      data-tactile-bump={isTactileBump ? 'true' : undefined}
+      data-is-shift-target={state === 'shift-target' ? 'true' : undefined}
       data-active={state === 'target' ? 'true' : 'false'}
     >
       {state === 'target' && <span aria-hidden="true" className="lesson-key-target-arrow" />}
       <span aria-hidden="true" className="lesson-key-accent" />
       {shiftLabel && <span className="lesson-key-shift">{shiftLabel}</span>}
       <span className="lesson-key-glyph translate-y-[1px]">{displayLabel}</span>
+      {isTactileBump && (
+        <span
+          aria-hidden="true"
+          title="គន្លឹះសម្គាល់ម្រាមដៃចង្អុល (Index finger tactile bump)"
+          className="pointer-events-none absolute bottom-1.5 left-1/2 h-1 w-4 -translate-x-1/2 rounded-full bg-amber-400/90 shadow-sm"
+        />
+      )}
       {physicalLabel && (
-        <span className={cn('lesson-key-code absolute bottom-1 right-1 rounded-[5px] px-1.5 py-0.5 text-[9px] font-black leading-none', state === 'target' && 'lesson-key-code--target')}>
+        <span
+          className={cn(
+            'lesson-key-code absolute bottom-1 right-1 rounded-[5px] px-1.5 py-0.5 text-[9px] font-black leading-none',
+            state === 'target' && 'lesson-key-code--target',
+          )}
+        >
           {physicalLabel}
         </span>
       )}

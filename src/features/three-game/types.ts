@@ -5,9 +5,9 @@ import type {
   CurriculumStage,
   LessonStageKind,
 } from '../../data/lessonCurriculum';
+import type { FoundationPracticeSummary } from '../../data/touchTypingFoundations';
 import type { FingerId } from '../../lib/fingerGuidance';
 import type { TypingMetricResult } from '../../lib/typingMetrics';
-
 
 export type GameMode = 'exploration' | 'typing' | 'opening' | 'completed';
 
@@ -109,8 +109,8 @@ export type StageCompletionSummary = {
   passed: boolean;
   metrics: TypingMetricResult;
   isFinalStage: boolean;
+  foundationPracticeSummary?: FoundationPracticeSummary | null;
 };
-
 
 export type ThreeLessonConfig = {
   worldId: number;
@@ -120,11 +120,12 @@ export type ThreeLessonConfig = {
   stages: CurriculumStage[];
   lessonMinimumAccuracy: number;
   lessonSpeedTargetCpm: number;
+  isFoundationLesson?: boolean;
 };
 
 export type ThreeLessonCompletionPayload = {
   worldId: number;
-  lessonId: AdventureNodeId;
+  lessonId: AdventureNodeId | string;
   lessonCompletionIndex: number;
   stageStates: StageProgressState[];
   finalMetrics: TypingMetricResult;
@@ -135,10 +136,9 @@ export type ThreeLessonCompletionPayload = {
 export type ThreeLessonPersistenceAdapter = {
   recordStageCompletion: (
     worldId: number,
-    lessonId: AdventureNodeId,
+    lessonId: AdventureNodeId | string,
     stageState: StageProgressState,
   ) => void;
   recordLessonCompletion: (payload: ThreeLessonCompletionPayload) => void;
   getCompletions: () => ThreeLessonCompletionPayload[];
 };
-
