@@ -5,7 +5,7 @@ import GameIcon from './GameIcon';
 
 type GameMapNodeProps = {
   level: number | string;
-  state?: 'completed' | 'current' | 'locked';
+  state?: 'completed' | 'current' | 'unlocked' | 'locked';
   color?: 'green' | 'gold' | 'purple' | 'blue' | 'gray' | 'red';
   stars?: number;
   label?: string;

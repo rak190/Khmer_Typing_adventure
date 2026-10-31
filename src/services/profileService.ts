@@ -58,7 +58,7 @@ function cleanString(value: unknown, fallback: string) {
 
 function cleanStringArray(value: unknown, fallback: string[]) {
   return Array.isArray(value)
-    ? Array.from(new Set(value.filter((item): item is string => typeof item === 'string' && item.trim()).map((item) => item.trim())))
+    ? Array.from(new Set(value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim())).map((item) => item.trim())))
     : fallback;
 }
 

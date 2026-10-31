@@ -587,7 +587,7 @@ async function consumeInventoryInTransaction(
   transaction.set(itemRef, {
     itemId,
     quantity: quantity - 1,
-    owned: quantity - 1 > 0 || snapshot.data().owned === true,
+    owned: quantity - 1 > 0 || snapshot.data()?.owned === true,
     updatedAt: serverTimestamp(),
   }, { merge: true });
   return true;
@@ -1154,7 +1154,7 @@ export async function saveCompletedResultToEconomy(result: StudentLessonResult, 
       transaction.set(streakFreezeRef, {
         itemId: 'streak-freeze',
         quantity: streakFreezeQuantity - 1,
-        owned: streakFreezeQuantity - 1 > 0 || streakFreezeSnapshot?.data().owned === true,
+        owned: streakFreezeQuantity - 1 > 0 || streakFreezeSnapshot?.data()?.owned === true,
         updatedAt: serverTimestamp(),
       }, { merge: true });
     }

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Settings, Trophy } from 'lucide-react';
 import ActionModal from '../components/game-ui/ActionModal';
@@ -97,7 +97,7 @@ function RoundHudButton({ icon, badge, label, onClick }: { icon: ReactNode; badg
   );
 }
 
-function SideMenuCard({ khmer, title, icon, badge, onClick }: (typeof sideActions)[number] & { onClick: () => void }) {
+function SideMenuCard({ khmer, title, icon, badge, onClick }: (typeof sideActions)[number] & { badge?: string; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="pointer-events-auto relative flex h-[124px] w-[108px] cursor-pointer flex-col items-center justify-center rounded-[21px] border-[2px] border-[#8FEFFF] bg-gradient-to-b from-[#1FA9A6] via-[#0E8D95] to-[#086373] px-2 pt-3 pb-2 text-center text-white shadow-[inset_0_2px_0_rgba(255,255,255,.28),inset_0_-7px_0_rgba(0,57,73,.42),0_0_0_1px_rgba(11,104,177,.82),0_3px_0_rgba(5,80,95,.72),0_10px_18px_rgba(0,24,56,.34)] transition hover:-translate-y-1">
       <span className="pointer-events-none absolute inset-[3px] rounded-[16px] border-[2px] border-[#126DB7]/80" />

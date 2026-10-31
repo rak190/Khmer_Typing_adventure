@@ -1,6 +1,15 @@
 # Asset inventory and licensing
 
-Reviewed 2026-10-31. **No external art/model/audio assets downloaded during setup (0 bytes).** The first prototype can use authored primitives; large packs are unnecessary. Directory .gitkeep files are placeholders, not game assets.
+Reviewed 2026-10-31. **No external art/model/audio assets downloaded during setup or Task 2 (0 bytes).** The 3D prototype relies strictly on lightweight, project-authored procedural Three.js primitives and standard materials. This ensures 0 network downloads, instant page loads on low-bandwidth school networks, zero third-party licensing obligations, and smooth 60 FPS execution on low-end integrated graphics (Intel HD / Iris Xe).
+
+## Task 2 Project-Authored 3D Procedural Assets
+
+| Component | Description | Geometry / Materials | License |
+| --- | --- | --- | --- |
+| `Environment.tsx` | Cambodian sugar palms, 7-headed Naga balustrades (*នាគ*), ceremonial streamer flags (*ទង់ក្រពើ*), stone lotus basins, causeway pavers, fireflies/spirit motes | Cylinders, boxes, spheres, cones; standard low-roughness materials | Project-authored / CC0 equivalent |
+| `Character.tsx` | Student hero avatar with sapphire silk tunic, golden royal sash (*សង្វារ*), emerald medallion, epaulets (*ពានាហា*), pleated *chong kben* (*សំពត់ចងក្បិន*), bangles, lotus topknot ornament (*មាលា*), explorer satchel with palm-leaf manuscript | Segmented compound hierarchical meshes with organic lerped idle/walk blend tree | Project-authored / CC0 equivalent |
+| `ThirdPersonCamera.tsx` | Mode-specific tracking camera (exploration over-the-shoulder, typing altar focus, cinematic opening sweep, celebratory victory view) | Pure procedural math with exponential smoothing `1 - Math.exp(-damping * dt)` | Project-authored / CC0 equivalent |
+| `AncientStoneGate.tsx` | Angkor Gopura portal, tiered pediments, Kalasa finial, carved teak/sandstone door leaves, bronze bosses, dual-layer braziers, guardian lions (*Simha*), dynamic rune altar | Procedural compound meshes, dynamic point lights, ripple mesh | Project-authored / CC0 equivalent |
 
 ## Existing project art (kept in place)
 

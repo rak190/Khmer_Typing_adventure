@@ -10,47 +10,380 @@ const server = await createServer({
 
 try {
   const gameplayState = await server.ssrLoadModule('/src/features/three-game/systems/gameplayState.ts');
+  const khmerText = await server.ssrLoadModule('/src/lib/khmerText.ts');
+  const keyboardMap = await server.ssrLoadModule('/src/data/keyboardMap.ts');
+  const typingPlanMod = await server.ssrLoadModule('/src/lib/lessonTypingPlan.ts');
+  const fingerGuidanceMod = await server.ssrLoadModule('/src/lib/fingerGuidance.ts');
+  const THREE = await server.ssrLoadModule('three');
 
-  // Test 1: Typing plan creation
+  // 1. Default curriculum lesson & minimum accuracy target (90%, not 75% or 70%)
+  const defaultLesson = gameplayState.getPrototypeDefaultLesson();
+  assert.equal(defaultLesson.minimumAccuracy, 90, 'World 1 Lesson 1 minimum accuracy must be 90%');
+  assert.equal(defaultLesson.speedTargetCpm, 28, 'World 1 Lesson 1 speed target CPM must be 28');
+
   const plan = gameplayState.createPrototypeTypingPlan(12);
   assert.equal(plan.units.length, 12, 'Plan should contain requested slice length');
   assert.ok(plan.targetText.length > 0, 'Target text should not be empty');
-  assert.ok(plan.units[0].value, 'Each unit should have a Khmer value');
-  assert.ok(plan.units[0].key, 'Each unit should map to a keyboard key');
 
-  // Test 2: Compute prototype metrics
-  const defaultLesson = gameplayState.getPrototypeDefaultLesson();
-  const metrics = gameplayState.computePrototypeMetrics(
+  // 2. Passing and failing accuracy & gate unlocking conditions (no 70% bypass)
+  const passingMetrics = gameplayState.computePrototypeMetrics(
     plan.units,
     12, // completedCount
-    1,  // incorrectCount
-    0,  // backspaceCount
-    11, // bestStreak
-    30000, // 30 seconds
+    1,  // 1 mistake -> 11/12 = 92% accuracy
+    0,
+    11,
+    20000,
     defaultLesson.lesson,
     defaultLesson.worldId,
   );
+  assert.equal(passingMetrics.accuracy, 92);
+  assert.equal(passingMetrics.passed, true, '92% accuracy should pass 90% threshold');
+  assert.equal(gameplayState.shouldUnlockGate(passingMetrics), true, 'Gate should unlock when passed');
 
-  assert.ok(metrics.accuracy > 85, 'Accuracy should be high with 1 mistake out of 12');
-  assert.ok(metrics.cpm > 0, 'CPM should be calculated');
-  assert.ok(typeof metrics.passed === 'boolean', 'Passed flag should be a boolean');
+  const failing75Metrics = gameplayState.computePrototypeMetrics(
+    plan.units,
+    12, // completedCount
+    3,  // 3 mistakes -> 9/12 = 75% accuracy
+    0,
+    9,
+    20000,
+    defaultLesson.lesson,
+    defaultLesson.worldId,
+  );
+  assert.equal(failing75Metrics.accuracy, 75);
+  assert.equal(failing75Metrics.passed, false, '75% accuracy must fail 90% curriculum threshold');
+  assert.equal(
+    gameplayState.shouldUnlockGate(failing75Metrics),
+    false,
+    'Gate must NOT unlock at 75% accuracy (70% bypass removed)',
+  );
 
-  // Test 3: Calculate prototype memory reward
-  const reward = gameplayState.calculatePrototypeMemoryReward(
-    metrics,
-    metrics.cpm,
+  const incompleteMetrics = gameplayState.computePrototypeMetrics(
+    plan.units,
+    6, // only half completed
+    0,
+    0,
+    6,
+    10000,
+    defaultLesson.lesson,
+    defaultLesson.worldId,
+  );
+  assert.equal(incompleteMetrics.passed, false, 'Incomplete session must not pass');
+  assert.equal(gameplayState.shouldUnlockGate(incompleteMetrics), false, 'Gate must not unlock when incomplete');
+
+  // 3. Khmer Unicode handling, dependent vowels, coeng, combining marks, Shift, AltGr, Backspace
+  const complexCluster = 'ស្ត្រីខ្មែរ';
+  assert.equal(
+    khmerText.khmerTextEquals(complexCluster, complexCluster.normalize('NFD')),
+    true,
+    'NFC/NFD Khmer cluster equivalence must hold',
+  );
+
+  // Verify keyboard input mapping for base, Shift, AltGr, and Space
+  const baseK = keyboardMap.getKhmerKeyboardInput({
+    code: 'KeyK',
+    shiftKey: false,
+    ctrlKey: false,
+    altKey: false,
+  });
+  assert.equal(baseK?.value, 'ក', 'Base KeyK should produce ក');
+
+  const shiftK = keyboardMap.getKhmerKeyboardInput({
+    code: 'KeyK',
+    shiftKey: true,
+    ctrlKey: false,
+    altKey: false,
+  });
+  assert.equal(shiftK?.value, 'គ', 'Shift+KeyK should produce គ');
+
+  const shiftA = keyboardMap.getKhmerKeyboardInput({
+    code: 'KeyA',
+    shiftKey: true,
+    ctrlKey: false,
+    altKey: false,
+  });
+  assert.equal(shiftA?.value, 'ាំ', 'Shift+KeyA should produce multi-codepoint dependent vowel+nikahit ាំ');
+
+  const coengJ = keyboardMap.getKhmerKeyboardInput({
+    code: 'KeyJ',
+    shiftKey: false,
+    ctrlKey: false,
+    altKey: false,
+  });
+  assert.equal(coengJ?.value, '្', 'Base KeyJ should produce coeng ្');
+
+  const altGrE = keyboardMap.getKhmerKeyboardInput({
+    code: 'KeyE',
+    shiftKey: false,
+    ctrlKey: false,
+    altKey: false,
+    getModifierState: (mod) => mod === 'AltGraph',
+  });
+  assert.equal(altGrE?.value, 'ឯ', 'AltGr+KeyE should produce independent vowel ឯ');
+
+  const ctrlAltR = keyboardMap.getKhmerKeyboardInput({
+    code: 'KeyR',
+    shiftKey: false,
+    ctrlKey: true,
+    altKey: true,
+  });
+  assert.equal(ctrlAltR?.value, 'ឫ', 'Ctrl+Alt+KeyR (AltGr) should produce ឫ');
+
+  // Verify typing session state progression, mistakes, and Backspace
+  let session = gameplayState.createTypingSessionState(1);
+  assert.equal(session.startedAt, null);
+
+  // Wrong input on first unit
+  const wrongStep = gameplayState.applyTypedInput(session, plan.units, 'ខុស', 1000);
+  assert.equal(wrongStep.matched, false);
+  assert.equal(wrongStep.justFinished, false);
+  assert.equal(wrongStep.nextState.completedCount, 0);
+  assert.equal(wrongStep.nextState.incorrectCount, 1);
+  assert.equal(wrongStep.nextState.startedAt, 1000, 'Timer starts on first keystroke');
+  session = wrongStep.nextState;
+
+  // Correct input on first unit
+  const firstUnitValue = plan.units[0].value;
+  const rightStep = gameplayState.applyTypedInput(session, plan.units, firstUnitValue, 1200);
+  assert.equal(rightStep.matched, true);
+  assert.equal(rightStep.nextState.completedCount, 1);
+  assert.equal(rightStep.nextState.streak, 1);
+  session = rightStep.nextState;
+
+  // Backspace
+  session = gameplayState.applyBackspaceInput(session);
+  assert.equal(session.completedCount, 0, 'Backspace should decrement completedCount');
+  assert.equal(session.backspaceCount, 1, 'Backspace should increment backspaceCount');
+  assert.equal(session.streak, 0, 'Backspace should reset current streak');
+
+  // Complete all units
+  for (let i = 0; i < plan.units.length; i += 1) {
+    const step = gameplayState.applyTypedInput(session, plan.units, plan.units[i].value, 2000 + i * 200);
+    assert.equal(step.matched, true);
+    session = step.nextState;
+    if (i === plan.units.length - 1) {
+      assert.equal(step.justFinished, true, 'Final unit should set justFinished');
+    }
+  }
+  assert.equal(session.finished, true);
+  assert.equal(typingPlanMod.getTypedText(plan.units, session.completedCount), plan.targetText);
+
+  // Extra input after finish is ignored
+  const afterFinish = gameplayState.applyTypedInput(session, plan.units, plan.units[0].value, 9000);
+  assert.equal(afterFinish.justFinished, false);
+  assert.equal(afterFinish.nextState.completedCount, plan.units.length);
+
+  // 4. Movement restrictions during typing & clearing held keys across mode transitions
+  const controlStore = gameplayState.createPlayerControlStore(true);
+  assert.equal(controlStore.handleKeyDown('KeyW'), true);
+  assert.equal(controlStore.getSnapshot().forward, true, 'Holding W moves forward in exploration');
+
+  // Transition to typing mode while W is still held down
+  controlStore.setCanMove(false);
+  assert.deepEqual(
+    controlStore.getSnapshot(),
+    { forward: false, backward: false, left: false, right: false },
+    'Entering typing mode must immediately clear held movement keys',
+  );
+
+  // Pressing WASD/Arrows during typing must not move character
+  assert.equal(controlStore.handleKeyDown('KeyD'), false);
+  assert.equal(controlStore.handleKeyDown('ArrowUp'), false);
+  assert.deepEqual(
+    controlStore.getSnapshot(),
+    { forward: false, backward: false, left: false, right: false },
+    'Movement keys pressed during typing must be ignored',
+  );
+
+  // Returning to exploration/completed mode must NOT resume previously held W key
+  controlStore.setCanMove(true);
+  assert.deepEqual(
+    controlStore.getSnapshot(),
+    { forward: false, backward: false, left: false, right: false },
+    'Previously held keys must remain cleared after returning to exploration',
+  );
+
+  // 4.1 Movement direction mapping, camera projection, diagonal normalization, and rotation
+  // Camera stands at negative Z looking along +Z toward the gate.
+  // In this camera frame:
+  // - world +X projects to negative NDC X (screen-left)
+  // - world -X projects to positive NDC X (screen-right)
+  const cam = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 100);
+  cam.position.set(0, 2.6, -5.6);
+  cam.lookAt(0, 1.35, 1.6);
+  cam.updateMatrixWorld();
+
+  const posLeftWorld = new THREE.Vector3(2, 1.5, 0).project(cam);
+  const posRightWorld = new THREE.Vector3(-2, 1.5, 0).project(cam);
+  assert.ok(
+    posLeftWorld.x < 0,
+    `World +X must project to screen-left (negative NDC X), got ${posLeftWorld.x}`,
+  );
+  assert.ok(
+    posRightWorld.x > 0,
+    `World -X must project to screen-right (positive NDC X), got ${posRightWorld.x}`,
+  );
+
+  // A / ArrowLeft -> moves screen-left (world +X)
+  const leftMove = gameplayState.computeMovementDelta({ forward: false, backward: false, left: true, right: false }, true);
+  assert.equal(leftMove.isMoving, true);
+  assert.ok(leftMove.dirX > 0, 'Left movement must have positive dirX (world +X = screen-left)');
+  assert.equal(leftMove.dirZ, 0);
+  assert.ok(
+    Math.abs(leftMove.targetRotation - Math.PI / 2) < 1e-6,
+    'Character must face screen-left (PI/2 rad)',
+  );
+
+  // D / ArrowRight -> moves screen-right (world -X)
+  const rightMove = gameplayState.computeMovementDelta({ forward: false, backward: false, left: false, right: true }, true);
+  assert.equal(rightMove.isMoving, true);
+  assert.ok(rightMove.dirX < 0, 'Right movement must have negative dirX (world -X = screen-right)');
+  assert.equal(rightMove.dirZ, 0);
+  assert.ok(
+    Math.abs(rightMove.targetRotation - (-Math.PI / 2)) < 1e-6,
+    'Character must face screen-right (-PI/2 rad)',
+  );
+
+  // W / ArrowUp -> moves forward (world +Z toward gate)
+  const forwardMove = gameplayState.computeMovementDelta({ forward: true, backward: false, left: false, right: false }, true);
+  assert.equal(forwardMove.isMoving, true);
+  assert.equal(forwardMove.dirX, 0);
+  assert.ok(forwardMove.dirZ > 0, 'Forward movement must have positive dirZ (+Z = toward gate)');
+  assert.equal(forwardMove.targetRotation, 0, 'Character must face forward (0 rad)');
+
+  // S / ArrowDown -> moves backward (world -Z away from gate)
+  const backwardMove = gameplayState.computeMovementDelta({ forward: false, backward: true, left: false, right: false }, true);
+  assert.equal(backwardMove.isMoving, true);
+  assert.equal(backwardMove.dirX, 0);
+  assert.ok(backwardMove.dirZ < 0, 'Backward movement must have negative dirZ (-Z = away from gate)');
+  assert.ok(
+    Math.abs(Math.abs(backwardMove.targetRotation) - Math.PI) < 1e-6,
+    'Character must face backward (PI rad)',
+  );
+
+  // Diagonal normalization
+  const diagForwardLeft = gameplayState.computeMovementDelta({ forward: true, backward: false, left: true, right: false }, true);
+  assert.equal(diagForwardLeft.isMoving, true);
+  const diagLength = Math.hypot(diagForwardLeft.dirX, diagForwardLeft.dirZ);
+  assert.ok(Math.abs(diagLength - 1.0) < 1e-6, `Diagonal speed must be normalized to 1.0, got ${diagLength}`);
+  assert.ok(
+    Math.abs(diagForwardLeft.targetRotation - Math.PI / 4) < 1e-6,
+    'Forward-left diagonal must face PI/4 rad',
+  );
+
+  const diagForwardRight = gameplayState.computeMovementDelta({ forward: true, backward: false, left: false, right: true }, true);
+  assert.ok(Math.abs(Math.hypot(diagForwardRight.dirX, diagForwardRight.dirZ) - 1.0) < 1e-6);
+
+  // Movement disabled during typing (canMove = false)
+  const disabledMove = gameplayState.computeMovementDelta({ forward: true, backward: false, left: true, right: false }, false);
+  assert.equal(disabledMove.isMoving, false);
+  assert.equal(disabledMove.dirX, 0);
+  assert.equal(disabledMove.dirZ, 0);
+
+  // 4.2 Keyboard guidance: Opposite-hand Shift highlighting & modifier key handling
+  const keyK = keyboardMap.findKhmerKeyByCode('KeyK');
+  assert.ok(keyK);
+  assert.equal(keyK.hand, 'right', 'KeyK is operated by the right hand');
+
+  // Shift + K (គ) -> KeyK is right hand, so opposite-hand Shift is ShiftLeft
+  const shiftKRequired = fingerGuidanceMod.getRequiredShiftKeyCode(keyK, true);
+  assert.equal(shiftKRequired, 'ShiftLeft', 'Shift + KeyK must highlight ShiftLeft (opposite hand)');
+
+  // KeyK without Shift (ក) -> no Shift highlight
+  const baseKRequired = fingerGuidanceMod.getRequiredShiftKeyCode(keyK, false);
+  assert.equal(baseKRequired, null, 'Non-shift KeyK must not highlight any Shift key');
+
+  // Shift + A (ាំ) -> KeyA is left hand, so opposite-hand Shift is ShiftRight
+  const keyA = keyboardMap.findKhmerKeyByCode('KeyA');
+  assert.ok(keyA);
+  assert.equal(keyA.hand, 'left', 'KeyA is operated by the left hand');
+  const shiftARequired = fingerGuidanceMod.getRequiredShiftKeyCode(keyA, true);
+  assert.equal(shiftARequired, 'ShiftRight', 'Shift + KeyA must highlight ShiftRight (opposite hand)');
+
+  // Shift + D (ឌ) -> KeyD is left hand, so opposite-hand Shift is ShiftRight
+  const keyD = keyboardMap.findKhmerKeyByCode('KeyD');
+  assert.ok(keyD);
+  assert.equal(keyD.hand, 'left', 'KeyD is operated by the left hand');
+  const shiftDRequired = fingerGuidanceMod.getRequiredShiftKeyCode(keyD, true);
+  assert.equal(shiftDRequired, 'ShiftRight', 'Shift + KeyD must highlight ShiftRight (opposite hand)');
+
+  // Shift-only keydown must return null (not count as input or mistake)
+  const shiftLeftOnly = keyboardMap.getKhmerKeyboardInput({
+    code: 'ShiftLeft',
+    shiftKey: true,
+    ctrlKey: false,
+    altKey: false,
+  });
+  assert.equal(shiftLeftOnly, null, 'Pressing ShiftLeft alone must produce null (not typed input)');
+
+  const shiftRightOnly = keyboardMap.getKhmerKeyboardInput({
+    code: 'ShiftRight',
+    shiftKey: true,
+    ctrlKey: false,
+    altKey: false,
+  });
+  assert.equal(shiftRightOnly, null, 'Pressing ShiftRight alone must produce null (not typed input)');
+
+  // 5. Gate collision bounds and retry/restart session reset
+  const [closedX, closedZ] = gameplayState.clampCharacterPosition(0, 10, 'closed');
+  assert.equal(closedX, 0);
+  assert.equal(closedZ, gameplayState.GATE_COLLISION_Z, 'Closed gate must block movement past GATE_COLLISION_Z');
+
+  const [, openZ] = gameplayState.clampCharacterPosition(0, 10, 'open');
+  assert.equal(openZ, 10, 'Open gate must allow walking through into sanctuary (z = 10)');
+
+  const restartedSession = gameplayState.createTypingSessionState(2);
+  assert.equal(restartedSession.attemptId, 2);
+  assert.equal(restartedSession.completedCount, 0);
+  assert.equal(restartedSession.incorrectCount, 0);
+  assert.equal(restartedSession.finished, false);
+
+  // 6. Duplicate reward prevention & in-memory reward ledger
+  const ledger = gameplayState.createPrototypeRewardLedger();
+  const firstClaim = ledger.claimAttemptReward(
+    1,
+    passingMetrics,
+    defaultLesson.speedTargetCpm,
     defaultLesson.worldId,
     defaultLesson.lesson.id,
   );
+  assert.equal(firstClaim.duplicate, false, 'First claim for attempt 1 should succeed');
+  assert.ok(firstClaim.reward.xpEarned > 0);
+  assert.ok(firstClaim.reward.coinsEarned > 0);
 
-  assert.ok(reward.xpEarned >= 0, 'XP earned should be positive or zero');
-  assert.ok(reward.coinsEarned >= 0, 'Coins earned should be positive or zero');
-  assert.ok(reward.stars >= 1, 'Passed challenge should award at least 1 star');
+  const totalsAfterFirst = ledger.getTotals();
+  assert.equal(totalsAfterFirst.claimedCount, 1);
+  assert.equal(totalsAfterFirst.totalXp, firstClaim.reward.xpEarned);
 
-  // Test 4: Gate interaction constants
-  assert.ok(gameplayState.GATE_POSITION_Z > 0, 'Gate position Z should be positive');
-  assert.ok(gameplayState.GATE_INTERACTION_RADIUS > 2, 'Interaction radius should be accessible');
-  assert.ok(gameplayState.GATE_COLLISION_Z < gameplayState.GATE_POSITION_Z, 'Collision barrier must be before gate center');
+  // Duplicate claim for same attemptId must be blocked
+  const duplicateClaim = ledger.claimAttemptReward(
+    1,
+    passingMetrics,
+    defaultLesson.speedTargetCpm,
+    defaultLesson.worldId,
+    defaultLesson.lesson.id,
+  );
+  assert.equal(duplicateClaim.duplicate, true, 'Duplicate claim for attempt 1 must be flagged');
+  assert.deepEqual(
+    ledger.getTotals(),
+    totalsAfterFirst,
+    'Duplicate claim must not increase total XP, coins, or claimed count',
+  );
+
+  // Retry with new attemptId (attempt 2) can claim its own reward
+  const retryClaim = ledger.claimAttemptReward(
+    2,
+    passingMetrics,
+    defaultLesson.speedTargetCpm,
+    defaultLesson.worldId,
+    defaultLesson.lesson.id,
+  );
+  assert.equal(retryClaim.duplicate, false, 'New attemptId 2 on retry should be claimable');
+  assert.equal(ledger.getTotals().claimedCount, 2);
+  assert.equal(
+    ledger.getTotals().totalXp,
+    firstClaim.reward.xpEarned + retryClaim.reward.xpEarned,
+  );
 } finally {
   await server.close();
 }

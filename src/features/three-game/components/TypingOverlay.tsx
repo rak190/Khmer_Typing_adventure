@@ -1,14 +1,3 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  findKhmerKeyByCode,
-  getKhmerKeyboardInput,
-  khmerKeyboardRows,
-  type KhmerKeyboardKey,
-} from '../../../data/keyboardMap';
-import { getFingerGuidance } from '../../../lib/fingerGuidance';
-import { khmerTextEquals } from '../../../lib/khmerText';
-import type { TypingUnit } from '../../../lib/lessonTypingPlan';
-import type { TypingMetricResult } from '../../../lib/typingMetrics';
 import {
   Flame,
   HelpCircle,
@@ -17,10 +6,27 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  getKhmerKeyboardInput,
+  getKhmerKeyOutput,
+  khmerKeyboardRows,
+  type KhmerKeyboardKey,
+} from '../../../data/keyboardMap';
+import { getFingerGuidance, getRequiredShiftKeyCode } from '../../../lib/fingerGuidance';
+import { khmerTextEquals } from '../../../lib/khmerText';
+import {
+  getCurrentTargetText,
+  getTypedText,
+  type TypingUnit,
+} from '../../../lib/lessonTypingPlan';
+import type { TypingMetricResult } from '../../../lib/typingMetrics';
 
 type TypingOverlayProps = {
   targetUnits: TypingUnit[];
   metrics: TypingMetricResult;
+  minimumAccuracy: number;
+  speedTargetCpm: number;
   completedCount: number;
   streak: number;
   onTypedValue: (value: string, code: string) => void;
@@ -29,9 +35,22 @@ type TypingOverlayProps = {
   onRestart: () => void;
 };
 
+function visibleTargetUnit(value: string): string {
+  return value === ' ' ? 'Spacebar' : value;
+}
+
+function getModifierKeyHint(unit: TypingUnit): string {
+  const keyLabel = unit.key.action === 'space' ? 'Spacebar' : unit.key.latin.toUpperCase();
+  if (unit.modifier === 'shift') return `Shift + ${keyLabel}`;
+  if (unit.modifier === 'altgr') return `AltGr + ${keyLabel}`;
+  return keyLabel;
+}
+
 export default function TypingOverlay({
   targetUnits,
   metrics,
+  minimumAccuracy,
+  speedTargetCpm,
   completedCount,
   streak,
   onTypedValue,
@@ -42,11 +61,29 @@ export default function TypingOverlay({
   const [showKeyboard, setShowKeyboard] = useState(true);
   const [feedback, setFeedback] = useState<{ code: string; state: 'correct' | 'wrong' } | null>(null);
   const feedbackTimeoutRef = useRef<number | undefined>(undefined);
+  const isComposingRef = useRef(false);
 
-  const activeTargetIndex = Math.min(completedCount, Math.max(0, targetUnits.length - 1));
-  const activeTarget = targetUnits[activeTargetIndex];
   const isFinished = completedCount >= targetUnits.length;
+  const activeTarget = isFinished ? undefined : targetUnits[completedCount];
   const shiftRequired = activeTarget?.modifier === 'shift';
+  const altgrRequired = activeTarget?.modifier === 'altgr';
+
+  const fullTargetText = useMemo(
+    () => targetUnits.map((unit) => unit.value).join(''),
+    [targetUnits],
+  );
+  const typedText = useMemo(
+    () => getTypedText(targetUnits, completedCount),
+    [completedCount, targetUnits],
+  );
+  const currentTargetText = useMemo(
+    () => getCurrentTargetText(targetUnits, completedCount),
+    [completedCount, targetUnits],
+  );
+  const remainingText = useMemo(
+    () => fullTargetText.slice(typedText.length + currentTargetText.length),
+    [currentTargetText.length, fullTargetText, typedText.length],
+  );
 
   const fingerGuidance = useMemo(() => {
     if (!activeTarget) {
@@ -60,18 +97,24 @@ export default function TypingOverlay({
     return getFingerGuidance(activeTarget.key, shiftRequired);
   }, [activeTarget, shiftRequired]);
 
+  const requiredShiftCode = useMemo(() => {
+    return activeTarget ? getRequiredShiftKeyCode(activeTarget.key, shiftRequired) : null;
+  }, [activeTarget, shiftRequired]);
+
   const onTypedValueRef = useRef(onTypedValue);
   const onBackspaceRef = useRef(onBackspace);
   const activeTargetRef = useRef(activeTarget);
+  const isFinishedRef = useRef(isFinished);
 
   useEffect(() => {
     onTypedValueRef.current = onTypedValue;
     onBackspaceRef.current = onBackspace;
     activeTargetRef.current = activeTarget;
+    isFinishedRef.current = isFinished;
   });
 
   const handleInputEvent = useCallback((value: string, code: string) => {
-    if (!activeTargetRef.current) return;
+    if (isFinishedRef.current || !activeTargetRef.current) return;
     const isCorrect = khmerTextEquals(value, activeTargetRef.current.value);
 
     window.clearTimeout(feedbackTimeoutRef.current);
@@ -81,8 +124,15 @@ export default function TypingOverlay({
     onTypedValueRef.current(value, code);
   }, []);
 
-  // Listen to physical keyboard events
   useEffect(() => {
+    const handleCompositionStart = () => {
+      isComposingRef.current = true;
+    };
+
+    const handleCompositionEnd = () => {
+      isComposingRef.current = false;
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code === 'Escape') {
         event.preventDefault();
@@ -90,9 +140,26 @@ export default function TypingOverlay({
         return;
       }
 
+      if (event.isComposing || isComposingRef.current) return;
+
       if (event.code === 'Backspace') {
         event.preventDefault();
         onBackspaceRef.current();
+        return;
+      }
+
+      // Ignore modifier-only key events so pressing Shift alone does not count as input or mistake
+      if ([
+        'ShiftLeft',
+        'ShiftRight',
+        'AltLeft',
+        'AltRight',
+        'ControlLeft',
+        'ControlRight',
+        'MetaLeft',
+        'MetaRight',
+        'CapsLock',
+      ].includes(event.code)) {
         return;
       }
 
@@ -102,31 +169,28 @@ export default function TypingOverlay({
       if (event.repeat) return;
 
       const keyboardInput = getKhmerKeyboardInput(event);
-      if (keyboardInput) {
-        event.preventDefault();
-        handleInputEvent(keyboardInput.value, keyboardInput.key.code);
-        return;
-      }
+      if (!keyboardInput) return;
 
-      const matchedKey = findKhmerKeyByCode(event.code);
-      if (matchedKey && !matchedKey.disabled && activeTargetRef.current) {
-        event.preventDefault();
-        const value = matchedKey.code === activeTargetRef.current.key.code
-          ? activeTargetRef.current.value
-          : matchedKey.khmer;
-        handleInputEvent(value, matchedKey.code);
-      }
+      event.preventDefault();
+      handleInputEvent(keyboardInput.value, keyboardInput.key.code);
     };
 
+    window.addEventListener('compositionstart', handleCompositionStart);
+    window.addEventListener('compositionend', handleCompositionEnd);
     window.addEventListener('keydown', handleKeyDown);
     return () => {
+      window.removeEventListener('compositionstart', handleCompositionStart);
+      window.removeEventListener('compositionend', handleCompositionEnd);
       window.removeEventListener('keydown', handleKeyDown);
       window.clearTimeout(feedbackTimeoutRef.current);
     };
   }, [handleInputEvent, onCancel]);
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col justify-between bg-black/60 backdrop-blur-sm p-4 sm:p-6 font-khmer text-white select-none">
+    <div
+      data-testid="three-typing-overlay"
+      className="absolute inset-0 z-20 flex flex-col justify-between bg-black/60 backdrop-blur-sm p-4 sm:p-6 font-khmer text-white select-none"
+    >
       {/* ===== HEADER / TOP CONTROLS ===== */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -139,6 +203,7 @@ export default function TypingOverlay({
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setShowKeyboard(!showKeyboard)}
             className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
           >
@@ -147,6 +212,8 @@ export default function TypingOverlay({
           </button>
 
           <button
+            type="button"
+            data-testid="three-typing-restart"
             onClick={onRestart}
             className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
             title="ចាប់ផ្តើមឡើងវិញ (Restart)"
@@ -155,6 +222,8 @@ export default function TypingOverlay({
           </button>
 
           <button
+            type="button"
+            data-testid="three-typing-cancel"
             onClick={onCancel}
             className="flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-950/60 px-3 py-1.5 text-xs font-semibold text-red-200 transition hover:bg-red-900/80"
             title="បោះបង់ (Cancel / Esc)"
@@ -170,8 +239,10 @@ export default function TypingOverlay({
         {/* Progress Bar */}
         <div className="w-full">
           <div className="flex justify-between text-xs font-bold text-slate-300 mb-1">
-            <span>វឌ្ឍនភាព: {completedCount} / {targetUnits.length}</span>
-            <span>គោលដៅភាពត្រឹមត្រូវ: 75%+</span>
+            <span data-testid="three-typing-progress">វឌ្ឍនភាព: {completedCount} / {targetUnits.length}</span>
+            <span data-testid="three-typing-accuracy-goal">
+              គោលដៅភាពត្រឹមត្រូវ: {minimumAccuracy}%+ • គោលដៅ CPM: {speedTargetCpm}
+            </span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-800 border border-white/10">
             <div
@@ -188,7 +259,9 @@ export default function TypingOverlay({
             <Zap className="h-5 w-5 text-amber-400 shrink-0" />
             <div>
               <div className="text-[11px] font-bold text-amber-300">CPM (ល្បឿន)</div>
-              <div className="text-xl sm:text-2xl font-black text-white font-sans">{metrics.cpm}</div>
+              <div data-testid="three-typing-cpm" className="text-xl sm:text-2xl font-black text-white font-sans">
+                {metrics.cpm}
+              </div>
             </div>
           </div>
 
@@ -197,7 +270,12 @@ export default function TypingOverlay({
             <Target className="h-5 w-5 text-emerald-400 shrink-0" />
             <div>
               <div className="text-[11px] font-bold text-emerald-300">ភាពត្រឹមត្រូវ</div>
-              <div className={`text-xl sm:text-2xl font-black font-sans ${metrics.accuracy >= 75 ? 'text-emerald-400' : 'text-coral'}`}>
+              <div
+                data-testid="three-typing-accuracy"
+                className={`text-xl sm:text-2xl font-black font-sans ${
+                  metrics.accuracy >= minimumAccuracy ? 'text-emerald-400' : 'text-coral'
+                }`}
+              >
                 {Math.round(metrics.accuracy)}%
               </div>
             </div>
@@ -208,7 +286,9 @@ export default function TypingOverlay({
             <Flame className="h-5 w-5 text-orange-400 shrink-0" />
             <div>
               <div className="text-[11px] font-bold text-orange-300">ជាប់ៗគ្នា</div>
-              <div className="text-xl sm:text-2xl font-black text-white font-sans">{streak}</div>
+              <div data-testid="three-typing-streak" className="text-xl sm:text-2xl font-black text-white font-sans">
+                {streak}
+              </div>
             </div>
           </div>
 
@@ -217,43 +297,55 @@ export default function TypingOverlay({
             <div className="h-3 w-3 rounded-full bg-red-400 shrink-0" />
             <div>
               <div className="text-[11px] font-bold text-slate-300">កំហុស</div>
-              <div className="text-xl sm:text-2xl font-black text-white font-sans">{metrics.incorrectInputs}</div>
+              <div data-testid="three-typing-mistakes" className="text-xl sm:text-2xl font-black text-white font-sans">
+                {metrics.incorrectInputs}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Big Target Letter Display */}
+        {/* Continuous Khmer Text Display (preserving grapheme/coeng/dependent vowel shaping) */}
         <div className="relative flex w-full flex-col items-center justify-center rounded-3xl border-2 border-amber-500/50 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 p-6 shadow-2xl backdrop-blur-md">
-          <div className="flex flex-wrap items-center justify-center gap-2 text-3xl sm:text-4xl font-bold tracking-widest">
-            {targetUnits.map((unit, index) => {
-              const isTyped = index < completedCount;
-              const isCurrent = index === completedCount;
-              return (
-                <span
-                  key={`${index}-${unit.value}`}
-                  className={`inline-block px-2 py-1 rounded-xl transition-all duration-150 ${
-                    isTyped
-                      ? 'text-emerald-400 opacity-60'
-                      : isCurrent
-                      ? 'scale-125 bg-amber-500/30 text-amber-300 border-2 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.6)] animate-pulse'
-                      : 'text-slate-400'
-                  }`}
-                >
-                  {unit.value}
-                </span>
-              );
-            })}
+          <div
+            data-testid="three-typing-target"
+            data-target={currentTargetText}
+            className="khmer-body min-h-[64px] text-center text-3xl sm:text-4xl font-bold leading-[1.8]"
+          >
+            <span className="text-emerald-400">{typedText}</span>
+            {currentTargetText && (
+              <span className="rounded-lg bg-amber-500/30 px-1.5 py-0.5 text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-8">
+                {visibleTargetUnit(currentTargetText)}
+              </span>
+            )}
+            <span className="text-slate-400">{remainingText}</span>
           </div>
 
           {/* Active Key and Finger Guidance Banner */}
           {activeTarget && !isFinished && (
             <div className="mt-5 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-200">
-              <span>គ្រាប់ចុច: <span className="font-mono font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-amber-400/50">{activeTarget.key.latin.toUpperCase()}</span></span>
+              <span>
+                អក្សរត្រូវវាយ:{' '}
+                <span className="font-bold text-white bg-slate-800 px-2.5 py-0.5 rounded border border-amber-400/50">
+                  {visibleTargetUnit(activeTarget.value)}
+                </span>
+              </span>
+              <span>•</span>
+              <span>
+                គ្រាប់ចុច:{' '}
+                <span className="font-mono font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-amber-400/50">
+                  {getModifierKeyHint(activeTarget)}
+                </span>
+              </span>
               <span>•</span>
               <span>{fingerGuidance.label}</span>
               {shiftRequired && (
                 <span className="rounded bg-coral px-2 py-0.5 text-xs font-bold text-white">
                   ចុច Shift
+                </span>
+              )}
+              {altgrRequired && (
+                <span className="rounded bg-purple-600 px-2 py-0.5 text-xs font-bold text-white">
+                  ចុច AltGr
                 </span>
               )}
             </div>
@@ -263,28 +355,66 @@ export default function TypingOverlay({
 
       {/* ===== BOTTOM STAGE: COMPACT RESPONSIVE ON-SCREEN KEYBOARD ===== */}
       {showKeyboard && (
-        <div className="mx-auto w-full max-w-4xl rounded-2xl border border-white/15 bg-slate-950/90 p-2 sm:p-3 shadow-2xl backdrop-blur-md">
+        <div
+          data-testid="three-khmer-keyboard"
+          className="mx-auto w-full max-w-4xl rounded-2xl border border-white/15 bg-slate-950/90 p-2 sm:p-3 shadow-2xl backdrop-blur-md"
+        >
           <div className="space-y-1 sm:space-y-1.5">
             {khmerKeyboardRows.map((row, rowIndex) => (
-              <div key={rowIndex} className="flex justify-center gap-1 sm:gap-1.5">
-                {row.map((keyData: KhmerKeyboardKey) => {
-                  const isTarget = activeTarget?.key.code === keyData.code;
-                  const isShiftTarget = shiftRequired && keyData.action === 'shift';
-                  const isFeedback = feedback?.code === keyData.code;
+                <div key={rowIndex} className="flex justify-center gap-1 sm:gap-1.5">
+                  {row.map((keyData: KhmerKeyboardKey) => {
+                    const isBackspace = keyData.action === 'backspace';
+                    const isTarget = activeTarget?.key.code === keyData.code;
+                    const isShiftTarget = Boolean(requiredShiftCode && requiredShiftCode === keyData.code);
+                    const isAltGrTarget = Boolean(
+                      altgrRequired &&
+                        keyData.action === 'altgr' &&
+                        (keyData.code === 'AltRight' || keyData.code === 'AltLeft'),
+                    );
+                    const isFeedback = feedback?.code === keyData.code;
+                    const isDisabled = Boolean(keyData.disabled && !isBackspace);
 
-                  let keyBg = 'bg-slate-800 text-slate-200 border-slate-700';
-                  if (keyData.disabled) keyBg = 'bg-slate-900/50 text-slate-600 border-transparent';
-                  else if (isFeedback && feedback.state === 'correct') keyBg = 'bg-emerald-600 text-white border-emerald-400 scale-105';
-                  else if (isFeedback && feedback.state === 'wrong') keyBg = 'bg-coral text-white border-red-300 scale-105';
-                  else if (isTarget) keyBg = 'bg-amber-500 text-slate-950 border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.8)] scale-105 font-bold';
-                  else if (isShiftTarget) keyBg = 'bg-purple-600 text-white border-purple-400 animate-pulse';
+                    let keyBg = 'bg-slate-800 text-slate-200 border-slate-700';
+                    if (isFeedback && feedback.state === 'correct') {
+                      keyBg = 'bg-emerald-600 text-white border-emerald-400 scale-105';
+                    } else if (isFeedback && feedback.state === 'wrong') {
+                      keyBg = 'bg-coral text-white border-red-300 scale-105';
+                    } else if (isTarget) {
+                      keyBg =
+                        'bg-amber-500 text-slate-950 border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.8)] scale-105 font-bold';
+                    } else if (isShiftTarget || isAltGrTarget) {
+                      keyBg =
+                        'bg-purple-600 text-white border-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.7)] animate-pulse font-bold scale-105';
+                    } else if (isDisabled) {
+                      keyBg = 'bg-slate-900/50 text-slate-600 border-transparent';
+                    }
 
-                  return (
-                    <button
-                      key={`${rowIndex}-${keyData.latin}-${keyData.code}`}
-                      disabled={keyData.disabled}
+                    const displayKhmer = isBackspace
+                      ? '⌫'
+                      : shiftRequired && keyData.shiftKhmer
+                      ? keyData.shiftKhmer
+                      : altgrRequired && keyData.altgrKhmer
+                      ? keyData.altgrKhmer
+                      : keyData.khmer || keyData.latin;
+
+                    return (
+                      <button
+                        type="button"
+                        key={`${rowIndex}-${keyData.latin}-${keyData.code}`}
+                        data-key-code={keyData.code}
+                        data-is-target={isTarget ? 'true' : undefined}
+                        data-is-shift-target={isShiftTarget ? 'true' : undefined}
+                        disabled={isDisabled}
                       onClick={() => {
-                        const val = shiftRequired && keyData.shiftKhmer ? keyData.shiftKhmer : keyData.khmer;
+                        if (isBackspace) {
+                          onBackspaceRef.current();
+                          return;
+                        }
+                        const modifier =
+                          activeTarget && keyData.code === activeTarget.key.code
+                            ? activeTarget.modifier
+                            : 'base';
+                        const val = getKhmerKeyOutput(keyData, modifier);
                         handleInputEvent(val, keyData.code);
                       }}
                       className={`flex h-8 sm:h-10 min-w-[24px] sm:min-w-[36px] flex-col items-center justify-center rounded-lg border text-xs transition-all active:scale-90 ${keyBg} ${
@@ -292,7 +422,7 @@ export default function TypingOverlay({
                       }`}
                     >
                       <span className="text-[11px] sm:text-xs font-bold leading-none">
-                        {keyData.khmer || keyData.latin}
+                        {displayKhmer}
                       </span>
                       <span className="text-[8px] sm:text-[9px] opacity-60 leading-none font-mono">
                         {keyData.latin.toUpperCase()}

@@ -5,6 +5,13 @@ export type GameMode = 'exploration' | 'typing' | 'opening' | 'completed';
 
 export type Position3D = [number, number, number];
 
+export type MovementInput = {
+  forward: boolean;
+  backward: boolean;
+  left: boolean;
+  right: boolean;
+};
+
 export type CharacterState = {
   position: Position3D;
   rotationY: number;
@@ -39,7 +46,20 @@ export type ActiveTargetInfo = {
   hint: string;
 };
 
+export type TypingSessionState = {
+  attemptId: number;
+  completedCount: number;
+  incorrectCount: number;
+  backspaceCount: number;
+  streak: number;
+  bestStreak: number;
+  startedAt: number | null;
+  endedAt: number | null;
+  finished: boolean;
+};
+
 export type PrototypeReward = {
+  attemptId: number;
   xpEarned: number;
   coinsEarned: number;
   stars: number;
@@ -47,4 +67,6 @@ export type PrototypeReward = {
   score: number;
   accuracy: number;
   cpm: number;
+  totalSessionXp: number;
+  totalSessionCoins: number;
 };
