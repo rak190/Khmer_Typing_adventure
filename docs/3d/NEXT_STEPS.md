@@ -1,16 +1,30 @@
 # Next steps
 
-Setup is complete; full 3D conversion is not started. Work remains on feat/3d-game-migration with all changes uncommitted for review. Keep the user's pre-existing src/styles/index.css change separate when staging.
+Updated: 2026-10-31. Branch: `fix/3d-prototype-stabilization`.
 
-1. Review SETUP_REPORT.md and restart Codex/VS Code to discover MCP tools/extensions. No required application download is outstanding.
-2. Check WebGL2 manually in Chrome/Edge; test on a representative school computer as well as this development PC. Optional art/audio tools can wait.
-3. Request a focused baseline repair task: fix the eight existing TypeScript errors and make typecheck/build check both project configs, preserving gameplay. Review the unchanged npm audit findings in a separate dependency maintenance pass before deploying anything.
-4. Only after a separate request, implement the first isolated gate slice in 3D_MIGRATION_PLAN.md. Start with primitives and memory-only progress. No paid or large asset packs needed.
+## Completed work
 
-Suggested next Codex prompt:
+1. **3D setup and initial prototype (PR #16)**:
+   - Installed compatible React 19 / Three.js dependencies (`three` ^0.187.0, `@react-three/fiber` ^9.8.2, `@react-three/drei` ^10.7.9, `@types/three` ^0.187.0).
+   - Added lazy-loaded `/3d-prototype` (and `/three-game` alias) route with the Ancient Angkor Gate courtyard, third-person character controller, Khmer typing overlay, gate-opening animation, and WebGL fallback.
+2. **Task 1 — Baseline TypeScript and build validation**:
+   - Resolved all eight pre-existing baseline TypeScript diagnostics in `FeaturePanels.tsx`, `GameSidebar.tsx`, `economy.ts`, `WorldMapPage.tsx`, `GameMapNode.tsx`, and `profileService.ts`.
+   - Updated `package.json` `typecheck` and `build` scripts to explicitly validate both `tsconfig.app.json` and `tsconfig.node.json`.
+3. **Task 1 — 3D prototype gameplay stabilization**:
+   - Removed the 70% accuracy bypass in `ThreePrototypePage.tsx`; gate unlocking now strictly requires `metrics.passed` (`completed && accuracy >= minimumAccuracy`, 90% for World 1 Lesson 1).
+   - Replaced the hardcoded 75% accuracy label in `TypingOverlay.tsx` with the curriculum `minimumAccuracy` (90%+) and `speedTargetCpm` (28 CPM).
+   - Preserved continuous Khmer Unicode cluster shaping (`typedText`, `currentTargetText`, `remainingText`) while displaying next-unit key/modifier (`Shift` / `AltGr`) and finger guidance, with IME composition guard and virtual `Backspace` support.
+   - Replaced per-frame `setPlayerPosition` React state updates in `useFrame` with `playerPositionRef` and threshold-only `onNearGateChange` updates.
+   - Implemented `createPlayerControlStore` (`useSyncExternalStore`) to lock movement during typing/modals and clear held movement keys across mode transitions, window blur, and tab visibility changes.
+   - Added `createPrototypeRewardLedger` to keep prototype rewards strictly in memory and prevent duplicate reward claims per attempt across cancel/restart/retry flows.
+   - Added error boundary and `webglcontextlost` handling in `ThreeGameCanvas.tsx` to ensure `WebGLFallback` renders when WebGL is unavailable or lost.
+   - Expanded `scripts/threePrototypeTests.mjs` with regression tests covering accuracy pass/fail thresholds, Khmer Unicode/Shift/AltGr/Backspace handling, movement restrictions, key clearing, gate collision bounds, and duplicate reward prevention.
 
-> Use .agents/skills/khmer-3d-game/SKILL.md and docs/3d/SETUP_REPORT.md. Fix only the eight documented baseline TypeScript errors and correct the typecheck/build scripts to validate both referenced projects. Preserve the user's CSS changes, all game behavior, Firebase rules/data and deployment configuration. Run explicit TypeScript checks, lint, tests and build. Do not begin 3D gameplay, commit, push or deploy.
+## Remaining for future tasks
 
-After that task, a separate prompt can authorize the Ancient Khmer Typing Gate prototype. Keep steps small: rendering/fallback first, movement/camera second, existing typing controller integration third, gate/reward flow last. Measure once a playable slice exists; avoid browser automation for documentation-only changes.
-
-Use this skill and the source map in 3D_MIGRATION_PLAN.md for persistent context instead of repeatedly re-reading the repository. Dependencies and extensions are installed; check availability before any reinstall. Use version-specific official docs/Context7 only for APIs actually being implemented. No model switch or agent delegation is required.
+1. **Manual school-hardware check**: Test `/3d-prototype` interactively on a target Cambodian school computer (integrated GPU) to confirm frame rate and keyboard layout comfort.
+2. **Dependency security maintenance**: Review the pre-existing `npm audit` findings in a dedicated dependency maintenance pass before production deployment.
+3. **Future 3D milestones (separate authorization required)**:
+   - Optional Web Audio sound effects (`public/audio/`) and custom low-poly GLB assets (`public/models/`).
+   - Touch/virtual joystick controls for tablet and mobile browsers.
+   - Multi-gate stage progression and deliberate Firebase progress adapter once prototype sign-off is complete.

@@ -1,3 +1,4 @@
+import type { MutableRefObject } from 'react';
 import AncientStoneGate from '../components/AncientStoneGate';
 import Character from '../components/Character';
 import Environment from '../components/Environment';
@@ -7,36 +8,39 @@ import type { GameMode, GateState, Position3D } from '../types';
 
 type AncientGateSceneProps = {
   mode: GameMode;
-  playerPosition: Position3D;
+  playerPositionRef: MutableRefObject<Position3D>;
   gateState: GateState;
   movement: MovementInput;
-  onPositionChange: (newPos: Position3D) => void;
+  isModalOpen?: boolean;
+  onNearGateChange: (isNear: boolean) => void;
   onGateOpeningFinished: () => void;
 };
 
 export default function AncientGateScene({
   mode,
-  playerPosition,
+  playerPositionRef,
   gateState,
   movement,
-  onPositionChange,
+  isModalOpen = false,
+  onNearGateChange,
   onGateOpeningFinished,
 }: AncientGateSceneProps) {
   return (
     <>
       {/* Third Person Camera with smooth tracking */}
-      <ThirdPersonCamera targetPosition={playerPosition} mode={mode} />
+      <ThirdPersonCamera targetPositionRef={playerPositionRef} mode={mode} />
 
       {/* Cambodian Courtyard Environment & Lighting */}
       <Environment />
 
       {/* Playable Hero Character */}
       <Character
-        position={playerPosition}
+        positionRef={playerPositionRef}
         movement={movement}
         mode={mode}
         gateStatus={gateState.status}
-        onPositionChange={onPositionChange}
+        isModalOpen={isModalOpen}
+        onNearGateChange={onNearGateChange}
       />
 
       {/* Ancient Angkor Stone Gate */}

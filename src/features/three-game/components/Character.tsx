@@ -1,30 +1,28 @@
 import { useFrame } from '@react-three/fiber';
-import { useRef } from 'react';
+import { useRef, type MutableRefObject } from 'react';
 import * as THREE from 'three';
-import { GATE_COLLISION_Z } from '../systems/gameplayState';
-import type { GameMode, GateStatus, Position3D } from '../types';
 import type { MovementInput } from '../hooks/usePlayerControls';
+import { clampCharacterPosition, isPositionNearGate } from '../systems/gameplayState';
+import type { GameMode, GateStatus, Position3D } from '../types';
 
 type CharacterProps = {
-  position: Position3D;
+  positionRef: MutableRefObject<Position3D>;
   movement: MovementInput;
   mode: GameMode;
   gateStatus: GateStatus;
-  onPositionChange: (newPos: Position3D) => void;
+  isModalOpen?: boolean;
+  onNearGateChange: (isNear: boolean) => void;
 };
 
 const MOVE_SPEED = 5.8;
-const MIN_X = -13.0;
-const MAX_X = 13.0;
-const MIN_Z = -14.0;
-const MAX_Z = 16.0;
 
 export default function Character({
-  position,
+  positionRef,
   movement,
   mode,
   gateStatus,
-  onPositionChange,
+  isModalOpen = false,
+  onNearGateChange,
 }: CharacterProps) {
   const groupRef = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Group>(null);
@@ -33,64 +31,58 @@ export default function Character({
   const rightArmRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Group>(null);
 
-  const posRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
   const targetRotationRef = useRef<number>(0);
   const currentRotationRef = useRef<number>(0);
   const walkCycleRef = useRef<number>(0);
+  const lastNearGateRef = useRef<boolean | null>(null);
 
   useFrame((_, delta) => {
-    // Only allow movement during exploration or completed mode
-    const canMove = mode === 'exploration' || mode === 'completed';
+    const canMove = (mode === 'exploration' || mode === 'completed') && !isModalOpen;
 
     let moveX = 0;
     let moveZ = 0;
 
     if (canMove) {
-      if (movement.forward) moveZ += 1; // forward is positive Z (towards the gate)
+      if (movement.forward) moveZ += 1;
       if (movement.backward) moveZ -= 1;
       if (movement.left) moveX -= 1;
       if (movement.right) moveX += 1;
     }
 
     const isMoving = moveX !== 0 || moveZ !== 0;
+    let [curX, , curZ] = positionRef.current;
+    const curY = positionRef.current[1];
 
     if (isMoving) {
-      // Normalize vector
       const length = Math.hypot(moveX, moveZ);
       const dirX = moveX / length;
       const dirZ = moveZ / length;
 
-      // Update position
       const dt = Math.min(delta, 0.1);
-      posRef.current.x += dirX * MOVE_SPEED * dt;
-      posRef.current.z += dirZ * MOVE_SPEED * dt;
+      curX += dirX * MOVE_SPEED * dt;
+      curZ += dirZ * MOVE_SPEED * dt;
 
-      // Enforce bounds
-      posRef.current.x = Math.max(MIN_X, Math.min(MAX_X, posRef.current.x));
-
-      // Gate collision check
-      const maxAllowedZ = gateStatus === 'open' ? MAX_Z : GATE_COLLISION_Z;
-      posRef.current.z = Math.max(MIN_Z, Math.min(maxAllowedZ, posRef.current.z));
-
-      // Target rotation facing movement direction
       targetRotationRef.current = Math.atan2(dirX, dirZ);
-
-      // Advance walk cycle
       walkCycleRef.current += dt * 10;
     } else {
-      // Return walk cycle smoothly to neutral
       walkCycleRef.current = 0;
     }
+
+    // Always enforce courtyard & gate collision bounds (even if gate closes on retry)
+    const [clampedX, clampedZ] = clampCharacterPosition(curX, curZ, gateStatus);
+    positionRef.current[0] = clampedX;
+    positionRef.current[1] = curY;
+    positionRef.current[2] = clampedZ;
 
     // Smoothly rotate character toward movement heading
     const angleDiff = Math.atan2(
       Math.sin(targetRotationRef.current - currentRotationRef.current),
-      Math.cos(targetRotationRef.current - currentRotationRef.current)
+      Math.cos(targetRotationRef.current - currentRotationRef.current),
     );
     currentRotationRef.current += angleDiff * Math.min(1, delta * 12);
 
     if (groupRef.current) {
-      groupRef.current.position.copy(posRef.current);
+      groupRef.current.position.set(clampedX, curY, clampedZ);
       groupRef.current.rotation.y = currentRotationRef.current;
     }
 
@@ -104,12 +96,16 @@ export default function Character({
     if (rightArmRef.current) rightArmRef.current.rotation.x = swing * 0.8;
     if (bodyRef.current) bodyRef.current.position.y = bodyBob;
 
-    // Report position change to parent
-    onPositionChange([posRef.current.x, posRef.current.y, posRef.current.z]);
+    // Only notify React when proximity milestone boolean actually changes
+    const nearGate = isPositionNearGate(clampedX, clampedZ);
+    if (lastNearGateRef.current !== nearGate) {
+      lastNearGateRef.current = nearGate;
+      onNearGateChange(nearGate);
+    }
   });
 
   return (
-    <group ref={groupRef} position={position}>
+    <group ref={groupRef} position={[0, 0, -6]}>
       {/* Root body group with vertical bobbing */}
       <group ref={bodyRef}>
         {/* Torso - Traditional royal sapphire/indigo tunic with gold accents */}

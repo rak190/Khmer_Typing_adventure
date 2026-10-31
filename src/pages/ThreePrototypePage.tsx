@@ -1,221 +1,251 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ExplorationHud from '../features/three-game/components/ExplorationHud';
 import TypingOverlay from '../features/three-game/components/TypingOverlay';
 import VictoryModal from '../features/three-game/components/VictoryModal';
 import { usePlayerControls } from '../features/three-game/hooks/usePlayerControls';
 import AncientGateScene from '../features/three-game/scenes/AncientGateScene';
 import {
-  calculatePrototypeMemoryReward,
+  applyBackspaceInput,
+  applyTypedInput,
   computePrototypeMetrics,
+  createPrototypeRewardLedger,
   createPrototypeTypingPlan,
-  GATE_INTERACTION_RADIUS,
+  createTypingSessionState,
   GATE_POSITION_Z,
   getPrototypeDefaultLesson,
+  isPositionNearGate,
+  shouldUnlockGate,
 } from '../features/three-game/systems/gameplayState';
 import ThreeGameCanvas from '../features/three-game/ThreeGameCanvas';
-import type { GameMode, GateState, Position3D, PrototypeReward } from '../features/three-game/types';
-import { khmerTextEquals } from '../lib/khmerText';
+import type {
+  GameMode,
+  GateState,
+  Position3D,
+  PrototypeReward,
+  TypingSessionState,
+} from '../features/three-game/types';
+
+const INITIAL_PLAYER_POSITION: Position3D = [0, 0, -6];
 
 export default function ThreePrototypePage() {
   const [mode, setMode] = useState<GameMode>('exploration');
-  const [playerPosition, setPlayerPosition] = useState<Position3D>([0, 0, -6]);
+  const playerPositionRef = useRef<Position3D>([...INITIAL_PLAYER_POSITION]);
+  const [isNearGate, setIsNearGate] = useState<boolean>(() =>
+    isPositionNearGate(INITIAL_PLAYER_POSITION[0], INITIAL_PLAYER_POSITION[2]),
+  );
   const [gateState, setGateState] = useState<GateState>({ status: 'closed', openProgress: 0 });
 
-  // Typing challenge state
-  const { lesson, worldId } = useMemo(() => getPrototypeDefaultLesson(), []);
+  // Curriculum lesson & thresholds
+  const { lesson, worldId, minimumAccuracy, speedTargetCpm } = useMemo(
+    () => getPrototypeDefaultLesson(),
+    [],
+  );
+
+  // Typing challenge state & in-memory reward ledger
+  const nextAttemptIdRef = useRef(1);
+  const rewardLedgerRef = useRef(createPrototypeRewardLedger());
   const [typingPlan, setTypingPlan] = useState(() => createPrototypeTypingPlan(12));
-  const [completedCount, setCompletedCount] = useState(0);
-  const [incorrectCount, setIncorrectCount] = useState(0);
-  const [backspaceCount, setBackspaceCount] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
-  const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [endedAt, setEndedAt] = useState<number | null>(null);
+  const [sessionState, setSessionState] = useState<TypingSessionState>(() =>
+    createTypingSessionState(1),
+  );
   const [showModal, setShowModal] = useState(false);
   const [reward, setReward] = useState<PrototypeReward | null>(null);
   const [nowTime, setNowTime] = useState<number | null>(null);
 
   useEffect(() => {
-    if (startedAt === null || endedAt !== null || mode !== 'typing') return undefined;
+    if (
+      sessionState.startedAt === null ||
+      sessionState.endedAt !== null ||
+      mode !== 'typing'
+    ) {
+      return undefined;
+    }
     const timer = window.setInterval(() => {
       setNowTime(performance.now());
     }, 500);
     return () => window.clearInterval(timer);
-  }, [endedAt, mode, startedAt]);
+  }, [mode, sessionState.endedAt, sessionState.startedAt]);
 
-  // Proximity check: distance from player to gate altar
-  const isNearGate = useMemo(() => {
-    const [px, , pz] = playerPosition;
-    const distance = Math.hypot(px - 0, pz - (GATE_POSITION_Z - 2.4));
-    return distance <= GATE_INTERACTION_RADIUS;
-  }, [playerPosition]);
+  const startFreshTypingSession = useCallback(() => {
+    nextAttemptIdRef.current += 1;
+    const nextId = nextAttemptIdRef.current;
+    setTypingPlan(createPrototypeTypingPlan(12));
+    setSessionState(createTypingSessionState(nextId));
+    setNowTime(null);
+    setShowModal(false);
+  }, []);
 
   const handleStartTyping = useCallback(() => {
     if (gateState.status === 'open') return;
+    startFreshTypingSession();
     setMode('typing');
-    setStartedAt(performance.now());
-  }, [gateState.status]);
+  }, [gateState.status, startFreshTypingSession]);
+
+  const handleCancelTyping = useCallback(() => {
+    startFreshTypingSession();
+    setMode('exploration');
+  }, [startFreshTypingSession]);
 
   const handleEscape = useCallback(() => {
     if (mode === 'typing') {
-      setMode('exploration');
+      handleCancelTyping();
     }
-  }, [mode]);
+  }, [handleCancelTyping, mode]);
 
   const movement = usePlayerControls(
     mode,
     () => {
-      if (isNearGate && gateState.status === 'closed' && mode === 'exploration') {
+      if (isNearGate && gateState.status === 'closed' && mode === 'exploration' && !showModal) {
         handleStartTyping();
       }
     },
-    handleEscape
+    handleEscape,
+    showModal,
   );
 
-  const resetTypingSession = useCallback(() => {
-    setTypingPlan(createPrototypeTypingPlan(12));
-    setCompletedCount(0);
-    setIncorrectCount(0);
-    setBackspaceCount(0);
-    setStreak(0);
-    setBestStreak(0);
-    setStartedAt(null);
-    setEndedAt(null);
-    setShowModal(false);
-  }, []);
-
-  const handleCancelTyping = useCallback(() => {
-    setMode('exploration');
-  }, []);
-
   const handleRestartTyping = useCallback(() => {
-    resetTypingSession();
-    setStartedAt(performance.now());
-  }, [resetTypingSession]);
+    startFreshTypingSession();
+    setMode('typing');
+  }, [startFreshTypingSession]);
 
   // Live typing metrics
-  const elapsedMs = (endedAt ?? (nowTime ?? startedAt ?? 0)) - (startedAt ?? 0);
+  const elapsedMs =
+    (sessionState.endedAt ?? (nowTime ?? sessionState.startedAt ?? 0)) -
+    (sessionState.startedAt ?? 0);
+
   const metrics = useMemo(() => {
     return computePrototypeMetrics(
       typingPlan.units,
-      completedCount,
-      incorrectCount,
-      backspaceCount,
-      bestStreak,
+      sessionState.completedCount,
+      sessionState.incorrectCount,
+      sessionState.backspaceCount,
+      sessionState.bestStreak,
       elapsedMs,
       lesson,
-      worldId
+      worldId,
     );
-  }, [backspaceCount, bestStreak, completedCount, elapsedMs, incorrectCount, lesson, typingPlan.units, worldId]);
+  }, [
+    elapsedMs,
+    lesson,
+    sessionState.backspaceCount,
+    sessionState.bestStreak,
+    sessionState.completedCount,
+    sessionState.incorrectCount,
+    typingPlan.units,
+    worldId,
+  ]);
 
-  // Typing event handler
-  const handleTypedValue = useCallback((value: string) => {
-    if (mode !== 'typing') return;
-    const activeTarget = typingPlan.units[completedCount];
-    if (!activeTarget) return;
+  const handleTypedValue = useCallback(
+    (value: string) => {
+      if (mode !== 'typing' || sessionState.finished) return;
 
-    const now = performance.now();
-    if (startedAt === null) {
-      setStartedAt(now);
-    }
+      const now = performance.now();
+      setNowTime(now);
 
-    if (khmerTextEquals(value, activeTarget.value)) {
-      const nextCompleted = completedCount + 1;
-      const nextStreak = streak + 1;
-      const nextBestStreak = Math.max(bestStreak, nextStreak);
+      const { nextState, justFinished } = applyTypedInput(
+        sessionState,
+        typingPlan.units,
+        value,
+        now,
+      );
+      setSessionState(nextState);
 
-      setCompletedCount(nextCompleted);
-      setStreak(nextStreak);
-      setBestStreak(nextBestStreak);
-
-      // Check if finished
-      if (nextCompleted >= typingPlan.units.length) {
-        setEndedAt(now);
+      if (justFinished) {
+        const finalElapsedMs = Math.max(1, (nextState.endedAt ?? now) - (nextState.startedAt ?? now));
         const finalMetrics = computePrototypeMetrics(
           typingPlan.units,
-          nextCompleted,
-          incorrectCount,
-          backspaceCount,
-          nextBestStreak,
-          now - (startedAt ?? now),
+          nextState.completedCount,
+          nextState.incorrectCount,
+          nextState.backspaceCount,
+          nextState.bestStreak,
+          finalElapsedMs,
           lesson,
-          worldId
-        );
-
-        const memoryReward = calculatePrototypeMemoryReward(
-          finalMetrics,
-          finalMetrics.cpm,
           worldId,
-          lesson.id
         );
-        setReward(memoryReward);
 
-        if (finalMetrics.passed || finalMetrics.accuracy >= 70) {
-          // Trigger Gate Opening!
+        const { reward: claimedReward } = rewardLedgerRef.current.claimAttemptReward(
+          nextState.attemptId,
+          finalMetrics,
+          speedTargetCpm,
+          worldId,
+          lesson.id,
+        );
+        setReward(claimedReward);
+
+        if (shouldUnlockGate(finalMetrics)) {
           setMode('opening');
           setGateState({ status: 'opening', openProgress: 0 });
         } else {
-          // Needs practice
+          // Accuracy below curriculum minimumAccuracy: do NOT open gate; show retry modal
+          setMode('exploration');
           setShowModal(true);
         }
       }
-    } else {
-      setIncorrectCount((c) => c + 1);
-      setStreak(0);
-    }
-  }, [backspaceCount, bestStreak, completedCount, incorrectCount, lesson, mode, startedAt, streak, typingPlan.units, worldId]);
+    },
+    [lesson, mode, sessionState, speedTargetCpm, typingPlan.units, worldId],
+  );
 
   const handleBackspace = useCallback(() => {
-    if (mode !== 'typing') return;
-    setCompletedCount((c) => Math.max(0, c - 1));
-    setBackspaceCount((b) => b + 1);
-    setStreak(0);
-  }, [mode]);
+    if (mode !== 'typing' || sessionState.finished) return;
+    setSessionState((prev) => applyBackspaceInput(prev));
+  }, [mode, sessionState.finished]);
 
   const handleGateOpeningFinished = useCallback(() => {
-    setGateState({ status: 'open', openProgress: 1.0 });
-    setMode('completed');
+    setGateState((prev) =>
+      prev.status === 'open' ? prev : { status: 'open', openProgress: 1.0 },
+    );
+    setMode((prev) => (prev === 'opening' ? 'completed' : prev));
     setShowModal(true);
   }, []);
 
+  // Fallback timer in case WebGL requestAnimationFrame is throttled in background/headless tabs
+  useEffect(() => {
+    if (mode !== 'opening') return undefined;
+    const timer = window.setTimeout(() => {
+      handleGateOpeningFinished();
+    }, 2200);
+    return () => window.clearTimeout(timer);
+  }, [handleGateOpeningFinished, mode]);
+
   const handleWalkThrough = useCallback(() => {
     setShowModal(false);
-    // Player remains in 'completed' mode which allows full free movement through the open gate
+    setMode('completed');
   }, []);
 
   const handleRetryChallenge = useCallback(() => {
     setGateState({ status: 'closed', openProgress: 0 });
-    resetTypingSession();
+    if (playerPositionRef.current[2] > GATE_POSITION_Z - 2.4) {
+      playerPositionRef.current = [0, 0, GATE_POSITION_Z - 3.0];
+      setIsNearGate(true);
+    }
+    startFreshTypingSession();
     setMode('typing');
-    setStartedAt(performance.now());
-  }, [resetTypingSession]);
+  }, [startFreshTypingSession]);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-black select-none">
+    <div
+      data-testid="three-prototype-page"
+      data-mode={mode}
+      data-gate-status={gateState.status}
+      className="relative h-screen w-screen overflow-hidden bg-black select-none"
+    >
       {/* 3D R3F Canvas Viewport */}
       <ThreeGameCanvas>
         <AncientGateScene
           mode={mode}
-          playerPosition={playerPosition}
+          playerPositionRef={playerPositionRef}
           gateState={gateState}
           movement={movement}
-          onPositionChange={setPlayerPosition}
+          isModalOpen={showModal}
+          onNearGateChange={setIsNearGate}
           onGateOpeningFinished={handleGateOpeningFinished}
         />
       </ThreeGameCanvas>
 
       {/* HTML Overlays */}
-      {mode === 'exploration' && (
+      {(mode === 'exploration' || mode === 'completed') && !showModal && (
         <ExplorationHud
           isNearGate={isNearGate}
-          gateStatus={gateState.status}
-          onStartTyping={handleStartTyping}
-        />
-      )}
-
-      {mode === 'completed' && !showModal && (
-        <ExplorationHud
-          isNearGate={false}
           gateStatus={gateState.status}
           onStartTyping={handleStartTyping}
         />
@@ -225,8 +255,10 @@ export default function ThreePrototypePage() {
         <TypingOverlay
           targetUnits={typingPlan.units}
           metrics={metrics}
-          completedCount={completedCount}
-          streak={streak}
+          minimumAccuracy={minimumAccuracy}
+          speedTargetCpm={speedTargetCpm}
+          completedCount={sessionState.completedCount}
+          streak={sessionState.streak}
           onTypedValue={handleTypedValue}
           onBackspace={handleBackspace}
           onCancel={handleCancelTyping}
@@ -236,7 +268,8 @@ export default function ThreePrototypePage() {
 
       {showModal && (
         <VictoryModal
-          passed={gateState.status === 'open' || (reward?.passed ?? false)}
+          passed={gateState.status === 'open' && Boolean(reward?.passed)}
+          minimumAccuracy={minimumAccuracy}
           reward={reward}
           onWalkThrough={handleWalkThrough}
           onRetry={handleRetryChallenge}

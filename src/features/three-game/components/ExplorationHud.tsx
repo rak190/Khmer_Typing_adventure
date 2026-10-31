@@ -18,11 +18,16 @@ export default function ExplorationHud({
   const [muted, setMuted] = useState(false);
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-4 sm:p-6 font-khmer select-none">
+    <div
+      data-testid="three-exploration-hud"
+      className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-4 sm:p-6 font-khmer select-none"
+    >
       {/* ===== TOP BAR ===== */}
       <div className="flex items-center justify-between">
         <div className="pointer-events-auto flex items-center gap-3">
           <button
+            type="button"
+            data-testid="three-back-to-map"
             onClick={() => navigate('/map')}
             className="flex items-center gap-2 rounded-xl border border-white/20 bg-slate-900/80 px-3.5 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-md transition hover:bg-slate-800 hover:border-amber-400 active:scale-95"
             title="ត្រឡប់ទៅ 2D Adventure"
@@ -41,6 +46,7 @@ export default function ExplorationHud({
 
         <div className="pointer-events-auto flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setMuted(!muted)}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-slate-900/80 text-slate-300 shadow-lg backdrop-blur-md transition hover:text-white"
             title={muted ? 'បើកសំឡេង' : 'បិទសំឡេង'}
@@ -55,6 +61,8 @@ export default function ExplorationHud({
         {isNearGate && gateStatus === 'closed' && (
           <div className="pointer-events-auto transform transition-all duration-300 animate-bounce">
             <button
+              type="button"
+              data-testid="three-unlock-gate-btn"
               onClick={onStartTyping}
               className="group flex items-center gap-3 rounded-2xl border-2 border-amber-400 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 px-6 py-3.5 text-slate-950 shadow-[0_0_25px_rgba(245,158,11,0.5)] transition hover:scale-105 active:scale-95"
             >
@@ -74,8 +82,27 @@ export default function ExplorationHud({
           </div>
         )}
 
+        {!isNearGate && gateStatus === 'closed' && (
+          <div className="pointer-events-auto flex flex-col items-center gap-2 rounded-2xl border border-white/15 bg-slate-900/80 px-5 py-3 text-center shadow-xl backdrop-blur-md">
+            <span className="text-xs font-bold text-amber-200">
+              ដើរទៅមុខ [W / ↑] ទៅជិតអាសនៈទ្វារបុរាណ ដើម្បីចាប់ផ្តើម
+            </span>
+            <button
+              type="button"
+              data-testid="three-unlock-gate-btn"
+              onClick={onStartTyping}
+              className="rounded-xl border border-amber-400/50 bg-amber-500/20 px-3.5 py-1.5 text-xs font-bold text-amber-300 transition hover:bg-amber-500/30"
+            >
+              ឬ ចុចទីនេះដើម្បីចាប់ផ្តើមវាយអក្សរ (Start Challenge)
+            </button>
+          </div>
+        )}
+
         {gateStatus === 'open' && (
-          <div className="pointer-events-auto rounded-2xl border border-emerald-400/40 bg-slate-900/90 px-5 py-2.5 text-center text-sm font-bold text-emerald-300 shadow-xl backdrop-blur-md">
+          <div
+            data-testid="three-gate-open-banner"
+            className="pointer-events-auto rounded-2xl border border-emerald-400/40 bg-slate-900/90 px-5 py-2.5 text-center text-sm font-bold text-emerald-300 shadow-xl backdrop-blur-md"
+          >
             ✨ ទ្វារបុរាណបើកហើយ! ដើរទៅមុខដើម្បីចូលទីសក្ការៈ (Walk through into the sanctuary!)
           </div>
         )}

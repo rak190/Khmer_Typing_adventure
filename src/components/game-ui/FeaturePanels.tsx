@@ -230,7 +230,7 @@ export function TreasurePanel({
           ['XP', wallet.XP],
           wallet.hearts !== undefined ? ['បេះដូង', `${wallet.hearts}/${wallet.maxHearts ?? 5}`] : null,
           ['ផ្កាយ', wallet.stars],
-        ].filter(Boolean).map(([label, value]) => (
+        ].filter((entry): entry is [string, string | number] => Boolean(entry)).map(([label, value]) => (
           <div key={label} className="rounded-[13px] border border-[#DDBD70] bg-white/62 px-2 py-2 shadow-inner">
             <div className="uppercase text-[#7A4D19]">{label}</div>
             <div className="text-lg">{typeof value === 'number' ? value.toLocaleString() : value}</div>

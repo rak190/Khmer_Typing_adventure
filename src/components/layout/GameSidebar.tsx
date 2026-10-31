@@ -104,7 +104,7 @@ export default function GameSidebar() {
               <button
                 key={item.label}
                 type="button"
-                onClick={() => setModal(item.action)}
+                onClick={() => setModal(item.action ?? null)}
                 className="relative flex w-full items-center gap-3 border-b border-[#75B9AE]/12 px-3 py-3 text-left font-black text-[#F2E7C7] transition hover:bg-white/10 hover:text-[#FFE7A6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFE66B]/70"
               >
                 <Icon size={24} className="shrink-0 text-[#EEDDB6]" />

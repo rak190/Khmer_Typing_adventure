@@ -4,6 +4,7 @@ import type { PrototypeReward } from '../types';
 
 type VictoryModalProps = {
   passed: boolean;
+  minimumAccuracy: number;
   reward: PrototypeReward | null;
   onWalkThrough: () => void;
   onRetry: () => void;
@@ -11,6 +12,7 @@ type VictoryModalProps = {
 
 export default function VictoryModal({
   passed,
+  minimumAccuracy,
   reward,
   onWalkThrough,
   onRetry,
@@ -18,7 +20,11 @@ export default function VictoryModal({
   const navigate = useNavigate();
 
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 font-khmer text-white select-none">
+    <div
+      data-testid="three-victory-modal"
+      data-passed={passed ? 'true' : 'false'}
+      className="absolute inset-0 z-30 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 font-khmer text-white select-none"
+    >
       <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border-2 border-amber-500/60 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 p-6 sm:p-8 text-center shadow-[0_0_50px_rgba(245,158,11,0.3)] animate-in fade-in zoom-in-95 duration-300">
         {/* Glow backdrop */}
         <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-amber-500/20 blur-3xl" />
@@ -29,13 +35,13 @@ export default function VictoryModal({
         </div>
 
         {/* Title */}
-        <h2 className="text-2xl sm:text-3xl font-black text-amber-300">
+        <h2 data-testid="three-modal-title" className="text-2xl sm:text-3xl font-black text-amber-300">
           {passed ? 'ទ្វារបុរាណត្រូវបានដោះសោ!' : 'ព្យាយាមម្តងទៀត!'}
         </h2>
         <p className="mt-1 text-sm font-semibold text-slate-300 font-sans">
           {passed
             ? 'The Ancient Angkor Gate has opened!'
-            : 'Focus on accuracy to open the ancient stone gate.'}
+            : `Need at least ${minimumAccuracy}% accuracy to open the ancient stone gate.`}
         </p>
 
         {/* Stars */}
@@ -64,28 +70,33 @@ export default function VictoryModal({
           <div className="my-5 grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-white/10 bg-slate-800/70 p-3">
               <div className="text-xs font-bold text-slate-400">ភាពត្រឹមត្រូវ (Accuracy)</div>
-              <div className="text-2xl font-black text-emerald-400 font-sans">
+              <div
+                data-testid="three-modal-accuracy"
+                className={`text-2xl font-black font-sans ${
+                  reward.accuracy >= minimumAccuracy ? 'text-emerald-400' : 'text-coral'
+                }`}
+              >
                 {Math.round(reward.accuracy)}%
               </div>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-slate-800/70 p-3">
               <div className="text-xs font-bold text-slate-400">ល្បឿន (CPM)</div>
-              <div className="text-2xl font-black text-amber-400 font-sans">
+              <div data-testid="three-modal-cpm" className="text-2xl font-black text-amber-400 font-sans">
                 {reward.cpm}
               </div>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-slate-800/70 p-3">
               <div className="text-xs font-bold text-slate-400">ពិន្ទុ XP រៀនសូត្រ</div>
-              <div className="text-xl font-black text-blue-400 font-sans">
+              <div data-testid="three-modal-xp" className="text-xl font-black text-blue-400 font-sans">
                 +{reward.xpEarned} XP
               </div>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-slate-800/70 p-3">
               <div className="text-xs font-bold text-slate-400">កាក់មាស</div>
-              <div className="text-xl font-black text-yellow-400 font-sans">
+              <div data-testid="three-modal-coins" className="text-xl font-black text-yellow-400 font-sans">
                 +{reward.coinsEarned} 🪙
               </div>
             </div>
@@ -96,6 +107,8 @@ export default function VictoryModal({
         <div className="mt-6 flex flex-col gap-3">
           {passed ? (
             <button
+              type="button"
+              data-testid="three-walk-through-btn"
               onClick={onWalkThrough}
               className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 px-6 py-3.5 font-black text-slate-950 shadow-xl transition hover:brightness-110 active:scale-95"
             >
@@ -104,6 +117,8 @@ export default function VictoryModal({
             </button>
           ) : (
             <button
+              type="button"
+              data-testid="three-retry-btn"
               onClick={onRetry}
               className="flex items-center justify-center gap-2 rounded-2xl bg-amber-500 px-6 py-3.5 font-bold text-slate-950 transition hover:bg-amber-400 active:scale-95"
             >
@@ -114,12 +129,15 @@ export default function VictoryModal({
 
           <div className="flex gap-2">
             <button
+              type="button"
+              data-testid="three-practice-again-btn"
               onClick={onRetry}
               className="flex-1 rounded-xl border border-white/20 bg-slate-800/80 px-4 py-2.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
             >
               អនុវត្តម្តងទៀត
             </button>
             <button
+              type="button"
               onClick={() => navigate('/map')}
               className="flex-1 rounded-xl border border-white/20 bg-slate-800/80 px-4 py-2.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
             >
