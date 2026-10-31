@@ -17,6 +17,7 @@ import type {
 import { normalizeKhmerText } from './khmerText';
 
 export type TypingUnit = {
+  stageId?: string;
   value: string;
   key: KhmerKeyboardKey;
   modifier: KeyboardModifier;
@@ -255,9 +256,8 @@ export function buildLessonTypingPlan(lesson: CurriculumLevel, worldId: number):
     const units: TypingUnit[] = [];
     const unsupportedInputs: UnsupportedCurriculumInput[] = [];
     for (const stage of lesson.stages) {
-      if (stage.practiceMode === 'hand-position') continue;
       const stagePlan = buildStageTypingPlan(stage);
-      units.push(...stagePlan.units);
+      units.push(...stagePlan.units.map(unit => ({ ...unit, stageId: stage.id })));
       if (stagePlan.unsupportedInputs) {
         unsupportedInputs.push(...stagePlan.unsupportedInputs);
       }

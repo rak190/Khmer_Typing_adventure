@@ -1,5 +1,6 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import {
+  connectAuthEmulator,
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   getAuth,
@@ -11,10 +12,12 @@ import {
   type Auth,
   type User,
 } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore';
 import { demoAuthFallbackEnabled, firebaseConfigComplete, getFirebaseConfigMessage } from '../config/environment';
 
-const firebaseConfig = {
+const useEmulators = import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true';
+if (useEmulators && !import.meta.env.DEV) throw new Error('Emulators require development mode');
+const firebaseConfig = useEmulators ? { apiKey: 'demo-key', authDomain: 'demo-khmer-typing.firebaseapp.com', projectId: 'demo-khmer-typing', appId: 'demo-app' } : {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -24,7 +27,7 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-export const firebaseEnabled = firebaseConfigComplete;
+export const firebaseEnabled = useEmulators || firebaseConfigComplete;
 export const firebaseStatusMessage = getFirebaseConfigMessage();
 
 let app: FirebaseApp | undefined;
@@ -35,6 +38,10 @@ if (firebaseEnabled) {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
+  if (useEmulators) {
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  }
 } else if (import.meta.env.DEV) {
   console.warn(firebaseStatusMessage);
 }

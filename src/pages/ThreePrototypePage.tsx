@@ -1,3 +1,7 @@
+import CompletionSaveStatus from '../components/lesson/CompletionSaveStatus';
+import { auth } from '../lib/firebase';
+import { submitLessonAttempt } from '../lib/lessonCompletion';
+import { CURRICULUM_VERSION } from '../lib/completionContract';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { buildAdventureWorlds } from '../data/adventureWorlds';
@@ -109,6 +113,8 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
   const { worldId, lesson, stages, lessonSpeedTargetCpm, isFoundationLesson } = lessonConfig;
   const lessonRewardKey = isFoundationLesson ? FOUNDATION_LESSON_ID : lesson.id;
 
+  const attemptUidRef = useRef(auth?.currentUser?.uid);
+  const [saveMessage, setSaveMessage] = useState('');
   const [mode, setMode] = useState<GameMode>('exploration');
   const playerPositionRef = useRef<Position3D>([...INITIAL_PLAYER_POSITION]);
   const [activeStageIndex, setActiveStageIndex] = useState(0);
@@ -352,7 +358,21 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
               completedSession.attemptId,
             );
           setFinalLessonMetrics(aggregatedMetrics);
-          setReward(claimedReward);
+          setReward(auth?.currentUser ? { ...claimedReward, xpEarned: 0, coinsEarned: 0, totalSessionXp: 0, totalSessionCoins: 0 } : claimedReward);
+          if (auth?.currentUser && auth.currentUser.uid === attemptUidRef.current) {
+            setSaveMessage('Saving?');
+            void submitLessonAttempt({
+              attemptId: crypto.randomUUID(), lessonId: isFoundationLesson ? FOUNDATION_LESSON_ID : `${worldId}:${lesson.id}`,
+              version: CURRICULUM_VERSION, mode: isFoundationLesson ? 'foundation' : '3d', category: isFoundationLesson ? 'mixed' : 'unicode-output',
+              completedAt: new Date().toISOString(),
+              metrics: { accuracy: aggregatedMetrics.accuracy, cpm: aggregatedMetrics.cpm, score: aggregatedMetrics.finalScore, stars: aggregatedMetrics.stars, mistakes: aggregatedMetrics.errorCount, backspaces: aggregatedMetrics.backspaceCount, elapsedSeconds: aggregatedMetrics.elapsedSeconds, passed: aggregatedMetrics.passed },
+              ...(isFoundationLesson ? { foundation: keyPracticeTrackerRef.current.getSummary() } : {}),
+              stages: nextStageStates.map(s => ({ id:s.stageId, accuracy:s.bestAccuracy, completed:s.passed })),
+            }).then(saved => {
+              setReward({ ...claimedReward, xpEarned:saved.reward.XP, coinsEarned:saved.reward.coins, totalSessionXp:saved.reward.XP, totalSessionCoins:saved.reward.coins });
+              setSaveMessage(`Saved ? XP ${saved.reward.XP} ? coins ${saved.reward.coins}`);
+            }).catch(error => setSaveMessage(`Save failed / pending on this device: ${error.message}`));
+          }
           setIsDuplicateReward(duplicate);
 
           lessonCompletionCounterRef.current += 1;
@@ -568,6 +588,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       className="relative h-screen w-screen overflow-hidden bg-black select-none"
     >
       {/* 3D R3F Canvas Viewport */}
+      <CompletionSaveStatus message={saveMessage} />
       <ThreeGameCanvas>
         <AncientGateScene
           mode={mode}

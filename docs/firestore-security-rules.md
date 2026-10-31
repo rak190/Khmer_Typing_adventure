@@ -1,3 +1,7 @@
+# Task 6 draft notice
+
+The checked-in rules now draft server-only student/economy writes. Do not deploy independently: legacy boss, shop, quest and profile operations require trusted endpoints first. See [integration status](3d/FIREBASE_PROGRESS_INTEGRATION.md). No live rules have been applied.
+
 # Firestore Security Rules
 
 Use owner-only rules for the current Firebase economy schema. These rules keep each signed-in student inside their own `users/{uid}` document and subcollections, with no public or unauthenticated writes.

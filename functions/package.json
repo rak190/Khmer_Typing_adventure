@@ -1,0 +1,1 @@
+{"name":"khmer-completions","private":true,"main":"lib/index.cjs","engines":{"node":"22"},"dependencies":{"firebase-admin":"^13.6.0","firebase-functions":"^7.0.0"}}

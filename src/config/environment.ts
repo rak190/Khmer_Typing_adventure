@@ -18,10 +18,11 @@ export const appEnvironment = {
   },
 } as const;
 
-export const firebaseConfigComplete = appEnvironment.firebase.missingKeys.length === 0;
+export const firebaseConfigComplete = !(import.meta.env.DEV && import.meta.env.VITE_LOCAL_DEMO === 'true') && appEnvironment.firebase.missingKeys.length === 0;
 export const demoAuthFallbackEnabled = appEnvironment.isDevelopment && !firebaseConfigComplete;
 
 export function getFirebaseConfigMessage() {
+  if (import.meta.env.DEV && import.meta.env.VITE_LOCAL_DEMO === 'true') return 'Local-only demonstration: Firebase is disabled explicitly.';
   if (firebaseConfigComplete) return 'Firebase Auth and Firestore are configured.';
 
   const missing = appEnvironment.firebase.missingKeys.join(', ');
