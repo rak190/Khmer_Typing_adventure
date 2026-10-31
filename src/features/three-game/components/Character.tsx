@@ -148,7 +148,7 @@ export default function Character({
       lastStageIndexRef.current = activeStageIndex;
       lastNearGateRef.current = null;
     }
-    const nearGate = isPositionNearStage(clampedX, clampedZ, activeStageIndex);
+    const nearGate = isPositionNearStage(clampedX, clampedZ, activeStageIndex, stageStatuses?.length ?? 3);
     if (lastNearGateRef.current !== nearGate) {
       lastNearGateRef.current = nearGate;
       onNearGateChange(nearGate);

@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import React from 'react';
+import ReactDOMServer from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { createServer } from 'vite';
 
 const server = await createServer({
@@ -6,6 +9,7 @@ const server = await createServer({
   logLevel: 'error',
   server: { middlewareMode: true, hmr: false },
   optimizeDeps: { noDiscovery: true },
+  ssr: { external: ['react', 'react-dom', 'react-router-dom', 'lucide-react'] },
 });
 
 try {
@@ -753,6 +757,253 @@ try {
     totalsAfterLesson1,
     'Replaying completed lesson must NOT increase total session XP or coins',
   );
+
+  // =========================================================================
+  // 8. MASTER TASK 5.5: 5-STAGE FOUNDATION LESSON & KEY PRACTICE TRACKING
+  // =========================================================================
+  const foundations = await server.ssrLoadModule('/src/data/touchTypingFoundations.ts');
+
+  // 8.1 Access resolution for ?foundation=1
+  const foundationAccess = access('foundation=1');
+  assert.equal(foundationAccess.status, 'ready');
+  assert.equal(foundationAccess.isFoundation, true);
+
+  // 8.2 Resolve Foundation Lesson 5-stage configuration
+  const foundationConfig = gameplayState.resolveFoundationLessonConfig();
+  assert.equal(foundationConfig.isFoundationLesson, true);
+  assert.equal(foundationConfig.stages.length, 5, 'Foundation lesson must have 5 stages');
+  assert.deepEqual(
+    foundationConfig.stages.map((s) => s.id),
+    ['f1-s1', 'f1-s2', 'f1-s3', 'f1-s4', 'f1-s5'],
+  );
+  assert.deepEqual(
+    foundationConfig.stages.map((s) => s.practiceMode),
+    ['hand-position', 'physical-key', 'physical-key', 'physical-key', 'unicode-output'],
+  );
+  assert.deepEqual(
+    foundationConfig.stages.map((s) => s.accuracyGoal),
+    [85, 88, 88, 90, 90],
+  );
+  assert.equal(foundationConfig.stages[0].untimed, true, 'Stage 1 hand-position warmup must be untimed');
+  assert.ok((foundationConfig.stages[0].postureInstructionsKh?.length ?? 0) >= 4, 'Stage 1 must include Khmer posture instructions');
+
+  // 8.3 Verify 5-stage to 3-physical-barrier mapping
+  assert.equal(gameplayState.getStageBarrierIndex(0, 5), 0);
+  assert.equal(gameplayState.getStageBarrierIndex(1, 5), 0);
+  assert.equal(gameplayState.getStageBarrierIndex(2, 5), 1);
+  assert.equal(gameplayState.getStageBarrierIndex(3, 5), 1);
+  assert.equal(gameplayState.getStageBarrierIndex(4, 5), 2);
+
+  assert.equal(gameplayState.doesStageUnlockPhysicalBarrier(0, 5), false, 'Stage 1 does not open barrier 0 until Stage 2 also passes');
+  assert.equal(gameplayState.doesStageUnlockPhysicalBarrier(1, 5), true, 'Stage 2 opens barrier 0');
+  assert.equal(gameplayState.doesStageUnlockPhysicalBarrier(2, 5), false, 'Stage 3 does not open barrier 1 until Stage 4 also passes');
+  assert.equal(gameplayState.doesStageUnlockPhysicalBarrier(3, 5), true, 'Stage 4 opens barrier 1');
+  assert.equal(gameplayState.doesStageUnlockPhysicalBarrier(4, 5), true, 'Stage 5 opens barrier 2');
+
+  // 8.4 Simulate completing all 5 stages of the Foundation Lesson (Mode A & Mode B)
+  let fStageStates = gameplayState.createInitialStageProgressStates(foundationConfig.stages);
+  assert.deepEqual(
+    gameplayState.getPhysicalBarrierStatuses(fStageStates.map((s) => s.status)),
+    ['closed', 'closed', 'closed'],
+  );
+
+  for (let sIdx = 0; sIdx < foundationConfig.stages.length; sIdx += 1) {
+    const fStage = foundationConfig.stages[sIdx];
+    const fPlan = gameplayState.createStageTypingPlan(fStage, foundationConfig.lesson.focusKeys);
+    assert.ok(fPlan.units.length > 0, `Foundation Stage ${sIdx + 1} must have typing units`);
+
+    let fSession = gameplayState.createTypingSessionState(100 + sIdx);
+
+    // Verify wrong physical key is rejected in Mode A stages
+    if (fStage.practiceMode === 'physical-key' || fStage.practiceMode === 'hand-position') {
+      const wrongKeyCode = fPlan.units[0].key.code === 'KeyA' ? 'KeyL' : 'KeyA';
+      const wrongStep = gameplayState.applyTypedInput(
+        fSession,
+        fPlan.units,
+        'WRONG',
+        1000,
+        wrongKeyCode,
+      );
+      assert.equal(wrongStep.matched, false, 'Wrong physical key code must not match in Mode A');
+      // Reset session for clean pass
+      fSession = gameplayState.createTypingSessionState(200 + sIdx);
+    }
+
+    for (let uIdx = 0; uIdx < fPlan.units.length; uIdx += 1) {
+      const unit = fPlan.units[uIdx];
+      const step = gameplayState.applyTypedInput(
+        fSession,
+        fPlan.units,
+        unit.value,
+        1000 + uIdx * 250,
+        unit.key.code,
+      );
+      assert.equal(step.matched, true, `Stage ${sIdx + 1} unit ${uIdx} (${unit.key.code}) must match`);
+      fSession = step.nextState;
+    }
+
+    assert.equal(fSession.finished, true, `Foundation Stage ${sIdx + 1} must finish after all units`);
+    const fMetrics = gameplayState.computeStageMetrics(
+      fPlan.units,
+      fSession.completedCount,
+      fSession.incorrectCount,
+      fSession.backspaceCount,
+      fSession.bestStreak,
+      5000,
+      fStage,
+      foundationConfig.lesson,
+      foundationConfig.worldId,
+    );
+    assert.equal(fMetrics.passed, true, `Foundation Stage ${sIdx + 1} must pass with 100% accuracy`);
+
+    fStageStates = gameplayState.recordStageAttemptResult(
+      fStageStates,
+      sIdx,
+      fMetrics,
+      fSession,
+      fPlan.units,
+      5000,
+      'open',
+    );
+  }
+
+  assert.equal(gameplayState.areAllStagesCompleted(fStageStates), true, 'All 5 foundation stages must complete');
+  assert.deepEqual(
+    gameplayState.getPhysicalBarrierStatuses(fStageStates.map((s) => s.status)),
+    ['open', 'open', 'open'],
+    'All 3 physical barriers must open after completing all 5 foundation stages',
+  );
+
+  // 8.5 Verify per-key practice tracker (physical vs virtual-assisted inputs, strong/weak keys)
+  const tracker = foundations.createKeyPracticeTracker();
+  tracker.recordKeyAttempt('KeyF', 'KeyF', true, 'physical');
+  tracker.recordKeyAttempt('KeyF', 'KeyF', true, 'physical');
+  tracker.recordKeyAttempt('KeyJ', 'KeyJ', true, 'physical');
+  tracker.recordKeyAttempt('KeyG', 'KeyF', false, 'physical');
+  tracker.recordKeyAttempt('KeyG', 'KeyG', true, 'virtual'); // virtual click does not count toward physicalCorrectCount
+
+  const summary = tracker.getSummary();
+  assert.equal(summary.totalAttempts, 5);
+  assert.equal(summary.physicalCorrectCount, 3);
+  assert.equal(summary.virtualAssistedCount, 1);
+  assert.ok(summary.strongKeys.some((k) => k.code === 'KeyF' && k.accuracy === 100));
+  assert.ok(summary.weakKeys.some((k) => k.code === 'KeyG' && k.accuracy === 50));
+  assert.ok(summary.feedbackKh.includes('G'), 'Feedback must highlight weak key G');
+  assert.ok(summary.nextLessonGuidanceKh.includes('មេរៀនទី ១'), 'Next lesson guidance must direct to World 1 Lesson 1');
+
+  // 8.6 Verify UI rendering of 2D/3D Keyboard, Hand Diagrams, Posture Overlay, and Victory Summary
+  const KhmerKeyboardMod = await server.ssrLoadModule('/src/components/lesson/KhmerKeyboard.tsx');
+  const TypingHandsMod = await server.ssrLoadModule('/src/components/lesson/TypingHands.tsx');
+  const TypingOverlayMod = await server.ssrLoadModule('/src/features/three-game/components/TypingOverlay.tsx');
+  const VictoryModalMod = await server.ssrLoadModule('/src/features/three-game/components/VictoryModal.tsx');
+
+  // 2D KhmerKeyboard + TypingHands: verify tactile bumps on F/J and single opposite-hand Shift highlight
+  const kbMarkupShiftK = ReactDOMServer.renderToStaticMarkup(
+    React.createElement(KhmerKeyboardMod.default, {
+      activeCode: 'KeyK',
+      shiftRequired: true,
+      activeHand: 'right',
+      activeFinger: 'right-middle',
+      hintLabel: '',
+      keyLabel: 'គ',
+      onKeyPress: () => {},
+    }),
+  );
+  assert.ok(kbMarkupShiftK.includes('data-key-code="KeyF"') && kbMarkupShiftK.includes('data-tactile-bump="true"'));
+  assert.ok(kbMarkupShiftK.includes('data-key-code="ShiftLeft" data-key-action="shift" data-is-shift-target="true"'));
+  assert.ok(!kbMarkupShiftK.includes('data-key-code="ShiftRight" data-key-action="shift" data-is-shift-target="true"'));
+
+  const handsMarkup = ReactDOMServer.renderToStaticMarkup(
+    React.createElement(TypingHandsMod.default, {
+      guidance: fingerGuidanceMod.getFingerGuidance(keyboardMap.findKhmerKeyByCode('KeyG'), false),
+    }),
+  );
+  assert.ok(handsMarkup.includes('data-testid="typing-hand-hints"'));
+  assert.ok(handsMarkup.includes('data-home-key="KeyF"'), '2D TypingHands must expose home-row anchor KeyF for KeyG');
+
+  // 3D TypingOverlay on Stage 1 (hand-position posture warmup) & Stage 3 (reach-and-return)
+  const fStage1 = foundationConfig.stages[0];
+  const fStage1Plan = gameplayState.createStageTypingPlan(fStage1, foundationConfig.lesson.focusKeys);
+  const overlayStage1Markup = ReactDOMServer.renderToStaticMarkup(
+    React.createElement(TypingOverlayMod.default, {
+      targetUnits: fStage1Plan.units,
+      metrics: passingMetrics,
+      minimumAccuracy: 85,
+      speedTargetCpm: 20,
+      completedCount: 0,
+      streak: 0,
+      stage: fStage1,
+      stageIndex: 0,
+      totalStages: 5,
+      isFoundationLesson: true,
+      onCompleteHandPositionStage: () => {},
+      onCharInput: () => true,
+      onBackspace: () => {},
+      onRetry: () => {},
+      onClose: () => {},
+    }),
+  );
+  assert.ok(overlayStage1Markup.includes('ទីតាំងដៃលើជួរកណ្តាល'), 'Stage 1 overlay must display Khmer hand-position title');
+  assert.ok(overlayStage1Markup.includes('អង្គុយឲ្យត្រង់ខ្លួន'), 'Stage 1 overlay must display Khmer sitting posture guidance');
+  assert.ok(overlayStage1Markup.includes('យល់ហើយ • បន្តទៅដំណាក់កាលទី 2'), 'Stage 1 overlay must display ready/continue button');
+
+  const fStage3 = foundationConfig.stages[2];
+  const fStage3Plan = gameplayState.createStageTypingPlan(fStage3, foundationConfig.lesson.focusKeys);
+  const overlayStage3Markup = ReactDOMServer.renderToStaticMarkup(
+    React.createElement(TypingOverlayMod.default, {
+      targetUnits: fStage3Plan.units,
+      metrics: passingMetrics,
+      minimumAccuracy: 88,
+      speedTargetCpm: 20,
+      completedCount: 1, // Unit index 1 in Stage 3 is KeyG (reach from F to G)
+      streak: 1,
+      stage: fStage3,
+      stageIndex: 2,
+      totalStages: 5,
+      isFoundationLesson: true,
+      onCharInput: () => true,
+      onBackspace: () => {},
+      onRetry: () => {},
+      onClose: () => {},
+    }),
+  );
+  assert.ok(
+    overlayStage3Markup.includes('ពី F ទៅ G រួចត្រឡប់មកទីតាំងដើម F វិញ'),
+    'Stage 3 overlay must display Khmer reach-and-return instruction for KeyG',
+  );
+
+  // 3D VictoryModal with foundationSummary
+  const victoryMarkup = ReactDOMServer.renderToStaticMarkup(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(VictoryModalMod.default, {
+        passed: true,
+        minimumAccuracy: 90,
+        reward: firstLessonClaim.reward,
+        stageSummary: {
+          stageIndex: 4,
+          stageId: 'f1-s5',
+          titleKh: 'បេសកកម្មទ្វារប្រាសាទ',
+          titleEn: 'Mini Adventure Challenge',
+          passed: true,
+          minimumAccuracy: 90,
+          metrics: passingMetrics,
+          isFinalStage: true,
+          foundationPracticeSummary: summary,
+        },
+        stages: foundationConfig.stages,
+        stageStates: fStageStates,
+        finalLessonMetrics,
+        onWalkThrough: () => {},
+        onRetry: () => {},
+      }),
+    ),
+  );
+  assert.ok(victoryMarkup.includes('មេរៀនទី ១'), 'VictoryModal must display next lesson guidance to World 1 Lesson 1');
+  assert.ok(victoryMarkup.includes('data-testid="three-foundation-practice-summary"'), 'VictoryModal must render foundation practice summary');
+  assert.ok(victoryMarkup.includes('F (ថ)'), 'VictoryModal must display practiced key F (ថ)');
+  assert.ok(victoryMarkup.includes('G (ង)'), 'VictoryModal must display practiced key G (ង)');
 
 } finally {
   await server.close();

@@ -4,6 +4,10 @@ import {
   type CurriculumLevel,
   type CurriculumStage,
 } from '../../../data/lessonCurriculum';
+import {
+  foundationCurriculumWorld,
+  foundationHomeRowLesson,
+} from '../../../data/touchTypingFoundations';
 
 import { calculateRewards } from '../../../lib/economy';
 import { countKhmerCharacters, countKhmerWords, khmerTextEquals } from '../../../lib/khmerText';
@@ -44,7 +48,6 @@ export const COURTYARD_MAX_X = 13.0;
 export const COURTYARD_MIN_Z = -14.0;
 export const COURTYARD_MAX_Z = 16.0;
 
-
 export const EMPTY_MOVEMENT: MovementInput = Object.freeze({
   forward: false,
   backward: false,
@@ -81,6 +84,25 @@ export function getPrototypeDefaultLesson(): {
 }
 
 /**
+ * Resolves the 5-stage Touch-Typing Foundation lesson configuration for 3D practice.
+ */
+export function resolveFoundationLessonConfig(): ThreeLessonConfig {
+  const lessonMinimumAccuracy = getLessonMinimumAccuracy(foundationHomeRowLesson, 1);
+  const lessonSpeedTargetCpm = getLessonSpeedTargetCpm(foundationHomeRowLesson, 1);
+
+  return {
+    worldId: foundationCurriculumWorld.id,
+    worldNameKh: foundationCurriculumWorld.titleKh,
+    worldNameEn: foundationCurriculumWorld.title,
+    lesson: foundationHomeRowLesson,
+    stages: foundationHomeRowLesson.stages,
+    lessonMinimumAccuracy,
+    lessonSpeedTargetCpm,
+    isFoundationLesson: true,
+  };
+}
+
+/**
  * Resolves any curriculum world and lesson into a reusable 3D lesson configuration.
  * Rejects unknown IDs. Route availability is checked separately before rendering.
  */
@@ -102,8 +124,8 @@ export function resolveThreeLessonConfig(
     stages: lesson.stages,
     lessonMinimumAccuracy,
     lessonSpeedTargetCpm,
+    isFoundationLesson: false,
   };
-
 }
 
 export function getStageMinimumAccuracy(
@@ -133,26 +155,65 @@ export function createPrototypeTypingPlan(sliceLength = 12): LessonTypingPlan {
   return { targetText, units };
 }
 
-export function getStagePositionZ(stageIndex: number): number {
-  return STAGE_BASE_Z + Math.max(0, stageIndex) * STAGE_SPACING_Z;
+/**
+ * Maps a stage index to one of the 3 physical temple barriers along the causeway (0, 1, 2).
+ * - For standard 3-stage lessons: stage 0 -> barrier 0, stage 1 -> barrier 1, stage 2 -> barrier 2.
+ * - For 5-stage Foundation lessons: stages 0..1 -> barrier 0, stages 2..3 -> barrier 1, stage 4 -> barrier 2.
+ */
+export function getStageBarrierIndex(stageIndex: number, totalStages = 3): number {
+  const clamped = Math.max(0, stageIndex);
+  if (totalStages === 5) {
+    if (clamped <= 1) return 0;
+    if (clamped <= 3) return 1;
+    return 2;
+  }
+  return Math.min(2, clamped);
 }
 
-export function getStageAltarPositionZ(stageIndex: number): number {
-  return getStagePositionZ(stageIndex) + GATE_ALTAR_OFFSET_Z;
+export function doesStageUnlockPhysicalBarrier(stageIndex: number, totalStages = 3): boolean {
+  if (totalStages === 5) {
+    return stageIndex === 1 || stageIndex === 3 || stageIndex === 4;
+  }
+  return true;
 }
 
-export function getStageCollisionZ(stageIndex: number): number {
-  return getStagePositionZ(stageIndex) - 0.4;
+export function getPhysicalBarrierStatuses(stageStatuses: GateStatus[]): GateStatus[] {
+  if (stageStatuses.length === 5) {
+    return [
+      stageStatuses[1] ?? 'closed',
+      stageStatuses[3] ?? 'closed',
+      stageStatuses[4] ?? 'closed',
+    ];
+  }
+  return stageStatuses;
 }
 
-export function isPositionNearStage(x: number, z: number, stageIndex: number): boolean {
-  const altarZ = getStageAltarPositionZ(stageIndex);
+export function getStagePositionZ(stageIndex: number, totalStages = 3): number {
+  const barrierIndex = getStageBarrierIndex(stageIndex, totalStages);
+  return STAGE_BASE_Z + barrierIndex * STAGE_SPACING_Z;
+}
+
+export function getStageAltarPositionZ(stageIndex: number, totalStages = 3): number {
+  return getStagePositionZ(stageIndex, totalStages) + GATE_ALTAR_OFFSET_Z;
+}
+
+export function getStageCollisionZ(stageIndex: number, totalStages = 3): number {
+  return getStagePositionZ(stageIndex, totalStages) - 0.4;
+}
+
+export function isPositionNearStage(
+  x: number,
+  z: number,
+  stageIndex: number,
+  totalStages = 3,
+): boolean {
+  const altarZ = getStageAltarPositionZ(stageIndex, totalStages);
   const distance = Math.hypot(x - 0, z - altarZ);
   return distance <= GATE_INTERACTION_RADIUS;
 }
 
 export function isPositionNearGate(x: number, z: number): boolean {
-  return isPositionNearStage(x, z, 0);
+  return isPositionNearStage(x, z, 0, 3);
 }
 
 export function clampCharacterPosition(
@@ -172,13 +233,13 @@ export function clampMultiStageCharacterPosition(
   stageStatuses: GateStatus[],
 ): [number, number] {
   const clampedX = Math.max(COURTYARD_MIN_X, Math.min(COURTYARD_MAX_X, x));
-  const firstClosedIndex = stageStatuses.findIndex((status) => status !== 'open');
+  const barrierStatuses = getPhysicalBarrierStatuses(stageStatuses);
+  const firstClosedIndex = barrierStatuses.findIndex((status) => status !== 'open');
   const maxAllowedZ =
-    firstClosedIndex === -1 ? MULTI_STAGE_MAX_Z : getStageCollisionZ(firstClosedIndex);
+    firstClosedIndex === -1 ? MULTI_STAGE_MAX_Z : getStageCollisionZ(firstClosedIndex, 3);
   const clampedZ = Math.max(COURTYARD_MIN_Z, Math.min(maxAllowedZ, z));
   return [clampedX, clampedZ];
 }
-
 
 /**
  * Computes world movement delta and target facing rotation from player input.
@@ -445,7 +506,6 @@ export function computeFinalLessonMetrics(
   });
 }
 
-
 export function createTypingSessionState(attemptId = 1): TypingSessionState {
   return {
     attemptId,
@@ -465,6 +525,7 @@ export function applyTypedInput(
   units: TypingUnit[],
   typedValue: string,
   now: number,
+  typedCode?: string,
 ): { nextState: TypingSessionState; matched: boolean; justFinished: boolean } {
   if (state.finished || state.completedCount >= units.length) {
     return { nextState: state, matched: false, justFinished: false };
@@ -477,7 +538,19 @@ export function applyTypedInput(
 
   const startedAt = state.startedAt ?? now;
 
-  if (khmerTextEquals(typedValue, activeTarget.value)) {
+  const isPhysicalMode =
+    activeTarget.practiceMode === 'physical-key' ||
+    activeTarget.practiceMode === 'hand-position';
+
+  const isMatch = isPhysicalMode
+    ? typedCode !== undefined
+      ? typedCode === activeTarget.key.code
+      : typedValue === activeTarget.key.code ||
+        khmerTextEquals(typedValue, activeTarget.value) ||
+        khmerTextEquals(typedValue, activeTarget.key.khmer)
+    : khmerTextEquals(typedValue, activeTarget.value);
+
+  if (isMatch) {
     const completedCount = state.completedCount + 1;
     const streak = state.streak + 1;
     const bestStreak = Math.max(state.bestStreak, streak);
@@ -672,7 +745,7 @@ export function createPrototypeRewardLedger(): PrototypeRewardLedger {
 export function createInMemoryLessonPersistenceAdapter(): ThreeLessonPersistenceAdapter {
   const stageLog: Array<{
     worldId: number;
-    lessonId: AdventureNodeId;
+    lessonId: AdventureNodeId | string;
     stageState: StageProgressState;
   }> = [];
   const completions: ThreeLessonCompletionPayload[] = [];
@@ -692,7 +765,6 @@ export function createInMemoryLessonPersistenceAdapter(): ThreeLessonPersistence
     },
   };
 }
-
 
 export type PlayerControlStore = {
   getSnapshot: () => MovementInput;

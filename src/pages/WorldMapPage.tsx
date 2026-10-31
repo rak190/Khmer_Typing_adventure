@@ -586,6 +586,34 @@ export default function WorldMapPage() {
         <RewardsPanel world={activeWorld} onViewRewards={() => setModal('rewards')} />
 
         <div className="absolute bottom-[46px] right-[48px] z-40 flex w-[320px] flex-col">
+          {activeWorld.id === 1 && selected.id === 1 && (
+            <div
+              data-testid="map-foundation-banner"
+              className="pointer-events-auto mb-3 rounded-[20px] border-[3px] border-[#F4B43A] bg-[#132C4E]/95 p-3 text-white shadow-lg"
+            >
+              <div className="mb-1.5 text-center text-[13px] font-black text-[#FFE082]">
+                ✋ មូលដ្ឋានទីតាំងដៃ (Home-Row Foundation)
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  data-testid="map-play-foundation-3d"
+                  onClick={() => navigate('/three-game?foundation=1')}
+                  className="cursor-pointer rounded-[12px] border border-[#FFD54F] bg-gradient-to-b from-[#FFCA28] to-[#F57F17] px-2.5 py-1.5 text-[12px] font-black text-[#17325A] shadow transition hover:brightness-110"
+                >
+                  ហាត់ដៃ 3D
+                </button>
+                <button
+                  type="button"
+                  data-testid="map-play-foundation-2d"
+                  onClick={() => navigate('/lesson?foundation=1')}
+                  className="cursor-pointer rounded-[12px] border border-[#81C784] bg-gradient-to-b from-[#66BB6A] to-[#2E7D32] px-2.5 py-1.5 text-[12px] font-black text-white shadow transition hover:brightness-110"
+                >
+                  ហាត់ដៃ 2D
+                </button>
+              </div>
+            </div>
+          )}
           {offersThreeLesson && selectedState !== 'locked' && isWorldUnlocked(activeWorld.id, worlds) && (
             <GameButton
               data-testid="map-play-3d"

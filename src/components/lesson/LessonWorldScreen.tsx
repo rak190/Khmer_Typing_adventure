@@ -5,12 +5,22 @@ import PageTransition from '../layout/PageTransition';
 import ActionModal from '../game-ui/ActionModal';
 import { SettingsPanel } from '../game-ui/FeaturePanels';
 import { backgroundImages } from '../../assets/assetManifest';
-import { resetLessonProgressRecords, saveLessonProgressToFirebase, saveMockLessonProgress } from '../../data/mockData';
+import {
+  resetLessonProgressRecords,
+  saveLessonProgressToFirebase,
+  saveMockLessonProgress,
+} from '../../data/mockData';
 import { findKhmerKeyByCode, getKhmerKeyboardInput } from '../../data/keyboardMap';
 import type { CurriculumLevel, CurriculumWorld } from '../../data/lessonCurriculum';
+import { FOUNDATION_LESSON_ID } from '../../data/touchTypingFoundations';
 import { getStructuredLessonByRoute } from '../../data/typingProgression';
 import { countKhmerCharacters, countKhmerWords, khmerTextEquals } from '../../lib/khmerText';
-import { buildLessonTypingPlan, getCurrentTargetText, getTypedText, type TypingUnit } from '../../lib/lessonTypingPlan';
+import {
+  buildLessonTypingPlan,
+  getCurrentTargetText,
+  getTypedText,
+  type TypingUnit,
+} from '../../lib/lessonTypingPlan';
 import { getFingerGuidance } from '../../lib/fingerGuidance';
 import {
   classifyWeakKey,
@@ -30,7 +40,11 @@ import {
   getLessonSpeedTargetCpm,
   type TypingMetricResult,
 } from '../../lib/typingMetrics';
-import { loadAppSettings, resetFeatureProgressState, saveAppSettings } from '../../lib/playerFeatures';
+import {
+  loadAppSettings,
+  resetFeatureProgressState,
+  saveAppSettings,
+} from '../../lib/playerFeatures';
 import { calculateRewards } from '../../lib/economy';
 import { useEconomyState } from '../../lib/useEconomyState';
 import LessonHud from './LessonHud';
@@ -45,7 +59,7 @@ const STAGE_LABELS = ['Learn keys', 'Build rhythm', 'Finish text'];
 type LessonWorldScreenProps = {
   world: CurriculumWorld;
   lesson: CurriculumLevel;
-  practiceMode?: 'curriculum' | 'weak';
+  practiceMode?: 'curriculum' | 'weak' | 'foundation';
 };
 
 type Feedback = {
@@ -58,6 +72,7 @@ type LessonRunState = {
   completedInputCount: number;
   incorrectInputs: number;
   backspaceCount: number;
+  virtualAssistedCount: number;
   streak: number;
   bestStreak: number;
   xpEarned: number;
@@ -72,6 +87,7 @@ function getInitialRunState(): LessonRunState {
     completedInputCount: 0,
     incorrectInputs: 0,
     backspaceCount: 0,
+    virtualAssistedCount: 0,
     streak: 0,
     bestStreak: 0,
     xpEarned: 0,
@@ -84,7 +100,9 @@ function getInitialRunState(): LessonRunState {
 
 function getKeyHint(target: TypingUnit) {
   const keyLabel = target.key.action === 'space' ? 'Spacebar' : target.key.latin;
-  return target.modifier === 'shift' ? `Press Shift + ${keyLabel}` : `Press ${keyLabel}`;
+  if (target.modifier === 'shift') return `ចុច Shift + ${keyLabel} (Press Shift + ${keyLabel})`;
+  if (target.modifier === 'altgr') return `ចុច AltGr + ${keyLabel} (Press AltGr + ${keyLabel})`;
+  return `ចុច ${keyLabel} (Press ${keyLabel})`;
 }
 
 function getQuestStages(progress: number, total: number, finished: boolean): QuestStageState[] {
@@ -108,12 +126,17 @@ function getElapsedMs(state: LessonRunState, now = performance.now()) {
   return (state.endedAt ?? now) - state.startedAt;
 }
 
-function buildMetrics(state: LessonRunState, targetUnits: TypingUnit[], speedTargetCpm: number, minimumAccuracy: number): TypingMetricResult {
+function buildMetrics(
+  state: LessonRunState,
+  targetUnits: TypingUnit[],
+  speedTargetCpm: number,
+  minimumAccuracy: number,
+): TypingMetricResult {
   const typedText = getTypedText(targetUnits, state.completedInputCount);
   const elapsedMs = getElapsedMs(state);
 
   return calculateTypingMetrics({
-    completed: state.finished,
+    completed: state.finished && targetUnits.length > 0,
     totalRequiredInputs: targetUnits.length,
     acceptedCorrectInputs: state.completedInputCount,
     incorrectInputs: state.incorrectInputs,
@@ -127,7 +150,12 @@ function buildMetrics(state: LessonRunState, targetUnits: TypingUnit[], speedTar
   });
 }
 
-function addWeakKeyStat(stats: WeakKeyStatRecord, value: string, keyCode: string | undefined, field: 'mistakes' | 'backspaces') {
+function addWeakKeyStat(
+  stats: WeakKeyStatRecord,
+  value: string,
+  keyCode: string | undefined,
+  field: 'mistakes' | 'backspaces',
+) {
   const existing = stats[value];
   return {
     ...stats,
@@ -141,10 +169,15 @@ function addWeakKeyStat(stats: WeakKeyStatRecord, value: string, keyCode: string
   };
 }
 
-export default function LessonWorldScreen({ world, lesson, practiceMode = 'curriculum' }: LessonWorldScreenProps) {
+export default function LessonWorldScreen({
+  world,
+  lesson,
+  practiceMode = 'curriculum',
+}: LessonWorldScreenProps) {
   const navigate = useNavigate();
   const plan = useMemo(() => buildLessonTypingPlan(lesson, world.id), [lesson, world.id]);
-  const structuredLesson = practiceMode === 'curriculum' ? getStructuredLessonByRoute(world.id, lesson.id) : undefined;
+  const structuredLesson =
+    practiceMode === 'curriculum' ? getStructuredLessonByRoute(world.id, lesson.id) : undefined;
   const targetUnits = plan.units;
   const speedTargetCpm = getLessonSpeedTargetCpm(lesson, world.id);
   const minimumAccuracy = getLessonMinimumAccuracy(lesson, world.id);
@@ -159,7 +192,8 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   const feedbackTimeoutRef = useRef<number | undefined>(undefined);
   const progressSavedRef = useRef(false);
 
-  const activeTarget = targetUnits[Math.min(runState.completedInputCount, Math.max(0, targetUnits.length - 1))];
+  const activeTarget =
+    targetUnits[Math.min(runState.completedInputCount, Math.max(0, targetUnits.length - 1))];
   const typedText = getTypedText(targetUnits, runState.completedInputCount);
   const currentTargetText = getCurrentTargetText(targetUnits, runState.completedInputCount);
   const metrics = useMemo(
@@ -168,7 +202,12 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   );
   const liveScore = metrics.finalScore;
   const weakKeys = summarizeWeakKeyStats(runState.weakKeyStats, 5);
-  const resultLessonId = practiceMode === 'weak' ? 'weak-key-practice' : structuredLesson?.lessonId ?? `${world.id}:${lesson.id}`;
+  const resultLessonId =
+    practiceMode === 'weak'
+      ? 'weak-key-practice'
+      : practiceMode === 'foundation'
+      ? FOUNDATION_LESSON_ID
+      : structuredLesson?.lessonId ?? `${world.id}:${lesson.id}`;
   const previousBestScore = getBestScoreForLesson(initialProgress, resultLessonId);
   const rewardCalculation = calculateRewards({
     mode: 'lesson',
@@ -185,24 +224,47 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
     lessonId: resultLessonId,
   });
   const finalXpEarned = rewardCalculation.xpEarned;
-  const displayedXpEarned = runState.finished ? finalXpEarned : Math.min(40, runState.completedInputCount * 2);
+  const displayedXpEarned = runState.finished
+    ? finalXpEarned
+    : Math.min(40, runState.completedInputCount * 2);
   const coinsEarned = runState.finished ? rewardCalculation.coinsEarned : 0;
   const gemsEarned = runState.finished ? rewardCalculation.gemsEarned : 0;
-  const questStages = getQuestStages(runState.completedInputCount, targetUnits.length, runState.finished);
+  const questStages = getQuestStages(
+    runState.completedInputCount,
+    targetUnits.length,
+    runState.finished,
+  );
   const shiftRequired = activeTarget?.modifier === 'shift';
-  const keyHint = activeTarget ? getKeyHint(activeTarget) : 'Complete';
+  const altgrRequired = activeTarget?.modifier === 'altgr';
+  const keyHint = activeTarget ? getKeyHint(activeTarget) : 'រួចរាល់ (Complete)';
   const fingerGuidance = activeTarget
-    ? getFingerGuidance(activeTarget.key, shiftRequired)
+    ? getFingerGuidance(activeTarget.key, shiftRequired, altgrRequired)
     : {
         activeHand: 'right' as const,
         activeFinger: 'right-index' as const,
         label: 'Complete',
+        labelKh: 'រួចរាល់',
+        bilingualLabel: 'រួចរាល់ (Complete)',
+        handLabelKh: 'ដៃខាងស្តាំ',
+        fingerLabelKh: 'ម្រាមដៃចង្អុល',
+        homeKeyCode: 'KeyJ',
+        homeKeyLatin: 'J',
+        isOnHomePosition: true,
+        reachDirection: 'home' as const,
+        reachInstructionKh: 'រួចរាល់',
         highlights: [],
         shiftRequired: false,
+        altgrRequired: false,
+        requiredShiftCode: null,
+        requiredModifierCode: null,
       };
-  const handHint = fingerGuidance.label;
-  const visibleKeyHint = settings.keyboardHintsEnabled ? keyHint : 'ជំនួយក្តារចុចត្រូវបានបិទក្នុងការកំណត់។';
-  const visibleHandHint = settings.handHintsEnabled ? handHint : 'ជំនួយម្រាមដៃត្រូវបានបិទក្នុងការកំណត់។';
+  const handHint = `${fingerGuidance.bilingualLabel} • ${fingerGuidance.reachInstructionKh}`;
+  const visibleKeyHint = settings.keyboardHintsEnabled
+    ? keyHint
+    : 'ជំនួយក្តារចុចត្រូវបានបិទក្នុងការកំណត់។';
+  const visibleHandHint = settings.handHintsEnabled
+    ? handHint
+    : 'ជំនួយម្រាមដៃត្រូវបានបិទក្នុងការកំណត់។';
 
   function showFeedback(nextFeedback: Feedback) {
     window.clearTimeout(feedbackTimeoutRef.current);
@@ -213,7 +275,10 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   function updateRunState(updater: (current: LessonRunState, now: number) => LessonRunState) {
     const now = performance.now();
     setRunState((current) => {
-      const startedState = current.startedAt === null && !current.finished ? { ...current, startedAt: now } : current;
+      const startedState =
+        current.startedAt === null && !current.finished
+          ? { ...current, startedAt: now }
+          : current;
       return updater(startedState, now);
     });
   }
@@ -229,7 +294,9 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   function handleResetProgress() {
     resetStudentProgress();
     resetFeatureProgressState();
-    void resetLessonProgressRecords().catch((error) => console.error('Unable to reset lesson progress records.', error));
+    void resetLessonProgressRecords().catch((error) =>
+      console.error('Unable to reset lesson progress records.', error),
+    );
     resetLesson();
   }
 
@@ -242,24 +309,58 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
         ...current,
         completedInputCount: Math.max(0, current.completedInputCount - 1),
         backspaceCount: current.backspaceCount + 1,
-        weakKeyStats: removedTarget ? addWeakKeyStat(current.weakKeyStats, removedTarget.value, removedTarget.key.code, 'backspaces') : current.weakKeyStats,
+        weakKeyStats: removedTarget
+          ? addWeakKeyStat(
+              current.weakKeyStats,
+              removedTarget.value,
+              removedTarget.key.code,
+              'backspaces',
+            )
+          : current.weakKeyStats,
         streak: 0,
       };
     });
   }
 
-  function handleTypedValue(value: string, code: string) {
+  function handleTypedValue(
+    value: string,
+    code: string,
+    inputSource: 'physical' | 'virtual' = 'physical',
+  ) {
     if (runState.finished || modal || !activeTarget) return;
 
-    if (khmerTextEquals(value, activeTarget.value)) {
+    const isPhysicalKeyMode =
+      activeTarget.practiceMode === 'physical-key' ||
+      activeTarget.practiceMode === 'hand-position';
+
+    if (isPhysicalKeyMode && inputSource === 'virtual') {
+      // Do not count a virtual mouse click as verified physical-key mastery in Mode A
+      showFeedback({
+        code,
+        state: 'correct',
+        message: `សូមចុចគ្រាប់ចុចពិតប្រាកដ [${activeTarget.key.latin.toUpperCase()}] លើក្តារចុចរបស់អ្នក (${fingerGuidance.labelKh})`,
+      });
+      return;
+    }
+
+    const isMatched = isPhysicalKeyMode
+      ? code === activeTarget.key.code
+      : khmerTextEquals(value, activeTarget.value);
+
+    if (isMatched) {
       updateRunState((current, now) => {
-        const nextCompletedInputCount = Math.min(targetUnits.length, current.completedInputCount + 1);
+        const nextCompletedInputCount = Math.min(
+          targetUnits.length,
+          current.completedInputCount + 1,
+        );
         const nextStreak = current.streak + 1;
-        const finished = nextCompletedInputCount >= targetUnits.length;
+        const finished = targetUnits.length > 0 && nextCompletedInputCount >= targetUnits.length;
 
         return {
           ...current,
           completedInputCount: nextCompletedInputCount,
+          virtualAssistedCount:
+            current.virtualAssistedCount + (inputSource === 'virtual' ? 1 : 0),
           streak: nextStreak,
           bestStreak: Math.max(current.bestStreak, nextStreak),
           xpEarned: current.xpEarned + 4,
@@ -267,17 +368,35 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
           endedAt: finished ? now : current.endedAt,
         };
       });
-      showFeedback({ code, state: 'correct', message: 'Correct Khmer input.' });
+      showFeedback({
+        code,
+        state: 'correct',
+        message:
+          inputSource === 'virtual'
+            ? 'ល្អ! សាកចុចគ្រាប់ចុចពិតប្រាកដលើក្តារចុចផងដែរ។'
+            : 'ល្អណាស់! (Well done!)',
+      });
       return;
     }
 
     updateRunState((current) => ({
       ...current,
       incorrectInputs: current.incorrectInputs + 1,
-      weakKeyStats: addWeakKeyStat(current.weakKeyStats, activeTarget.value, activeTarget.key.code, 'mistakes'),
+      weakKeyStats: addWeakKeyStat(
+        current.weakKeyStats,
+        activeTarget.value,
+        activeTarget.key.code,
+        'mistakes',
+      ),
       streak: 0,
     }));
-    showFeedback({ code, state: 'wrong', message: shiftRequired ? 'Use Shift for this key.' : 'Try the highlighted Khmer key.' });
+    showFeedback({
+      code,
+      state: 'wrong',
+      message: shiftRequired
+        ? 'សាកល្បងម្តងទៀត • ចុច Shift ជាមួយគ្រាប់ចុចនេះ (Use Shift)'
+        : `សាកល្បងម្តងទៀត • ${fingerGuidance.labelKh}`,
+    });
   }
 
   function handleKeyboardPress(code: string) {
@@ -290,8 +409,9 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
     const pressedKey = findKhmerKeyByCode(code);
     if (!pressedKey || pressedKey.disabled || !activeTarget) return;
 
-    const value = pressedKey.code === activeTarget.key.code ? activeTarget.value : pressedKey.khmer;
-    handleTypedValue(value, code);
+    const value =
+      pressedKey.code === activeTarget.key.code ? activeTarget.value : pressedKey.khmer;
+    handleTypedValue(value, code, 'virtual');
   }
 
   const handleKeyboardPressRef = useRef(handleKeyboardPress);
@@ -312,7 +432,9 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
       const usingAltGr = event.getModifierState?.('AltGraph') || (event.ctrlKey && event.altKey);
       if (modalRef.current) return;
       if ((event.ctrlKey || event.metaKey) && !usingAltGr) return;
-      if (event.code === 'Space' || event.code === 'Backspace' || event.code === 'Tab') event.preventDefault();
+      if (event.code === 'Space' || event.code === 'Backspace' || event.code === 'Tab') {
+        event.preventDefault();
+      }
       if (event.repeat) return;
 
       if (event.code === 'Backspace') {
@@ -325,7 +447,7 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
       if (!keyboardInput) return;
 
       event.preventDefault();
-      handleTypedValueRef.current(keyboardInput.value, keyboardInput.key.code);
+      handleTypedValueRef.current(keyboardInput.value, keyboardInput.key.code, 'physical');
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -343,16 +465,26 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
   useEffect(() => {
     if (!runState.finished || progressSavedRef.current) return;
 
+    // Foundation practice keeps rewards temporary until Task 6 and does not mutate production Firebase or World 1-6 map progress
+    if (practiceMode === 'foundation') {
+      progressSavedRef.current = true;
+      return;
+    }
+
     const completedAt = new Date().toISOString();
     const lessonResult: StudentLessonResult = {
       lessonId: resultLessonId,
-      lessonTitle: practiceMode === 'weak' ? 'Weak-Key Practice' : structuredLesson?.lessonTitle ?? lesson.labelEn,
+      lessonTitle:
+        practiceMode === 'weak'
+          ? 'Weak-Key Practice'
+          : structuredLesson?.lessonTitle ?? lesson.labelEn,
       worldId: structuredLesson?.worldId ?? world.id,
       skillFocus: structuredLesson?.skillFocus ?? lesson.objective,
       targetText: plan.targetText,
       minimumAccuracy,
       targetCPM: speedTargetCpm,
-      difficulty: structuredLesson?.difficulty ?? (practiceMode === 'weak' ? 'adaptive' : 'beginner'),
+      difficulty:
+        structuredLesson?.difficulty ?? (practiceMode === 'weak' ? 'adaptive' : 'beginner'),
       badgeGroup: structuredLesson?.badgeGroup,
       accuracy: metrics.accuracy,
       CPM: metrics.cpm,
@@ -371,7 +503,7 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
       completedAt,
     };
     const saved = saveStudentLessonResult(lessonResult);
-    setNewBadges(saved.newBadges);
+    queueMicrotask(() => setNewBadges(saved.newBadges));
 
     const progressRecord = {
       worldId: world.id,
@@ -397,13 +529,39 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
     }
 
     progressSavedRef.current = true;
-  }, [coinsEarned, finalXpEarned, gemsEarned, lesson.id, lesson.labelEn, lesson.objective, metrics, minimumAccuracy, plan.targetText, practiceMode, resultLessonId, rewardCalculation.rewardReasons, runState.bestStreak, runState.finished, speedTargetCpm, structuredLesson, weakKeys, world.id]);
+  }, [
+    coinsEarned,
+    finalXpEarned,
+    gemsEarned,
+    lesson.id,
+    lesson.labelEn,
+    lesson.objective,
+    metrics,
+    minimumAccuracy,
+    plan.targetText,
+    practiceMode,
+    resultLessonId,
+    rewardCalculation.rewardReasons,
+    runState.bestStreak,
+    runState.finished,
+    speedTargetCpm,
+    structuredLesson,
+    weakKeys,
+    world.id,
+  ]);
 
   if (!activeTarget) {
     return (
       <PageTransition className="h-screen overflow-hidden bg-[#0A6FB5]">
-        <GameScreen background={backgroundImages.lesson} fit="stretch" className="grid place-items-center font-sans text-[#17325A]" style={{ backgroundSize: '100% 100%' }}>
-          <div className="rounded-[24px] bg-white/90 px-8 py-6 text-2xl font-black">This lesson has no typeable Khmer targets yet.</div>
+        <GameScreen
+          background={backgroundImages.lesson}
+          fit="stretch"
+          className="grid place-items-center font-sans text-[#17325A]"
+          style={{ backgroundSize: '100% 100%' }}
+        >
+          <div className="rounded-[24px] bg-white/90 px-8 py-6 text-2xl font-black">
+            This lesson has no typeable Khmer targets yet.
+          </div>
         </GameScreen>
       </PageTransition>
     );
@@ -411,7 +569,12 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
 
   return (
     <PageTransition className="h-screen overflow-hidden bg-[#0A6FB5]">
-      <GameScreen background={backgroundImages.lesson} fit="stretch" className="font-sans text-[#17325A]" style={{ backgroundSize: '100% 100%' }}>
+      <GameScreen
+        background={backgroundImages.lesson}
+        fit="stretch"
+        className="font-sans text-[#17325A]"
+        style={{ backgroundSize: '100% 100%' }}
+      >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#57D6FF]/10 via-transparent to-[#092A28]/34" />
         <div className="temple-silhouette pointer-events-none opacity-40" />
 
@@ -445,6 +608,7 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
         <KhmerKeyboard
           activeCode={settings.keyboardHintsEnabled ? activeTarget.key.code : ''}
           shiftRequired={settings.keyboardHintsEnabled && shiftRequired}
+          altgrRequired={settings.keyboardHintsEnabled && altgrRequired}
           feedbackCode={settings.keyboardHintsEnabled ? feedback?.code : undefined}
           feedbackState={feedback?.state}
           activeHand={fingerGuidance.activeHand}
@@ -476,13 +640,18 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
             newBadges={newBadges}
             recommendation={getProgressRecommendation(loadStudentProgress(), {
               lessonId: resultLessonId,
-              lessonTitle: practiceMode === 'weak' ? 'Weak-Key Practice' : structuredLesson?.lessonTitle ?? lesson.labelEn,
+              lessonTitle:
+                practiceMode === 'weak'
+                  ? 'Weak-Key Practice'
+                  : structuredLesson?.lessonTitle ?? lesson.labelEn,
               worldId: structuredLesson?.worldId ?? world.id,
               skillFocus: structuredLesson?.skillFocus ?? lesson.objective,
               targetText: plan.targetText,
               minimumAccuracy,
               targetCPM: speedTargetCpm,
-              difficulty: structuredLesson?.difficulty ?? (practiceMode === 'weak' ? 'adaptive' : 'beginner'),
+              difficulty:
+                structuredLesson?.difficulty ??
+                (practiceMode === 'weak' ? 'adaptive' : 'beginner'),
               badgeGroup: structuredLesson?.badgeGroup,
               accuracy: metrics.accuracy,
               CPM: metrics.cpm,
@@ -513,8 +682,13 @@ export default function LessonWorldScreen({ world, lesson, practiceMode = 'curri
             onResetProgress={handleResetProgress}
           />
         </ActionModal>
-        <ActionModal open={modal === 'continueLocked'} title="ត្រូវការភាពត្រឹមត្រូវ" onClose={() => setModal(null)}>
-          បន្តបានបន្ទាប់ពីឆ្លងមេរៀន។ សូមលេងម្តងទៀត និងផ្តោតលើការវាយអក្សរខ្មែរឲ្យត្រឹមត្រូវ រហូតដល់ភាពត្រឹមត្រូវ {minimumAccuracy}%។
+        <ActionModal
+          open={modal === 'continueLocked'}
+          title="ត្រូវការភាពត្រឹមត្រូវ"
+          onClose={() => setModal(null)}
+        >
+          បន្តបានបន្ទាប់ពីឆ្លងមេរៀន។ សូមលេងម្តងទៀត និងផ្តោតលើការវាយអក្សរខ្មែរឲ្យត្រឹមត្រូវ រហូតដល់ភាពត្រឹមត្រូវ{' '}
+          {minimumAccuracy}%។
         </ActionModal>
       </GameScreen>
     </PageTransition>

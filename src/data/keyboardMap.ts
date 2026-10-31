@@ -90,6 +90,56 @@ export const khmerKeyboardRows: KhmerKeyboardKey[][] = [
   ],
 ];
 
+export const LEFT_HOME_ROW_KEY_CODES = ['KeyA', 'KeyS', 'KeyD', 'KeyF'] as const;
+export const RIGHT_HOME_ROW_KEY_CODES = ['KeyJ', 'KeyK', 'KeyL', 'Semicolon'] as const;
+export const HOME_ROW_KEY_CODES = [
+  ...LEFT_HOME_ROW_KEY_CODES,
+  ...RIGHT_HOME_ROW_KEY_CODES,
+] as const;
+export const TACTILE_BUMP_KEY_CODES = ['KeyF', 'KeyJ'] as const;
+
+const HOME_ROW_CODE_SET = new Set<string>(HOME_ROW_KEY_CODES);
+const TACTILE_BUMP_SET = new Set<string>(TACTILE_BUMP_KEY_CODES);
+
+export function isHomeRowRestKeyCode(code: string): boolean {
+  return HOME_ROW_CODE_SET.has(code);
+}
+
+export function hasTactileBump(code: string): boolean {
+  return TACTILE_BUMP_SET.has(code);
+}
+
+export function getFingerHomeKeyCode(
+  hand: KhmerKey['hand'],
+  finger: KhmerKey['finger'],
+): string {
+  if (hand === 'thumb' || finger === 'thumb') return 'Space';
+  if (hand === 'left') {
+    if (finger === 'pinky') return 'KeyA';
+    if (finger === 'ring') return 'KeyS';
+    if (finger === 'middle') return 'KeyD';
+    return 'KeyF';
+  }
+  if (finger === 'index') return 'KeyJ';
+  if (finger === 'middle') return 'KeyK';
+  if (finger === 'ring') return 'KeyL';
+  return 'Semicolon';
+}
+
+export function formatPhysicalKeyLabel(key: KhmerKeyboardKey): string {
+  if (key.action === 'space') return 'Spacebar';
+  return key.latin.toUpperCase();
+}
+
+/**
+ * Checks whether a Khmer output string consists only of dependent vowels, coeng (្),
+ * or combining diacritic marks (U+17B6..U+17D3, U+17DD) that cannot stand alone as base letters.
+ */
+export function isStandaloneCombiningMarkOutput(output: string): boolean {
+  if (!output) return false;
+  return /^[\u17B6-\u17D3\u17DD]+$/u.test(output);
+}
+
 export const targetableKhmerKeys = khmerKeyboardRows.flat().filter((key) => !key.disabled && !key.action);
 export const typeableKeyboardKeys = khmerKeyboardRows.flat().filter((key) => !key.disabled && (!key.action || key.action === 'space'));
 

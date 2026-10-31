@@ -37,6 +37,7 @@ export default function ExplorationHud({
   const activeStage = stages[activeStageIndex];
   const activeStageState = stageStates[activeStageIndex];
   const currentBarrierStatus: GateStatus = activeStageState?.status ?? gateStatus;
+  const totalStageCount = stages.length || 3;
 
   return (
     <div
@@ -163,7 +164,6 @@ export default function ExplorationHud({
                 type="button"
                 data-testid="three-unlock-gate-btn"
                 onClick={onStartTyping}
-
                 className="group flex items-center gap-3 rounded-2xl border-2 border-amber-400 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 px-6 py-3.5 text-slate-950 shadow-[0_0_25px_rgba(245,158,11,0.5)] transition hover:scale-105 active:scale-95"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-950 text-amber-400 font-mono font-bold text-sm">
@@ -208,7 +208,7 @@ export default function ExplorationHud({
             data-testid="three-gate-open-banner"
             className="pointer-events-auto rounded-2xl border border-emerald-400/40 bg-slate-900/90 px-5 py-2.5 text-center text-sm font-bold text-emerald-300 shadow-xl backdrop-blur-md"
           >
-            ✨ មេរៀនទាំង 3 ដំណាក់កាលបានបើកហើយ! ដើរចូលទីសក្ការៈអង្គរ (All 3 stages unlocked! Walk through the sanctuary!)
+            ✨ មេរៀនទាំង {totalStageCount} ដំណាក់កាលបានបើកហើយ! ដើរចូលទីសក្ការៈអង្គរ (All {totalStageCount} stages unlocked! Walk through the sanctuary!)
           </div>
         )}
       </div>

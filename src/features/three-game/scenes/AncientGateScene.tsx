@@ -5,6 +5,7 @@ import Environment from '../components/Environment';
 import StageChallenges from '../components/StageChallenges';
 import ThirdPersonCamera from '../components/ThirdPersonCamera';
 import type { MovementInput } from '../hooks/usePlayerControls';
+import { getStageBarrierIndex } from '../systems/gameplayState';
 import type { GameMode, GateState, GateStatus, Position3D } from '../types';
 
 type AncientGateSceneProps = {
@@ -38,6 +39,9 @@ export default function AncientGateScene({
   onGateOpeningFinished,
   onStageOpeningFinished,
 }: AncientGateSceneProps) {
+  const activeBarrierIndex = getStageBarrierIndex(activeStageIndex, stageStatuses.length);
+  const firstBarrierUnlockStageIndex = stageStatuses.length === 5 ? 1 : 0;
+
   return (
     <>
       {/* Third Person Camera with smooth tracking & cinematic sweeps */}
@@ -58,19 +62,19 @@ export default function AncientGateScene({
         onNearGateChange={onNearGateChange}
       />
 
-      {/* Stage 1: Ancient Angkor Stone Gate (ទ្វារអក្សរ / Glyph Gate at Z = 6) */}
+      {/* Barrier 1: Ancient Angkor Stone Gate (ទ្វារអក្សរ / Glyph Gate at Z = 6) */}
       <AncientStoneGate
         gateState={gateState}
-        streak={activeStageIndex === 0 ? streak : 0}
-        completedCount={activeStageIndex === 0 ? completedCount : 0}
-        incorrectCount={activeStageIndex === 0 ? incorrectCount : 0}
+        streak={activeBarrierIndex === 0 ? streak : 0}
+        completedCount={activeBarrierIndex === 0 ? completedCount : 0}
+        incorrectCount={activeBarrierIndex === 0 ? incorrectCount : 0}
         onOpeningFinished={() => {
           onGateOpeningFinished();
-          onStageOpeningFinished?.(0);
+          onStageOpeningFinished?.(firstBarrierUnlockStageIndex);
         }}
       />
 
-      {/* Stage 2 (ថ្មភ្លោះ / Twin Stones at Z = 16) & Stage 3 (ផ្លូវព្រៃ / Jungle Path at Z = 26) */}
+      {/* Barrier 2 (ថ្មភ្លោះ / Twin Stones at Z = 16) & Barrier 3 (ផ្លូវព្រៃ / Jungle Path at Z = 26) */}
       <StageChallenges
         stageStatuses={stageStatuses}
         activeStageIndex={activeStageIndex}
@@ -82,4 +86,3 @@ export default function AncientGateScene({
     </>
   );
 }
-
