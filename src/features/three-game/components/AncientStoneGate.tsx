@@ -1,26 +1,140 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { GATE_POSITION_Z } from '../systems/gameplayState';
+import { useGltfClone } from '../hooks/useGltfAsset';
 import type { GateState } from '../types';
+
+const GATE_OPEN_SPEED = 0.65;
 
 type AncientStoneGateProps = {
   gateState: GateState;
   streak?: number;
   completedCount?: number;
   incorrectCount?: number;
-  onOpeningFinished?: () => void;
+  onOpeningFinished: () => void;
 };
 
-// Deterministic static positions for rising streak sparkles (pure outside component)
-const STREAK_SPARKLE_OFFSETS: [number, number, number][] = [
-  [-0.25, 0, -0.15],
-  [0.22, 0, -0.12],
-  [-0.18, 0, 0.16],
-  [0.26, 0, 0.14],
-  [0.0, 0, -0.22],
-  [0.05, 0, 0.20],
-];
+/**
+ * Khmer Simha Guardian Lion (តោថ្មយាមទ្វារប្រាសាទ) — loads Blender-crafted GLB with procedural fallback
+ */
+function SimhaGuardianStatue({ position }: { position: [number, number, number] }) {
+  const glb = useGltfClone('/models/props/khmer_simha_guardian.glb');
+  const cloned = useMemo(() => (glb ? glb.clone(true) : null), [glb]);
+
+  if (cloned) {
+    return (
+      <group position={position} rotation={[0, Math.PI, 0]}>
+        <primitive object={cloned} />
+      </group>
+    );
+  }
+
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.1, 0.5, 1.4]} />
+        <meshStandardMaterial color="#B59B72" roughness={0.86} />
+      </mesh>
+      <mesh position={[0, 0.55, 0]}>
+        <boxGeometry args={[0.92, 0.14, 1.2]} />
+        <meshStandardMaterial color="#9C8259" roughness={0.88} />
+      </mesh>
+      <mesh position={[0, 1.05, -0.05]} rotation={[-0.2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.26, 0.34, 0.85, 10]} />
+        <meshStandardMaterial color="#C8AD82" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 1.56, -0.18]} castShadow>
+        <sphereGeometry args={[0.32, 10, 10]} />
+        <meshStandardMaterial color="#A88D63" roughness={0.85} />
+      </mesh>
+      <mesh position={[0, 1.88, -0.15]}>
+        <coneGeometry args={[0.2, 0.35, 6]} />
+        <meshStandardMaterial color="#D97706" roughness={0.45} metalness={0.35} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Sacred Lotus Pedestal Learning Altar (អាសនៈសិលាចារឹក) — loads Blender-crafted GLB + glowing rune crystal
+ */
+function LotusAltar({
+  position,
+  isUnlocked,
+  runeRef,
+  crystalRef,
+  auraRef,
+}: {
+  position: [number, number, number];
+  isUnlocked: boolean;
+  runeRef: React.RefObject<THREE.MeshStandardMaterial | null>;
+  crystalRef: React.RefObject<THREE.Mesh | null>;
+  auraRef: React.RefObject<THREE.Mesh | null>;
+}) {
+  const glb = useGltfClone('/models/props/khmer_lotus_altar.glb');
+  const cloned = useMemo(() => (glb ? glb.clone(true) : null), [glb]);
+
+  return (
+    <group position={position}>
+      {/* Interactive Proximity Aura Ring on Ground */}
+      <mesh ref={auraRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
+        <ringGeometry args={[1.25, 1.48, 32]} />
+        <meshBasicMaterial
+          color={isUnlocked ? '#10B981' : '#38BDF8'}
+          transparent
+          opacity={0.58}
+        />
+      </mesh>
+
+      {cloned ? (
+        <primitive object={cloned} />
+      ) : (
+        <group>
+          <mesh position={[0, 0.12, 0]} receiveShadow castShadow>
+            <boxGeometry args={[1.9, 0.24, 1.5]} />
+            <meshStandardMaterial color="#78716C" roughness={0.85} />
+          </mesh>
+          <mesh position={[0, 0.34, 0]} receiveShadow castShadow>
+            <boxGeometry args={[1.5, 0.2, 1.15]} />
+            <meshStandardMaterial color="#A8A29E" roughness={0.78} />
+          </mesh>
+          <mesh position={[0, 0.68, 0]} castShadow>
+            <boxGeometry args={[1.1, 0.52, 0.85]} />
+            <meshStandardMaterial color="#78716C" roughness={0.82} />
+          </mesh>
+          <mesh position={[0, 1.0, 0]} castShadow>
+            <boxGeometry args={[1.4, 0.14, 1.05]} />
+            <meshStandardMaterial color="#F59E0B" roughness={0.35} metalness={0.5} />
+          </mesh>
+        </group>
+      )}
+
+      {/* Glowing Khmer Inscription Tablet on Altar */}
+      <mesh position={[0, 1.18, 0]} rotation={[-0.35, 0, 0]}>
+        <boxGeometry args={[0.92, 0.08, 0.56]} />
+        <meshStandardMaterial
+          ref={runeRef}
+          color={isUnlocked ? '#10B981' : '#38BDF8'}
+          emissive={isUnlocked ? '#059669' : '#0284C7'}
+          emissiveIntensity={0.85}
+          roughness={0.22}
+        />
+      </mesh>
+
+      {/* Floating Rotating Sacred Rune Crystal above the Altar */}
+      <mesh ref={crystalRef} position={[0, 1.72, 0]} castShadow>
+        <octahedronGeometry args={[0.22, 0]} />
+        <meshStandardMaterial
+          color={isUnlocked ? '#34D399' : '#38BDF8'}
+          emissive={isUnlocked ? '#10B981' : '#0284C7'}
+          emissiveIntensity={1.35}
+          roughness={0.12}
+          metalness={0.25}
+        />
+      </mesh>
+    </group>
+  );
+}
 
 export default function AncientStoneGate({
   gateState,
@@ -29,708 +143,236 @@ export default function AncientStoneGate({
   incorrectCount = 0,
   onOpeningFinished,
 }: AncientStoneGateProps) {
-  const leftDoorPivotRef = useRef<THREE.Group>(null);
-  const rightDoorPivotRef = useRef<THREE.Group>(null);
-  const gateFrameRef = useRef<THREE.Group>(null);
+  const leftDoorRef = useRef<THREE.Group>(null);
+  const rightDoorRef = useRef<THREE.Group>(null);
   const runeGlowRef = useRef<THREE.MeshStandardMaterial>(null);
-  const rippleRingRef = useRef<THREE.Mesh>(null);
-  const rippleMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
-  const portalLightRef = useRef<THREE.PointLight>(null);
-  const portalGlowRef = useRef<THREE.MeshBasicMaterial>(null);
-  const flameLightLeftRef = useRef<THREE.PointLight>(null);
-  const flameLightRightRef = useRef<THREE.PointLight>(null);
-  const leftFlameCoreRef = useRef<THREE.Mesh>(null);
-  const rightFlameCoreRef = useRef<THREE.Mesh>(null);
-  const sparklesGroupRef = useRef<THREE.Group>(null);
+  const altarRuneRef = useRef<THREE.MeshStandardMaterial>(null);
+  const altarCrystalRef = useRef<THREE.Mesh>(null);
+  const altarAuraRef = useRef<THREE.Mesh>(null);
+  const progressRef = useRef<number>(gateState.openProgress);
 
-  const currentOpenProgress = useRef(gateState.openProgress);
-  const finishedCallbackCalled = useRef(false);
-
-  // Keystroke reaction tracking synchronized with Three.js clock
-  const currentTimeRef = useRef(0);
-  const prevCompletedRef = useRef(completedCount);
-  const prevIncorrectRef = useRef(incorrectCount);
-  const correctFlashTime = useRef(-10);
-  const incorrectFlashTime = useRef(-10);
-
-  useEffect(() => {
-    if (completedCount > prevCompletedRef.current) {
-      correctFlashTime.current = currentTimeRef.current;
-      prevCompletedRef.current = completedCount;
-    }
-  }, [completedCount]);
-
-  useEffect(() => {
-    if (incorrectCount > prevIncorrectRef.current) {
-      incorrectFlashTime.current = currentTimeRef.current;
-      prevIncorrectRef.current = incorrectCount;
-    }
-  }, [incorrectCount]);
-
-  // Common materials
-  const sandstoneDark = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#6E553B', roughness: 0.92 }),
-    [],
-  );
-  const sandstoneMedium = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#876949', roughness: 0.88 }),
-    [],
-  );
-  const sandstoneLight = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#A88764', roughness: 0.84 }),
-    [],
-  );
-  const agedBronze = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#D97706',
-        metalness: 0.65,
-        roughness: 0.35,
-      }),
-    [],
-  );
-  const darkTeakWood = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#3E2E20', roughness: 0.85 }),
-    [],
-  );
+  const prevCompletedRef = useRef<number>(completedCount);
+  const prevIncorrectRef = useRef<number>(incorrectCount);
+  const hitPulseRef = useRef<number>(0);
+  const errorFlashRef = useRef<number>(0);
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
-    currentTimeRef.current = time;
 
-    // 1. Typing Feedback: Reaction to correct & incorrect keystrokes
-    const timeSinceCorrect = time - correctFlashTime.current;
-    const timeSinceIncorrect = time - incorrectFlashTime.current;
-
-    let baseRuneEmissive = 0.55 + Math.sin(time * 3) * 0.25;
-    let runeColor = '#F59E0B'; // default warm amber
-
-    if (timeSinceCorrect >= 0 && timeSinceCorrect < 0.45) {
-      // Radiant golden-cyan flash for correct keystroke
-      const correctFactor = 1 - timeSinceCorrect / 0.45;
-      baseRuneEmissive += correctFactor * 1.5;
-      runeColor = streak >= 5 ? '#38BDF8' : '#FBBF24';
-
-      // Expanding magical ripple ring
-      if (rippleRingRef.current && rippleMaterialRef.current) {
-        const ringScale = 0.3 + (1 - correctFactor) * 1.4;
-        rippleRingRef.current.scale.set(ringScale, ringScale, ringScale);
-        rippleRingRef.current.visible = true;
-        rippleMaterialRef.current.opacity = correctFactor * 0.75;
-      }
-    } else if (rippleRingRef.current) {
-      rippleRingRef.current.visible = false;
+    if (completedCount > prevCompletedRef.current) {
+      hitPulseRef.current = 1.0;
     }
+    prevCompletedRef.current = completedCount;
 
-    if (timeSinceIncorrect >= 0 && timeSinceIncorrect < 0.35) {
-      // Subtle warm-crimson shimmer for incorrect key
-      const incorrectFactor = 1 - timeSinceIncorrect / 0.35;
-      baseRuneEmissive += incorrectFactor * 0.8;
-      runeColor = '#EF4444';
+    if (incorrectCount > prevIncorrectRef.current) {
+      errorFlashRef.current = 1.0;
     }
+    prevIncorrectRef.current = incorrectCount;
 
-    if (runeGlowRef.current) {
-      runeGlowRef.current.emissiveIntensity = baseRuneEmissive;
-      runeGlowRef.current.color.set(runeColor);
-      runeGlowRef.current.emissive.set(runeColor);
-    }
+    hitPulseRef.current = Math.max(0, hitPulseRef.current - delta * 3.2);
+    errorFlashRef.current = Math.max(0, errorFlashRef.current - delta * 3.8);
 
-    // Floating streak sparkles when combo >= 3
-    if (sparklesGroupRef.current) {
-      const showSparkles = streak >= 3;
-      sparklesGroupRef.current.visible = showSparkles;
-      if (showSparkles) {
-        sparklesGroupRef.current.children.forEach((child, i) => {
-          const speed = 0.6 + i * 0.15;
-          const cycle = (time * speed + i * 0.3) % 1.2;
-          child.position.y = 0.95 + cycle * 0.8;
-          const scale = Math.sin((cycle / 1.2) * Math.PI) * (0.04 + (streak > 5 ? 0.02 : 0));
-          child.scale.set(scale, scale, scale);
-        });
-      }
-    }
-
-    // 2. Animated Braziers: Organic dual-layer flame pulsation
-    const flameFlickerA = Math.sin(time * 8 + 0.5) * 0.2 + Math.cos(time * 13) * 0.15;
-    const flameFlickerB = Math.sin(time * 9 + 2.1) * 0.2 + Math.cos(time * 11) * 0.15;
-
-    if (flameLightLeftRef.current) {
-      flameLightLeftRef.current.intensity = 1.6 + flameFlickerA;
-    }
-    if (flameLightRightRef.current) {
-      flameLightRightRef.current.intensity = 1.6 + flameFlickerB;
-    }
-    if (leftFlameCoreRef.current) {
-      const s = 1.0 + flameFlickerA * 0.2;
-      leftFlameCoreRef.current.scale.set(s, 1 + flameFlickerA * 0.35, s);
-    }
-    if (rightFlameCoreRef.current) {
-      const s = 1.0 + flameFlickerB * 0.2;
-      rightFlameCoreRef.current.scale.set(s, 1 + flameFlickerB * 0.35, s);
-    }
-
-    // 3. Gate Opening Animation: Stone tremor -> cubic swing -> sanctuary illumination
-    if (gateState.status === 'opening' || gateState.status === 'open') {
-      const target = 1.0;
-      const speed = 0.6; // Opens smoothly over ~2.4 seconds
-      currentOpenProgress.current = Math.min(target, currentOpenProgress.current + delta * speed);
-
-      const t = currentOpenProgress.current;
-      const ease = 1 - Math.pow(1 - t, 3);
-
-      // Initial unsealing vibration (first 0.35 seconds)
-      if (t < 0.15 && gateFrameRef.current) {
-        const shake = Math.sin(time * 50) * 0.012 * (1 - t / 0.15);
-        gateFrameRef.current.position.x = shake;
-      } else if (gateFrameRef.current) {
-        gateFrameRef.current.position.x = 0;
-      }
-
-      // Door leaf swing
-      const maxAngle = Math.PI * 0.47; // ~85 degrees
-      if (leftDoorPivotRef.current) {
-        leftDoorPivotRef.current.rotation.y = ease * maxAngle;
-      }
-      if (rightDoorPivotRef.current) {
-        rightDoorPivotRef.current.rotation.y = -ease * maxAngle;
-      }
-
-      // Sanctuary light & portal glow flooding forward
-      if (portalLightRef.current) {
-        portalLightRef.current.intensity = ease * 3.2;
-      }
-      if (portalGlowRef.current) {
-        portalGlowRef.current.opacity = ease * 0.85;
-      }
-
-      if (currentOpenProgress.current >= 1.0 && !finishedCallbackCalled.current) {
-        finishedCallbackCalled.current = true;
-        onOpeningFinished?.();
+    if (gateState.status === 'closed') {
+      progressRef.current = 0;
+    } else if (gateState.status === 'opening') {
+      progressRef.current = Math.min(1, progressRef.current + delta * GATE_OPEN_SPEED);
+      if (progressRef.current >= 1) {
+        onOpeningFinished();
       }
     } else {
-      // Closed state
-      currentOpenProgress.current = 0;
-      finishedCallbackCalled.current = false;
-      if (leftDoorPivotRef.current) leftDoorPivotRef.current.rotation.y = 0;
-      if (rightDoorPivotRef.current) rightDoorPivotRef.current.rotation.y = 0;
-      if (gateFrameRef.current) gateFrameRef.current.position.x = 0;
-      if (portalLightRef.current) portalLightRef.current.intensity = 0;
-      if (portalGlowRef.current) portalGlowRef.current.opacity = 0;
+      progressRef.current = 1;
+    }
+
+    const slideOffset = progressRef.current * 2.3;
+    if (leftDoorRef.current) {
+      leftDoorRef.current.position.x = -1.1 - slideOffset;
+    }
+    if (rightDoorRef.current) {
+      rightDoorRef.current.position.x = 1.1 + slideOffset;
+    }
+
+    const streakBoost = Math.min(streak * 0.12, 1.2);
+    const pulse =
+      0.55 + Math.sin(time * 3) * 0.25 + progressRef.current * 0.9 + streakBoost + hitPulseRef.current * 1.4;
+
+    if (runeGlowRef.current) {
+      runeGlowRef.current.emissiveIntensity = pulse;
+      if (errorFlashRef.current > 0.15) {
+        runeGlowRef.current.color.set('#EF4444');
+        runeGlowRef.current.emissive.set('#DC2626');
+      } else if (gateState.status !== 'closed') {
+        runeGlowRef.current.color.set('#34D399');
+        runeGlowRef.current.emissive.set('#10B981');
+      } else {
+        runeGlowRef.current.color.set('#FCD34D');
+        runeGlowRef.current.emissive.set('#F59E0B');
+      }
+    }
+
+    if (altarRuneRef.current) {
+      altarRuneRef.current.emissiveIntensity = pulse * 0.95;
+      if (errorFlashRef.current > 0.15) {
+        altarRuneRef.current.color.set('#EF4444');
+        altarRuneRef.current.emissive.set('#DC2626');
+      } else if (gateState.status !== 'closed') {
+        altarRuneRef.current.color.set('#10B981');
+        altarRuneRef.current.emissive.set('#059669');
+      } else {
+        altarRuneRef.current.color.set('#38BDF8');
+        altarRuneRef.current.emissive.set('#0284C7');
+      }
+    }
+
+    if (altarCrystalRef.current) {
+      altarCrystalRef.current.rotation.y = time * 1.6;
+      altarCrystalRef.current.position.y = 1.72 + Math.sin(time * 2.8) * 0.08 + hitPulseRef.current * 0.12;
+    }
+
+    if (altarAuraRef.current) {
+      altarAuraRef.current.rotation.z = -time * 0.7;
+      const auraScale = 1.0 + Math.sin(time * 3.2) * 0.05 + hitPulseRef.current * 0.12;
+      altarAuraRef.current.scale.set(auraScale, auraScale, 1);
     }
   });
 
+  const isUnlocked = gateState.status !== 'closed';
+  const activeRunes = Math.min(6, Math.floor(completedCount / 2));
+
   return (
-    <group position={[0, 0, GATE_POSITION_Z]}>
-      {/* ===== INNER SANCTUARY LIGHT PORTAL ===== */}
-      <group position={[0, 2.3, 0.4]}>
-        {/* Soft glowing portal gateway backdrop */}
-        <mesh position={[0, 0, 0]}>
-          <planeGeometry args={[3.2, 4.2]} />
-          <meshBasicMaterial
-            ref={portalGlowRef}
-            color="#FEF08A"
-            transparent
-            opacity={0}
-            side={THREE.DoubleSide}
-          />
+    <group position={[0, 0, 6]}>
+      {/* ===== OUTER KHMER SANDSTONE GOPURA GATE ARCHWAY ===== */}
+      <group position={[-3.2, 0, 0]}>
+        <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
+          <boxGeometry args={[2.1, 0.7, 2.2]} />
+          <meshStandardMaterial color="#8A7050" roughness={0.9} />
         </mesh>
-        {/* Warm golden light pouring forward through open portal */}
-        <pointLight
-          ref={portalLightRef}
-          position={[0, 0, 0.8]}
-          color="#FDE68A"
-          intensity={0}
-          distance={14}
-          decay={2}
+        <mesh position={[0, 2.6, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.7, 4.2, 1.8]} />
+          <meshStandardMaterial color="#A88B63" roughness={0.86} />
+        </mesh>
+        <mesh position={[0, 2.6, 0.92]}>
+          <boxGeometry args={[0.9, 3.4, 0.08]} />
+          <meshStandardMaterial color="#C8A978" roughness={0.78} />
+        </mesh>
+        <mesh position={[0, 4.85, 0]} castShadow>
+          <boxGeometry args={[2.0, 0.4, 2.1]} />
+          <meshStandardMaterial color="#C2A272" roughness={0.82} />
+        </mesh>
+      </group>
+
+      <group position={[3.2, 0, 0]}>
+        <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
+          <boxGeometry args={[2.1, 0.7, 2.2]} />
+          <meshStandardMaterial color="#8A7050" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 2.6, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.7, 4.2, 1.8]} />
+          <meshStandardMaterial color="#A88B63" roughness={0.86} />
+        </mesh>
+        <mesh position={[0, 2.6, 0.92]}>
+          <boxGeometry args={[0.9, 3.4, 0.08]} />
+          <meshStandardMaterial color="#C8A978" roughness={0.78} />
+        </mesh>
+        <mesh position={[0, 4.85, 0]} castShadow>
+          <boxGeometry args={[2.0, 0.4, 2.1]} />
+          <meshStandardMaterial color="#C2A272" roughness={0.82} />
+        </mesh>
+      </group>
+
+      {/* ===== STEPPED ANGKORIAN GOPURA ROOF & TRIANGULAR PEDIMENT ===== */}
+      <mesh position={[0, 5.2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[9.2, 0.85, 2.4]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.86} />
+      </mesh>
+      {/* Triangular Carved Front Pediment (ហោជាងប្រាសាទ) */}
+      <mesh position={[0, 6.2, 0.85]} rotation={[0, Math.PI / 4, 0]} castShadow>
+        <coneGeometry args={[2.2, 1.8, 4]} />
+        <meshStandardMaterial color="#C8A978" roughness={0.78} />
+      </mesh>
+      <mesh position={[0, 5.95, 0]} castShadow>
+        <boxGeometry args={[6.8, 0.7, 1.9]} />
+        <meshStandardMaterial color="#B59668" roughness={0.82} />
+      </mesh>
+      <mesh position={[0, 6.6, 0]} castShadow>
+        <boxGeometry args={[4.6, 0.65, 1.5]} />
+        <meshStandardMaterial color="#C8A978" roughness={0.78} />
+      </mesh>
+      <mesh position={[0, 7.35, 0]} castShadow>
+        <coneGeometry args={[1.1, 1.2, 8]} />
+        <meshStandardMaterial color="#D6B785" roughness={0.75} />
+      </mesh>
+      <mesh position={[0, 8.2, 0]}>
+        <cylinderGeometry args={[0.04, 0.16, 0.9, 8]} />
+        <meshStandardMaterial color="#F59E0B" metalness={0.7} roughness={0.25} />
+      </mesh>
+
+      {/* Glowing Central Lintels & Progressive Khmer Rune Stones */}
+      <mesh position={[0, 5.2, -1.23]}>
+        <boxGeometry args={[5.4, 0.28, 0.08]} />
+        <meshStandardMaterial
+          ref={runeGlowRef}
+          color={isUnlocked ? '#34D399' : '#FCD34D'}
+          emissive={isUnlocked ? '#10B981' : '#F59E0B'}
+          emissiveIntensity={0.8}
         />
-      </group>
+      </mesh>
 
-      {/* ===== GOPURA PORTAL FRAME ===== */}
-      <group ref={gateFrameRef}>
-        {/* Stone Threshold Step */}
-        <mesh position={[0, 0.12, 0]}>
-          <boxGeometry args={[4.8, 0.24, 1.4]} />
-          <primitive object={sandstoneDark} attach="material" />
-        </mesh>
-        <mesh position={[0, 0.24, 0]}>
-          <boxGeometry args={[3.8, 0.12, 1.1]} />
-          <primitive object={sandstoneMedium} attach="material" />
-        </mesh>
+      {[-2.0, -1.2, -0.4, 0.4, 1.2, 2.0].map((rx, idx) => {
+        const lit = isUnlocked || idx < activeRunes;
+        return (
+          <mesh key={rx} position={[rx, 5.95, -0.98]}>
+            <boxGeometry args={[0.38, 0.38, 0.08]} />
+            <meshStandardMaterial
+              color={lit ? '#34D399' : '#92400E'}
+              emissive={lit ? '#10B981' : '#78350F'}
+              emissiveIntensity={lit ? 1.2 : 0.2}
+            />
+          </mesh>
+        );
+      })}
 
-        {/* Left Angkor Pillar */}
-        <group position={[-2.25, 0, 0]}>
-          {/* Stepped Plinth Base */}
-          <mesh position={[0, 0.45, 0]}>
-            <boxGeometry args={[1.3, 0.9, 1.3]} />
-            <primitive object={sandstoneDark} attach="material" />
-          </mesh>
-          <mesh position={[0, 0.95, 0]}>
-            <boxGeometry args={[1.1, 0.2, 1.1]} />
-            <primitive object={sandstoneLight} attach="material" />
-          </mesh>
-          {/* Fluted Main Shaft */}
-          <mesh position={[0, 2.7, 0]}>
-            <boxGeometry args={[0.95, 3.4, 0.95]} />
-            <primitive object={sandstoneMedium} attach="material" />
-          </mesh>
-          {/* Carved Angkorian Relief Band */}
-          <mesh position={[0, 2.7, 0]}>
-            <boxGeometry args={[1.08, 0.35, 1.08]} />
-            <primitive object={sandstoneLight} attach="material" />
-          </mesh>
-          {/* Carved Lotus Capital (ក្បាច់ក្បាលសសរ) */}
-          <mesh position={[0, 4.5, 0]}>
-            <boxGeometry args={[1.2, 0.3, 1.2]} />
-            <primitive object={sandstoneLight} attach="material" />
-          </mesh>
-          <mesh position={[0, 4.75, 0]}>
-            <boxGeometry args={[1.4, 0.25, 1.4]} />
-            <primitive object={sandstoneDark} attach="material" />
-          </mesh>
-        </group>
-
-        {/* Right Angkor Pillar */}
-        <group position={[2.25, 0, 0]}>
-          {/* Stepped Plinth Base */}
-          <mesh position={[0, 0.45, 0]}>
-            <boxGeometry args={[1.3, 0.9, 1.3]} />
-            <primitive object={sandstoneDark} attach="material" />
-          </mesh>
-          <mesh position={[0, 0.95, 0]}>
-            <boxGeometry args={[1.1, 0.2, 1.1]} />
-            <primitive object={sandstoneLight} attach="material" />
-          </mesh>
-          {/* Fluted Main Shaft */}
-          <mesh position={[0, 2.7, 0]}>
-            <boxGeometry args={[0.95, 3.4, 0.95]} />
-            <primitive object={sandstoneMedium} attach="material" />
-          </mesh>
-          {/* Carved Angkorian Relief Band */}
-          <mesh position={[0, 2.7, 0]}>
-            <boxGeometry args={[1.08, 0.35, 1.08]} />
-            <primitive object={sandstoneLight} attach="material" />
-          </mesh>
-          {/* Carved Lotus Capital (ក្បាច់ក្បាលសសរ) */}
-          <mesh position={[0, 4.5, 0]}>
-            <boxGeometry args={[1.2, 0.3, 1.2]} />
-            <primitive object={sandstoneLight} attach="material" />
-          </mesh>
-          <mesh position={[0, 4.75, 0]}>
-            <boxGeometry args={[1.4, 0.25, 1.4]} />
-            <primitive object={sandstoneDark} attach="material" />
-          </mesh>
-        </group>
-
-        {/* ===== GOPURA LINTEL & TIERED PEDIMENT (កំពូលខ្លោងទ្វារ) ===== */}
-        <group position={[0, 4.95, 0]}>
-          {/* Main Carved Sandstone Architrave / Lintel (ផ្តែរ) */}
-          <mesh position={[0, 0.35, 0]}>
-            <boxGeometry args={[6.0, 0.75, 1.2]} />
-            <primitive object={sandstoneDark} attach="material" />
-          </mesh>
-          {/* Detailed Front Relief Panel */}
-          <mesh position={[0, 0.35, 0.62]}>
-            <boxGeometry args={[5.2, 0.55, 0.08]} />
-            <primitive object={sandstoneLight} attach="material" />
-          </mesh>
-          {/* Central Guardian Mask / Medallion on Lintel */}
-          <mesh position={[0, 0.35, 0.68]} rotation={[0, 0, Math.PI / 4]}>
-            <boxGeometry args={[0.35, 0.35, 0.08]} />
-            <primitive object={agedBronze} attach="material" />
-          </mesh>
-
-          {/* Stepped Pediment Tier 1 */}
-          <mesh position={[0, 0.95, 0]}>
-            <boxGeometry args={[4.6, 0.55, 1.0]} />
-            <primitive object={sandstoneMedium} attach="material" />
-          </mesh>
-          {/* Antefix Corner Acroteria (សន្លឹកជ្វា) */}
-          <mesh position={[-2.2, 1.1, 0.35]} rotation={[0, 0, 0.4]}>
-            <coneGeometry args={[0.2, 0.5, 4]} />
-            <primitive object={sandstoneLight} attach="material" />
-          </mesh>
-          <mesh position={[2.2, 1.1, 0.35]} rotation={[0, 0, -0.4]}>
-            <coneGeometry args={[0.2, 0.5, 4]} />
-            <primitive object={sandstoneLight} attach="material" />
-          </mesh>
-
-          {/* Stepped Pediment Tier 2 */}
-          <mesh position={[0, 1.45, 0]}>
-            <boxGeometry args={[3.4, 0.48, 0.85]} />
-            <primitive object={sandstoneDark} attach="material" />
-          </mesh>
-          {/* Stepped Pediment Tier 3 */}
-          <mesh position={[0, 1.85, 0]}>
-            <boxGeometry args={[2.2, 0.38, 0.7]} />
-            <primitive object={sandstoneLight} attach="material" />
-          </mesh>
-
-          {/* Sacred Crown Kalasa Spire Finial (កលស / កំពូលត្រីស៊ូល) */}
-          <mesh position={[0, 2.3, 0]}>
-            <cylinderGeometry args={[0.25, 0.5, 0.6, 8]} />
-            <primitive object={agedBronze} attach="material" />
-          </mesh>
-          <mesh position={[0, 2.75, 0]}>
-            <coneGeometry args={[0.3, 0.8, 8]} />
-            <meshStandardMaterial color="#F59E0B" metalness={0.7} roughness={0.25} />
-          </mesh>
-        </group>
-      </group>
-
-      {/* ===== MONUMENTAL ANGKORIAN DOORS ===== */}
-      {/* Left Door Leaf (Hinged at x = -1.75) */}
-      <group position={[-1.75, 0, 0]} ref={leftDoorPivotRef}>
-        {/* Main Timber-and-Sandstone Door Panel */}
-        <mesh position={[0.85, 2.3, 0]}>
-          <boxGeometry args={[1.72, 4.15, 0.28]} />
-          <primitive object={darkTeakWood} attach="material" />
+      {/* ===== SLIDING CARVED STONE DOORS ===== */}
+      <group ref={leftDoorRef} position={[-1.1, 0, 0]}>
+        <mesh position={[0, 2.3, 0]} castShadow receiveShadow>
+          <boxGeometry args={[2.15, 4.5, 0.72]} />
+          <meshStandardMaterial color="#7C6346" roughness={0.9} />
         </mesh>
-        {/* Carved Door Frame Border */}
-        <mesh position={[0.85, 2.3, 0.08]}>
-          <boxGeometry args={[1.6, 3.95, 0.16]} />
-          <primitive object={sandstoneMedium} attach="material" />
+        <mesh position={[0, 2.3, -0.38]}>
+          <boxGeometry args={[1.55, 3.6, 0.08]} />
+          <meshStandardMaterial color="#A8895E" roughness={0.82} />
         </mesh>
-        <mesh position={[0.85, 2.3, 0.14]}>
-          <boxGeometry args={[1.35, 3.65, 0.06]} />
-          <primitive object={darkTeakWood} attach="material" />
-        </mesh>
-
-        {/* Bronze Reinforcing Strap Hinges */}
-        <mesh position={[0.8, 3.4, 0.18]}>
-          <boxGeometry args={[1.5, 0.12, 0.05]} />
-          <primitive object={agedBronze} attach="material" />
-        </mesh>
-        <mesh position={[0.8, 2.3, 0.18]}>
-          <boxGeometry args={[1.5, 0.12, 0.05]} />
-          <primitive object={agedBronze} attach="material" />
-        </mesh>
-        <mesh position={[0.8, 1.2, 0.18]}>
-          <boxGeometry args={[1.5, 0.12, 0.05]} />
-          <primitive object={agedBronze} attach="material" />
-        </mesh>
-
-        {/* Bronze Door Bosses (ចង្កូម / Clous de porte) */}
-        {[
-          [0.35, 3.4],
-          [1.3, 3.4],
-          [0.35, 2.3],
-          [1.3, 2.3],
-          [0.35, 1.2],
-          [1.3, 1.2],
-        ].map(([bx, by], idx) => (
-          <mesh key={idx} position={[bx, by, 0.21]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.075, 0.09, 0.05, 8]} />
-            <primitive object={agedBronze} attach="material" />
-          </mesh>
-        ))}
-
-        {/* Ceremonial Door Ring Pull (ក្រវិលទ្វារ) */}
-        <group position={[1.45, 2.15, 0.21]}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.12, 0.12, 0.04, 10]} />
-            <primitive object={agedBronze} attach="material" />
-          </mesh>
-          <mesh position={[0, -0.12, 0.06]} rotation={[0, 0, 0]}>
-            <torusGeometry args={[0.1, 0.025, 8, 16]} />
-            <primitive object={agedBronze} attach="material" />
-          </mesh>
-        </group>
-      </group>
-
-      {/* Right Door Leaf (Hinged at x = 1.75) */}
-      <group position={[1.75, 0, 0]} ref={rightDoorPivotRef}>
-        {/* Main Timber-and-Sandstone Door Panel */}
-        <mesh position={[-0.85, 2.3, 0]}>
-          <boxGeometry args={[1.72, 4.15, 0.28]} />
-          <primitive object={darkTeakWood} attach="material" />
-        </mesh>
-        {/* Carved Door Frame Border */}
-        <mesh position={[-0.85, 2.3, 0.08]}>
-          <boxGeometry args={[1.6, 3.95, 0.16]} />
-          <primitive object={sandstoneMedium} attach="material" />
-        </mesh>
-        <mesh position={[-0.85, 2.3, 0.14]}>
-          <boxGeometry args={[1.35, 3.65, 0.06]} />
-          <primitive object={darkTeakWood} attach="material" />
-        </mesh>
-
-        {/* Bronze Reinforcing Strap Hinges */}
-        <mesh position={[-0.8, 3.4, 0.18]}>
-          <boxGeometry args={[1.5, 0.12, 0.05]} />
-          <primitive object={agedBronze} attach="material" />
-        </mesh>
-        <mesh position={[-0.8, 2.3, 0.18]}>
-          <boxGeometry args={[1.5, 0.12, 0.05]} />
-          <primitive object={agedBronze} attach="material" />
-        </mesh>
-        <mesh position={[-0.8, 1.2, 0.18]}>
-          <boxGeometry args={[1.5, 0.12, 0.05]} />
-          <primitive object={agedBronze} attach="material" />
-        </mesh>
-
-        {/* Bronze Door Bosses (ចង្កូម / Clous de porte) */}
-        {[
-          [-0.35, 3.4],
-          [-1.3, 3.4],
-          [-0.35, 2.3],
-          [-1.3, 2.3],
-          [-0.35, 1.2],
-          [-1.3, 1.2],
-        ].map(([bx, by], idx) => (
-          <mesh key={idx} position={[bx, by, 0.21]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.075, 0.09, 0.05, 8]} />
-            <primitive object={agedBronze} attach="material" />
-          </mesh>
-        ))}
-
-        {/* Ceremonial Door Ring Pull (ក្រវិលទ្វារ) */}
-        <group position={[-1.45, 2.15, 0.21]}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.12, 0.12, 0.04, 10]} />
-            <primitive object={agedBronze} attach="material" />
-          </mesh>
-          <mesh position={[0, -0.12, 0.06]} rotation={[0, 0, 0]}>
-            <torusGeometry args={[0.1, 0.025, 8, 16]} />
-            <primitive object={agedBronze} attach="material" />
-          </mesh>
-        </group>
-      </group>
-
-      {/* ===== INTERACTION ALTAR / KHMER RUNE PEDESTAL (z = -2.4) ===== */}
-      <group position={[0, 0, -2.4]}>
-        {/* Tiered Sandstone Pedestal */}
-        <mesh position={[0, 0.15, 0]}>
-          <cylinderGeometry args={[1.25, 1.45, 0.3, 16]} />
-          <primitive object={sandstoneDark} attach="material" />
-        </mesh>
-        <mesh position={[0, 0.35, 0]}>
-          <cylinderGeometry args={[1.05, 1.2, 0.18, 16]} />
-          <primitive object={sandstoneLight} attach="material" />
-        </mesh>
-        <mesh position={[0, 0.6, 0]}>
-          <cylinderGeometry args={[0.85, 1.0, 0.35, 16]} />
-          <primitive object={sandstoneMedium} attach="material" />
-        </mesh>
-
-        {/* Inscription Tablet Bevel Slab */}
-        <mesh position={[0, 0.82, 0]}>
-          <boxGeometry args={[1.15, 0.16, 0.95]} />
-          <primitive object={sandstoneDark} attach="material" />
-        </mesh>
-        <mesh position={[0, 0.89, 0]}>
-          <boxGeometry args={[1.0, 0.06, 0.8]} />
-          <primitive object={sandstoneLight} attach="material" />
-        </mesh>
-
-        {/* Glowing Ancient Rune Stone (Reacts dynamically to typing!) */}
-        <mesh position={[0, 0.93, 0]}>
-          <boxGeometry args={[0.86, 0.04, 0.66]} />
-          <meshStandardMaterial
-            ref={runeGlowRef}
-            color="#F59E0B"
-            emissive="#D97706"
-            emissiveIntensity={0.65}
-            roughness={0.25}
-          />
-        </mesh>
-
-        {/* Ancient Inscribed Glyph Grooves on Altar */}
-        <mesh position={[0, 0.955, 0]}>
-          <boxGeometry args={[0.7, 0.015, 0.5]} />
-          <meshBasicMaterial color="#FEF08A" />
-        </mesh>
-
-        {/* Magical Keystroke Expanding Ripple Ring */}
-        <mesh
-          ref={rippleRingRef}
-          position={[0, 0.96, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-          visible={false}
-        >
-          <ringGeometry args={[0.15, 0.3, 24]} />
-          <meshBasicMaterial
-            ref={rippleMaterialRef}
-            color="#38BDF8"
-            transparent
-            opacity={0.8}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
-
-        {/* Floating Streak Sparkles (visible when streak >= 3) */}
-        <group ref={sparklesGroupRef} visible={false}>
-          {STREAK_SPARKLE_OFFSETS.map(([sx, sy, sz], idx) => (
-            <mesh key={idx} position={[sx, sy + 0.95, sz]}>
-              <octahedronGeometry args={[0.04, 0]} />
-              <meshBasicMaterial color="#FDE047" />
-            </mesh>
-          ))}
-        </group>
-      </group>
-
-      {/* ===== CEREMONIAL STONE BRAZIERS (ឆ្នាំងភ្លើងបូជា) ===== */}
-      {/* Left Brazier */}
-      <group position={[-3.6, 0, -1.2]}>
-        {/* Stepped Pedestal */}
-        <mesh position={[0, 0.2, 0]}>
-          <boxGeometry args={[0.9, 0.4, 0.9]} />
-          <primitive object={sandstoneDark} attach="material" />
-        </mesh>
-        {/* Fluted Column */}
-        <mesh position={[0, 0.75, 0]}>
-          <cylinderGeometry args={[0.26, 0.36, 0.8, 12]} />
-          <primitive object={sandstoneMedium} attach="material" />
-        </mesh>
-        {/* Lotus Ring */}
-        <mesh position={[0, 1.15, 0]}>
-          <cylinderGeometry args={[0.42, 0.28, 0.15, 12]} />
-          <primitive object={sandstoneLight} attach="material" />
-        </mesh>
-        {/* Bronze Fire Bowl */}
-        <mesh position={[0, 1.35, 0]}>
-          <cylinderGeometry args={[0.55, 0.3, 0.3, 12]} />
-          <primitive object={agedBronze} attach="material" />
-        </mesh>
-        {/* Outer Flame Petals */}
-        <mesh position={[0, 1.62, 0]}>
-          <coneGeometry args={[0.28, 0.55, 8]} />
-          <meshBasicMaterial color="#F59E0B" />
-        </mesh>
-        {/* Inner White-Hot Flame Core */}
-        <mesh ref={leftFlameCoreRef} position={[0, 1.58, 0]}>
-          <coneGeometry args={[0.16, 0.4, 8]} />
-          <meshBasicMaterial color="#FFFBEB" />
-        </mesh>
-        {/* Dynamic Point Light */}
-        <pointLight
-          ref={flameLightLeftRef}
-          position={[0, 1.75, 0]}
-          color="#FFA500"
-          distance={9}
-          decay={2}
-          intensity={1.6}
-        />
-      </group>
-
-      {/* Right Brazier */}
-      <group position={[3.6, 0, -1.2]}>
-        {/* Stepped Pedestal */}
-        <mesh position={[0, 0.2, 0]}>
-          <boxGeometry args={[0.9, 0.4, 0.9]} />
-          <primitive object={sandstoneDark} attach="material" />
-        </mesh>
-        {/* Fluted Column */}
-        <mesh position={[0, 0.75, 0]}>
-          <cylinderGeometry args={[0.26, 0.36, 0.8, 12]} />
-          <primitive object={sandstoneMedium} attach="material" />
-        </mesh>
-        {/* Lotus Ring */}
-        <mesh position={[0, 1.15, 0]}>
-          <cylinderGeometry args={[0.42, 0.28, 0.15, 12]} />
-          <primitive object={sandstoneLight} attach="material" />
-        </mesh>
-        {/* Bronze Fire Bowl */}
-        <mesh position={[0, 1.35, 0]}>
-          <cylinderGeometry args={[0.55, 0.3, 0.3, 12]} />
-          <primitive object={agedBronze} attach="material" />
-        </mesh>
-        {/* Outer Flame Petals */}
-        <mesh position={[0, 1.62, 0]}>
-          <coneGeometry args={[0.28, 0.55, 8]} />
-          <meshBasicMaterial color="#F59E0B" />
-        </mesh>
-        {/* Inner White-Hot Flame Core */}
-        <mesh ref={rightFlameCoreRef} position={[0, 1.58, 0]}>
-          <coneGeometry args={[0.16, 0.4, 8]} />
-          <meshBasicMaterial color="#FFFBEB" />
-        </mesh>
-        {/* Dynamic Point Light */}
-        <pointLight
-          ref={flameLightRightRef}
-          position={[0, 1.75, 0]}
-          color="#FFA500"
-          distance={9}
-          decay={2}
-          intensity={1.6}
-        />
-      </group>
-
-      {/* ===== GUARDIAN LIONS (សិង្ហ / Simha) FLANKING PEDESTAL APPROACH ===== */}
-      {/* Left Lion */}
-      <group position={[-2.8, 0, -3.2]}>
-        {/* Stepped Plinth */}
-        <mesh position={[0, 0.2, 0]}>
-          <boxGeometry args={[0.85, 0.4, 0.95]} />
-          <primitive object={sandstoneDark} attach="material" />
-        </mesh>
-        <mesh position={[0, 0.45, 0]}>
-          <boxGeometry args={[0.72, 0.15, 0.8]} />
-          <primitive object={sandstoneLight} attach="material" />
-        </mesh>
-        {/* Sitting Lion Body */}
-        <mesh position={[0, 0.8, -0.05]}>
-          <boxGeometry args={[0.48, 0.65, 0.65]} />
-          <primitive object={sandstoneMedium} attach="material" />
-        </mesh>
-        {/* Proud Muscular Chest */}
-        <mesh position={[0, 0.85, 0.22]}>
-          <sphereGeometry args={[0.26, 8, 8]} />
-          <primitive object={sandstoneLight} attach="material" />
-        </mesh>
-        {/* Stylized Mane Collar (ក្បាច់រោម) */}
-        <mesh position={[0, 1.15, 0.08]}>
-          <cylinderGeometry args={[0.34, 0.42, 0.25, 10]} />
-          <primitive object={sandstoneDark} attach="material" />
-        </mesh>
-        {/* Crowned Guardian Head */}
-        <mesh position={[0, 1.36, 0.12]}>
-          <sphereGeometry args={[0.24, 10, 10]} />
-          <primitive object={sandstoneMedium} attach="material" />
-        </mesh>
-        {/* Lion Snout / Jaws */}
-        <mesh position={[0, 1.3, 0.3]}>
-          <boxGeometry args={[0.2, 0.18, 0.2]} />
-          <primitive object={sandstoneLight} attach="material" />
+        <mesh position={[0.55, 2.3, -0.44]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.22, 0.045, 8, 16]} />
+          <meshStandardMaterial color="#F59E0B" metalness={0.7} roughness={0.28} />
         </mesh>
       </group>
 
-      {/* Right Lion */}
-      <group position={[2.8, 0, -3.2]}>
-        {/* Stepped Plinth */}
-        <mesh position={[0, 0.2, 0]}>
-          <boxGeometry args={[0.85, 0.4, 0.95]} />
-          <primitive object={sandstoneDark} attach="material" />
+      <group ref={rightDoorRef} position={[1.1, 0, 0]}>
+        <mesh position={[0, 2.3, 0]} castShadow receiveShadow>
+          <boxGeometry args={[2.15, 4.5, 0.72]} />
+          <meshStandardMaterial color="#7C6346" roughness={0.9} />
         </mesh>
-        <mesh position={[0, 0.45, 0]}>
-          <boxGeometry args={[0.72, 0.15, 0.8]} />
-          <primitive object={sandstoneLight} attach="material" />
+        <mesh position={[0, 2.3, -0.38]}>
+          <boxGeometry args={[1.55, 3.6, 0.08]} />
+          <meshStandardMaterial color="#A8895E" roughness={0.82} />
         </mesh>
-        {/* Sitting Lion Body */}
-        <mesh position={[0, 0.8, -0.05]}>
-          <boxGeometry args={[0.48, 0.65, 0.65]} />
-          <primitive object={sandstoneMedium} attach="material" />
-        </mesh>
-        {/* Proud Muscular Chest */}
-        <mesh position={[0, 0.85, 0.22]}>
-          <sphereGeometry args={[0.26, 8, 8]} />
-          <primitive object={sandstoneLight} attach="material" />
-        </mesh>
-        {/* Stylized Mane Collar (ក្បាច់រោម) */}
-        <mesh position={[0, 1.15, 0.08]}>
-          <cylinderGeometry args={[0.34, 0.42, 0.25, 10]} />
-          <primitive object={sandstoneDark} attach="material" />
-        </mesh>
-        {/* Crowned Guardian Head */}
-        <mesh position={[0, 1.36, 0.12]}>
-          <sphereGeometry args={[0.24, 10, 10]} />
-          <primitive object={sandstoneMedium} attach="material" />
-        </mesh>
-        {/* Lion Snout / Jaws */}
-        <mesh position={[0, 1.3, 0.3]}>
-          <boxGeometry args={[0.2, 0.18, 0.2]} />
-          <primitive object={sandstoneLight} attach="material" />
+        <mesh position={[-0.55, 2.3, -0.44]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.22, 0.045, 8, 16]} />
+          <meshStandardMaterial color="#F59E0B" metalness={0.7} roughness={0.28} />
         </mesh>
       </group>
+
+      {/* ===== FLANKING SIMHA GUARDIAN LIONS & SACRED LOTUS ALTAR ===== */}
+      <SimhaGuardianStatue position={[-3.3, 0, -2.3]} />
+      <SimhaGuardianStatue position={[3.3, 0, -2.3]} />
+
+      <LotusAltar
+        position={[0, 0, -2.0]}
+        isUnlocked={isUnlocked}
+        runeRef={altarRuneRef}
+        crystalRef={altarCrystalRef}
+        auraRef={altarAuraRef}
+      />
     </group>
   );
 }

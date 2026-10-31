@@ -1,47 +1,46 @@
-# Asset inventory and licensing
+# 3D Asset Licenses & Provenance
 
-Reviewed 2026-10-31. **No external art/model/audio assets downloaded during setup or Task 2 (0 bytes).** The 3D prototype relies strictly on lightweight, project-authored procedural Three.js primitives and standard materials. This ensures 0 network downloads, instant page loads on low-bandwidth school networks, zero third-party licensing obligations, and smooth 60 FPS execution on low-end integrated graphics (Intel HD / Iris Xe).
+This document records the licensing, authorship, source provenance, and optimization details for all 3D models and materials used in **Khmer Typing Adventure** (`src/features/three-game/` and `public/models/`).
 
-## Task 2 Project-Authored 3D Procedural Assets
+---
 
-| Component | Description | Geometry / Materials | License |
-| --- | --- | --- | --- |
-| `Environment.tsx` | Cambodian sugar palms, 7-headed Naga balustrades (*នាគ*), ceremonial streamer flags (*ទង់ក្រពើ*), stone lotus basins, causeway pavers, fireflies/spirit motes | Cylinders, boxes, spheres, cones; standard low-roughness materials | Project-authored / CC0 equivalent |
-| `Character.tsx` | Student hero avatar with sapphire silk tunic, golden royal sash (*សង្វារ*), emerald medallion, epaulets (*ពានាហា*), pleated *chong kben* (*សំពត់ចងក្បិន*), bangles, lotus topknot ornament (*មាលា*), explorer satchel with palm-leaf manuscript | Segmented compound hierarchical meshes with organic lerped idle/walk blend tree | Project-authored / CC0 equivalent |
-| `ThirdPersonCamera.tsx` | Mode-specific tracking camera (exploration over-the-shoulder, typing altar focus, cinematic opening sweep, celebratory victory view) | Pure procedural math with exponential smoothing `1 - Math.exp(-damping * dt)` | Project-authored / CC0 equivalent |
-| `AncientStoneGate.tsx` | Angkor Gopura portal, tiered pediments, Kalasa finial, carved teak/sandstone door leaves, bronze bosses, dual-layer braziers, guardian lions (*Simha*), dynamic rune altar | Procedural compound meshes, dynamic point lights, ripple mesh | Project-authored / CC0 equivalent |
+## 1. Authorship & License Categories
 
-## Existing project art (kept in place)
+1. **Project-Authored 3D Assets & Procedural R3F Components (Repository Copyright)**:
+   - Authored specifically for **Khmer Typing Adventure** using Blender 5.2 Python (`bpy`) automation (`scripts/blender/`) and React Three Fiber procedural geometry (`src/features/three-game/components/`).
+   - **License**: Owned by the repository author and governed by the project's repository license (not "CC0 equivalent"—previous documentation wording has been corrected to distinguish project-owned work from external Public Domain CC0 assets).
 
-| Location | Reuse |
-| --- | --- |
-| src/assets/backgrounds/* | Menus, loading screens and lighting/color references |
-| src/assets/map/world-1..6.png; angkor-flat.png | World map UI, gate silhouette, courtyard and foliage concept references |
-| src/assets/characters/lizard-mascot.png, elephant-guide.png, stone-guardian.png | Character/boss design references and HTML portraits |
-| src/assets/bosses/boss-*.png | Boss silhouette, palette and future modeling references |
-| src/assets/icons/*; logo/*; ui/*; profile/* | Existing branding, HUD, rewards and profile overlays |
-| src/assets/hands/* | Existing finger guidance; preserve alignment with keyboard |
+2. **Verified External CC0 1.0 Universal Public Domain Assets**:
+   - Sourced from **Quaternius Ultimate Nature Pack** (Creator: [Quaternius](https://quaternius.com)).
+   - **License**: [Creative Commons Zero v1.0 Universal (CC0 1.0 Public Domain Dedication)](https://creativecommons.org/publicdomain/zero/1.0/).
+   - Full license text is stored in [`public/models/LICENSE-QUATERNIUS-CC0.txt`](../../public/models/LICENSE-QUATERNIUS-CC0.txt).
+   - Commercial and educational use, modification, optimization, and redistribution are permitted without restriction.
 
-src/assets/assetManifest.ts is the main import registry; manifest.ts re-exports it. Existing PNGs are not rigged/animated 3D models. Reference them in Blender while building meshes; a textured plane is only a billboard. Do not automatically project full backgrounds onto models. Repository art provenance was not established by this setup; retain original rights records and confirm rights before external redistribution.
+---
 
-## Researched candidates — not installed
+## 2. Exported GLB Asset Registry (`public/models/`)
 
-| Asset/source | License and commercial use | Recommended format/import | Download size |
-| --- | --- | --- | --- |
-| [Kenney Nature Kit](https://kenney.nl/assets/nature-kit) | Page declares CC0; commercial use allowed, attribution not required | Prefer included GLB/glTF; otherwise import OBJ/FBX in Blender and export selected rocks/palms as GLB | Not downloaded/measured; page lists 330 files |
-| [Quaternius Ultimate Nature](https://quaternius.com/packs/ultimatenature.html) | Page declares CC0; commercial use allowed, attribution not required | Page lists Blend/FBX/OBJ; open a few useful models in Blender, apply transforms and export GLB | Not downloaded/measured; 150 models |
-| Original Khmer gate, capsule character | Project-authored primitives initially; future artist/model provenance must be recorded | Separate gate halves/pivots; rigged GLB with idle/walk only if needed | Future |
+| Asset Name | Local File Path | Category | Creator / Source | License | Import Date | File Size | Triangles | Meshes | Modifications Made (Blender 5.2 `bpy`) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Khmer Student Hero** | `public/models/characters/khmer_student_hero.glb` | Character | Project-Authored (`scripts/blender/create_khmer_hero.py`) modeled after `src/assets/profile/khmer-typing-hero-avatar.png` | Project-Authored (Repository License) | 2026-10-31 | 363.8 KB | 11,208 | 8 | Sculpted youth hero with spiky layered hair, golden diamond + blue sapphire diadem, teal tunic, crossed golden *sangvar* with sapphire clasp, pauldrons, flowing capelet, scroll satchel, *chong kben*, vambraces, and sandals; joined into 8 articulated multi-material pivot groups (`HeroWaistMesh`, `HeroChestMesh`, `HeroCapeMesh`, `HeroHeadMesh`, `HeroLeftArmMesh`, `HeroRightArmMesh`, `HeroLeftLegMesh`, `HeroRightLegMesh`). |
+| **Tall Sugar Palm Tree** | `public/models/props/palm_tree_tall.glb` | Foliage / Tree | Quaternius — *Ultimate Nature Pack* (`Blends/PalmTree_1.blend`, https://quaternius.com) | CC0 1.0 Universal | 2026-10-31 | 96.9 KB | 1,772 | 1 | Extracted from `.blend`, applied transforms, centered bottom origin at `Y = 0`, normalized height to `5.4 m`, exported to glTF 2.0 `.glb`. |
+| **Mossy Temple Boulder** | `public/models/props/rock_moss.glb` | Rock / Terrain | Quaternius — *Ultimate Nature Pack* (`Blends/Rock_Moss_1.blend`, https://quaternius.com) | CC0 1.0 Universal | 2026-10-31 | 5.2 KB | 70 | 1 | Extracted from `.blend`, centered bottom origin at `Y = 0`, normalized height to `1.35 m`, exported to `.glb`. |
+| **Floating Lotus Lilypad** | `public/models/props/lotus_lilypad.glb` | Water Flora | Quaternius — *Ultimate Nature Pack* (`Blends/Lilypad.blend`, https://quaternius.com) | CC0 1.0 Universal | 2026-10-31 | 22.0 KB | 372 | 1 | Extracted from `.blend`, centered bottom origin at `Y = 0`, normalized height to `0.07 m`, exported to `.glb`. |
+| **Tropical Courtyard Bush** | `public/models/props/tropical_bush.glb` | Foliage / Shrub | Quaternius — *Ultimate Nature Pack* (`Blends/Bush_1.blend`, https://quaternius.com) | CC0 1.0 Universal | 2026-10-31 | 20.1 KB | 364 | 1 | Extracted from `.blend`, centered bottom origin at `Y = 0`, normalized height to `0.90 m`, exported to `.glb`. |
+| **Tropical Courtyard Flowers** | `public/models/props/tropical_flowers.glb` | Foliage / Flower | Quaternius — *Ultimate Nature Pack* (`Blends/Flowers.blend`, https://quaternius.com) | CC0 1.0 Universal | 2026-10-31 | 24.4 KB | 408 | 1 | Extracted from `.blend`, centered bottom origin at `Y = 0`, normalized height to `0.42 m`, exported to `.glb`. |
+| **Khmer Simha Guardian Lion** | `public/models/props/khmer_simha_guardian.glb` | Temple Statue | Project-Authored (`scripts/blender/export_environment_assets.py`) modeled after `src/assets/backgrounds/lesson-background.png` | Project-Authored (Repository License) | 2026-10-31 | 72.2 KB | 2,380 | 1 | Sculpted seated Angkorian *Simha* guardian lion on stepped mossy lotus plinth with golden collar, crown crest, and glowing amber eyes; joined into 1 multi-material mesh. |
+| **Khmer Lotus Learning Altar** | `public/models/props/khmer_lotus_altar.glb` | Interactive Prop | Project-Authored (`scripts/blender/export_environment_assets.py`) | Project-Authored (Repository License) | 2026-10-31 | 17.9 KB | 420 | 1 | Sculpted stepped sandstone and royal-gold lotus pedestal altar with 4 golden corner finials; joined into 1 multi-material mesh. |
 
-License reference: [CC0 public domain dedication](https://creativecommons.org/publicdomain/zero/1.0/). Keep a copy of each pack's actual license/readme even when attribution is optional. Credits to Kenney/Quaternius are encouraged. Verify the selected archive matches the page before import; unrelated paid bundles can have different terms.
+**Total Exported GLB Asset Footprint**: **622.5 KB** across 8 `.glb` files (16,994 total source triangles).
 
-Manual import: use the exact pack page above, choose its free download, retain only needed models and license, open/import them in Blender, check materials/scale/origin, export glTF 2.0 as GLB to public/models/props or environments. Test with glTF Tools. Record selected files and actual sizes here before committing them. Do not commit whole archives or Blender backups.
+---
 
-## Future asset checklist
+## 3. Procedural React Three Fiber Architectural & Atmospheric Elements
 
-- One student-friendly character (capsule first; optional rig and idle/walk later).
-- One original sandstone gate with independent door pivots; low-poly courtyard, a few palms/rocks.
-- Small shared texture atlas if flat colors become insufficient; no text baked into textures.
-- Optional short gate/reward sounds, separately verified license; audio starts after a user gesture.
-- No boss model or music pack is necessary for the first gate slice.
-
-For every future import record: name, author, source page and archive URL, retrieval date, license file, commercial/attribution terms, destination, byte size, and modifications. New models go in public/models/{characters,environments,bosses,props}; textures in public/textures; audio in public/audio/{music,effects}.
+The following components in `src/features/three-game/components/` are project-authored in TypeScript/React Three Fiber and carry no third-party asset dependencies:
+- **Sunlit Cambodian Sky Dome, Morning Sun, & Stylized Drifting Clouds** (`Environment.tsx`)
+- **Turquoise Lotus Reflecting Pools & Sacred Pink Lotus Blooms** (`Environment.tsx`)
+- **Golden-Ochre Sandstone Causeway, Flagstones, & Naga Balustrades** (`Environment.tsx`)
+- **5-Tower Angkorian Prasat Sanctuary Complex (`ប្រាង្គប្រាសាទអង្គរ`)** (`Environment.tsx`)
+- **Ancient Angkor Gopura Stone Gate, Sliding Doors, & Progressive Khmer Rune Lintels** (`AncientStoneGate.tsx`)
+- **Stage 2 Twin Monoliths (`ថ្មភ្លោះ`) & Stage 3 Ta Prohm Banyan Root Sanctuary Arch (`ផ្លូវព្រៃ`)** (`StageChallenges.tsx`)

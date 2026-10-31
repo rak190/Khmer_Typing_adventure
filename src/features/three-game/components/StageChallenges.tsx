@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { useGltfClone } from '../hooks/useGltfAsset';
 import {
   getPhysicalBarrierStatuses,
   getStageBarrierIndex,
@@ -18,6 +19,91 @@ type StageBarrierProps = {
   incorrectCount?: number;
   onOpeningFinished?: () => void;
 };
+
+function StageLotusAltar({
+  position,
+  isLocked,
+  status,
+  accentColor,
+  runeRef,
+}: {
+  position: [number, number, number];
+  isLocked: boolean;
+  status: GateStatus;
+  accentColor: string;
+  runeRef: React.RefObject<THREE.MeshStandardMaterial | null>;
+}) {
+  const glb = useGltfClone('/models/props/khmer_lotus_altar.glb');
+  const cloned = useMemo(() => (glb ? glb.clone(true) : null), [glb]);
+  const crystalRef = useRef<THREE.Mesh>(null);
+  const auraRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (crystalRef.current) {
+      crystalRef.current.rotation.y = t * 1.5;
+      crystalRef.current.position.y = 1.68 + Math.sin(t * 2.6) * 0.07;
+    }
+    if (auraRef.current) {
+      auraRef.current.rotation.z = -t * 0.65;
+    }
+  });
+
+  const displayColor = isLocked ? '#64748B' : status === 'open' ? '#10B981' : accentColor;
+
+  return (
+    <group position={position}>
+      {/* Ground Proximity Ring */}
+      <mesh ref={auraRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
+        <ringGeometry args={[1.22, 1.44, 32]} />
+        <meshBasicMaterial color={displayColor} transparent opacity={isLocked ? 0.25 : 0.55} />
+      </mesh>
+
+      {cloned ? (
+        <primitive object={cloned} />
+      ) : (
+        <group>
+          <mesh position={[0, 0.16, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[1.15, 1.35, 0.32, 16]} />
+            <meshStandardMaterial color="#614B35" roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 0.52, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[0.82, 0.98, 0.42, 16]} />
+            <meshStandardMaterial color="#7D6145" roughness={0.86} />
+          </mesh>
+          <mesh position={[0, 0.88, 0]} castShadow>
+            <boxGeometry args={[1.2, 0.2, 0.95]} />
+            <meshStandardMaterial color="#9E7D5B" roughness={0.82} />
+          </mesh>
+        </group>
+      )}
+
+      {/* Glowing Inscription Tablet */}
+      <mesh position={[0, 1.18, 0]} rotation={[-0.32, 0, 0]}>
+        <boxGeometry args={[0.88, 0.07, 0.56]} />
+        <meshStandardMaterial
+          ref={runeRef}
+          color={displayColor}
+          emissive={displayColor}
+          emissiveIntensity={isLocked ? 0.15 : 0.75}
+          roughness={0.22}
+        />
+      </mesh>
+
+      {/* Floating Rotating Rune Crystal */}
+      <mesh ref={crystalRef} position={[0, 1.68, 0]}>
+        <octahedronGeometry args={[0.2, 0]} />
+        <meshStandardMaterial
+          color={displayColor}
+          emissive={displayColor}
+          emissiveIntensity={isLocked ? 0.2 : 1.25}
+          roughness={0.15}
+          metalness={0.25}
+        />
+      </mesh>
+    </group>
+  );
+}
 
 function TwinStonesChallenge({
   stageIndex,
@@ -136,33 +222,34 @@ function TwinStonesChallenge({
 
   return (
     <group position={[0, 0, stageZ]}>
-      {/* Threshold Base Slab */}
-      <mesh position={[0, 0.1, 0]}>
-        <boxGeometry args={[6.4, 0.2, 1.5]} />
+      {/* Flanking Stepped Sanctuary Obelisks */}
+      <mesh position={[-3.3, 1.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.15, 3.8, 1.15]} />
         <primitive object={sandstoneDark} attach="material" />
+      </mesh>
+      <mesh position={[-3.3, 4.1, 0]} castShadow>
+        <coneGeometry args={[0.85, 0.9, 4]} />
+        <primitive object={sandstoneLight} attach="material" />
+      </mesh>
+      <mesh position={[3.3, 1.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.15, 3.8, 1.15]} />
+        <primitive object={sandstoneDark} attach="material" />
+      </mesh>
+      <mesh position={[3.3, 4.1, 0]} castShadow>
+        <coneGeometry args={[0.85, 0.9, 4]} />
+        <primitive object={sandstoneLight} attach="material" />
       </mesh>
 
-      {/* Outer Flanking Stele Columns */}
-      <mesh position={[-2.9, 1.9, 0]}>
-        <boxGeometry args={[0.9, 3.6, 1.1]} />
-        <primitive object={sandstoneDark} attach="material" />
-      </mesh>
-      <mesh position={[2.9, 1.9, 0]}>
-        <boxGeometry args={[0.9, 3.6, 1.1]} />
-        <primitive object={sandstoneDark} attach="material" />
-      </mesh>
-
-      {/* Left Sliding Twin Monolith (ថ្មភ្លោះឆ្វេង) */}
+      {/* Left Sliding Twin Monolith */}
       <group ref={leftMonolithRef} position={[-0.95, 0, 0]}>
-        <mesh position={[0, 1.95, 0]}>
+        <mesh position={[0, 1.95, 0]} castShadow receiveShadow>
           <boxGeometry args={[1.82, 3.5, 0.85]} />
           <primitive object={sandstoneMedium} attach="material" />
         </mesh>
-        <mesh position={[0, 3.85, 0]}>
+        <mesh position={[0, 3.85, 0]} castShadow>
           <coneGeometry args={[1.15, 0.75, 4]} />
           <primitive object={sandstoneLight} attach="material" />
         </mesh>
-        {/* Inscribed Twin Rune Strip */}
         <mesh position={[0.15, 1.95, -0.44]}>
           <boxGeometry args={[0.32, 2.2, 0.04]} />
           <meshStandardMaterial
@@ -175,17 +262,16 @@ function TwinStonesChallenge({
         </mesh>
       </group>
 
-      {/* Right Sliding Twin Monolith (ថ្មភ្លោះស្ដាំ) */}
+      {/* Right Sliding Twin Monolith */}
       <group ref={rightMonolithRef} position={[0.95, 0, 0]}>
-        <mesh position={[0, 1.95, 0]}>
+        <mesh position={[0, 1.95, 0]} castShadow receiveShadow>
           <boxGeometry args={[1.82, 3.5, 0.85]} />
           <primitive object={sandstoneMedium} attach="material" />
         </mesh>
-        <mesh position={[0, 3.85, 0]}>
+        <mesh position={[0, 3.85, 0]} castShadow>
           <coneGeometry args={[1.15, 0.75, 4]} />
           <primitive object={sandstoneLight} attach="material" />
         </mesh>
-        {/* Inscribed Twin Rune Strip */}
         <mesh position={[-0.15, 1.95, -0.44]}>
           <boxGeometry args={[0.32, 2.2, 0.04]} />
           <meshStandardMaterial
@@ -198,41 +284,14 @@ function TwinStonesChallenge({
         </mesh>
       </group>
 
-      {/* Stage 2 Interaction Altar (z = -2.4 relative -> z = 13.6 world) */}
-      <group position={[0, 0, -2.4]}>
-        <mesh position={[0, 0.16, 0]}>
-          <cylinderGeometry args={[1.15, 1.35, 0.32, 16]} />
-          <primitive object={sandstoneDark} attach="material" />
-        </mesh>
-        <mesh position={[0, 0.52, 0]}>
-          <cylinderGeometry args={[0.82, 0.98, 0.42, 16]} />
-          <primitive object={sandstoneMedium} attach="material" />
-        </mesh>
-        <mesh position={[0, 0.8, 0]}>
-          <boxGeometry args={[1.1, 0.16, 0.9]} />
-          <primitive object={sandstoneLight} attach="material" />
-        </mesh>
-        {/* Twin Rune Tablet */}
-        <mesh position={[-0.22, 0.9, 0]}>
-          <boxGeometry args={[0.36, 0.04, 0.62]} />
-          <meshStandardMaterial
-            ref={runeGlowRef}
-            color="#38BDF8"
-            emissive="#0284C7"
-            emissiveIntensity={0.6}
-            roughness={0.25}
-          />
-        </mesh>
-        <mesh position={[0.22, 0.9, 0]}>
-          <boxGeometry args={[0.36, 0.04, 0.62]} />
-          <meshStandardMaterial
-            color="#38BDF8"
-            emissive="#0284C7"
-            emissiveIntensity={isLocked ? 0.15 : 0.65}
-            roughness={0.25}
-          />
-        </mesh>
-      </group>
+      {/* Stage 2 Interaction Lotus Altar (z = -2.4 relative -> z = 13.6 world) */}
+      <StageLotusAltar
+        position={[0, 0, -2.4]}
+        isLocked={isLocked}
+        status={status}
+        accentColor="#38BDF8"
+        runeRef={runeGlowRef}
+      />
     </group>
   );
 }
@@ -362,42 +421,42 @@ function JunglePathChallenge({
       />
 
       {/* Mossy Sanctuary Arch Pillars */}
-      <mesh position={[-2.25, 2.3, 0]}>
+      <mesh position={[-2.25, 2.3, 0]} castShadow receiveShadow>
         <boxGeometry args={[1.15, 4.6, 1.15]} />
         <primitive object={mossyStone} attach="material" />
       </mesh>
-      <mesh position={[2.25, 2.3, 0]}>
+      <mesh position={[2.25, 2.3, 0]} castShadow receiveShadow>
         <boxGeometry args={[1.15, 4.6, 1.15]} />
         <primitive object={mossyStone} attach="material" />
       </mesh>
 
       {/* Ta Prohm Banyan Root Tendrils Embracing Arch */}
-      <mesh position={[-2.1, 3.6, -0.35]} rotation={[0, 0, -0.32]}>
+      <mesh position={[-2.1, 3.6, -0.35]} rotation={[0, 0, -0.32]} castShadow>
         <cylinderGeometry args={[0.14, 0.26, 2.8, 8]} />
         <primitive object={ancientRootWood} attach="material" />
       </mesh>
-      <mesh position={[2.1, 3.6, -0.35]} rotation={[0, 0, 0.32]}>
+      <mesh position={[2.1, 3.6, -0.35]} rotation={[0, 0, 0.32]} castShadow>
         <cylinderGeometry args={[0.14, 0.26, 2.8, 8]} />
         <primitive object={ancientRootWood} attach="material" />
       </mesh>
 
       {/* Jungle Canopy Crown Lintel */}
-      <mesh position={[0, 4.85, 0]}>
+      <mesh position={[0, 4.85, 0]} castShadow>
         <boxGeometry args={[5.8, 0.75, 1.25]} />
         <primitive object={mossyStone} attach="material" />
       </mesh>
-      <mesh position={[0, 5.45, 0]}>
+      <mesh position={[0, 5.45, 0]} castShadow>
         <boxGeometry args={[4.4, 0.6, 1.1]} />
         <primitive object={emeraldFoliage} attach="material" />
       </mesh>
-      <mesh position={[0, 6.05, 0]}>
+      <mesh position={[0, 6.05, 0]} castShadow>
         <coneGeometry args={[0.5, 0.95, 8]} />
         <primitive object={goldenTrim} attach="material" />
       </mesh>
 
       {/* Left Jungle Arch Door Leaf */}
       <group ref={leftGateRef} position={[-1.7, 0, 0]}>
-        <mesh position={[0.82, 2.15, 0]}>
+        <mesh position={[0.82, 2.15, 0]} castShadow receiveShadow>
           <boxGeometry args={[1.66, 4.0, 0.26]} />
           <primitive object={ancientRootWood} attach="material" />
         </mesh>
@@ -413,7 +472,7 @@ function JunglePathChallenge({
 
       {/* Right Jungle Arch Door Leaf */}
       <group ref={rightGateRef} position={[1.7, 0, 0]}>
-        <mesh position={[-0.82, 2.15, 0]}>
+        <mesh position={[-0.82, 2.15, 0]} castShadow receiveShadow>
           <boxGeometry args={[1.66, 4.0, 0.26]} />
           <primitive object={ancientRootWood} attach="material" />
         </mesh>
@@ -427,32 +486,14 @@ function JunglePathChallenge({
         </mesh>
       </group>
 
-      {/* Stage 3 Interaction Altar (z = -2.4 relative -> z = 23.6 world) */}
-      <group position={[0, 0, -2.4]}>
-        <mesh position={[0, 0.16, 0]}>
-          <cylinderGeometry args={[1.15, 1.35, 0.32, 16]} />
-          <primitive object={mossyStone} attach="material" />
-        </mesh>
-        <mesh position={[0, 0.52, 0]}>
-          <cylinderGeometry args={[0.82, 0.98, 0.42, 16]} />
-          <primitive object={ancientRootWood} attach="material" />
-        </mesh>
-        <mesh position={[0, 0.8, 0]}>
-          <boxGeometry args={[1.1, 0.16, 0.9]} />
-          <primitive object={mossyStone} attach="material" />
-        </mesh>
-        {/* Emerald Jungle Rune Tablet */}
-        <mesh position={[0, 0.9, 0]}>
-          <boxGeometry args={[0.86, 0.04, 0.64]} />
-          <meshStandardMaterial
-            ref={runeGlowRef}
-            color="#34D399"
-            emissive="#059669"
-            emissiveIntensity={0.65}
-            roughness={0.25}
-          />
-        </mesh>
-      </group>
+      {/* Stage 3 Interaction Lotus Altar (z = -2.4 relative -> z = 23.6 world) */}
+      <StageLotusAltar
+        position={[0, 0, -2.4]}
+        isLocked={isLocked}
+        status={status}
+        accentColor="#34D399"
+        runeRef={runeGlowRef}
+      />
     </group>
   );
 }
