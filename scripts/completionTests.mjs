@@ -64,6 +64,8 @@ const validAttempt = {
 };
 
 assert.equal(validateLessonAttempt(validAttempt).id, '1:1');
+assert.equal(validateLessonAttempt({ ...validAttempt, version: 'khmer-first-5.5-v1' }).id, '1:1');
+assert.throws(() => validateLessonAttempt({ ...validAttempt, version: 'unsupported-version-xyz' }));
 assert.throws(() => validateLessonAttempt({ ...validAttempt, XP: 9999 }));
 assert.throws(() => validateLessonAttempt({ ...validAttempt, mode: '3d' }));
 const validStagesL2 = resolveLessonIdentity('1:2').lesson.stages.map(s => ({ id: s.id, accuracy: s.accuracyGoal, completed: true }));

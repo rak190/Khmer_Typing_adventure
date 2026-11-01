@@ -237,10 +237,61 @@ try {
 
   const fullAudit = typingPlan.auditAllCurriculumMappings(curriculum.lessonCurriculum);
   assert.ok(fullAudit.totalLessons > 0);
-  assert.ok(fullAudit.fullyMappedLessonCount >= 7);
+  assert.equal(
+    fullAudit.fullyMappedLessonCount,
+    fullAudit.totalLessons,
+    'All curriculum lessons must have 100% valid mappings in Curriculum V2',
+  );
+  assert.equal(
+    fullAudit.lessonsWithUnsupportedInputs.length,
+    0,
+    'No curriculum lessons should have unsupported inputs in Curriculum V2',
+  );
+
+  // Verify that the audit function correctly detects unmapped characters when present
+  const mockUnmappedWorld = [
+    {
+      id: 99,
+      title: 'Test World',
+      titleKh: 'សាកល្បង',
+      subtitle: 'Test',
+      theme: 'test',
+      mainLessonKh: 'សាកល្បង',
+      mainLessonEn: 'Test',
+      skillFocus: 'Test',
+      unicodeFocus: 'Test',
+      levels: [
+        {
+          id: 1,
+          labelKh: 'សាកល្បង',
+          labelEn: 'Test',
+          category: 'test',
+          objective: 'test',
+          focusKeys: ['KeyA'],
+          unicodeRule: 'test',
+          successCriteria: 'test',
+          stages: [
+            {
+              id: 'w99-l1-s1',
+              kind: 'warmup',
+              titleKh: 'សាកល្បង',
+              titleEn: 'Test',
+              mission: 'test',
+              skill: 'test',
+              mechanic: 'test',
+              targetCount: 1,
+              accuracyGoal: 80,
+              items: ['ក\u17CF'],
+            },
+          ],
+        },
+      ],
+    },
+  ];
+  const testAudit = typingPlan.auditAllCurriculumMappings(mockUnmappedWorld);
   assert.ok(
-    fullAudit.lessonsWithUnsupportedInputs.some((entry) => entry.worldId === 1 && entry.lessonId === 8),
-    'Audit must explicitly flag unmapped character in World 1 Lesson 8 instead of silently ignoring it',
+    testAudit.lessonsWithUnsupportedInputs.some((entry) => entry.worldId === 99 && entry.lessonId === 1),
+    'Audit must explicitly flag unmapped character in synthetic test lesson',
   );
 } finally {
   await server.close();
