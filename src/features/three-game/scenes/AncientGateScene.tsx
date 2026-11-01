@@ -2,6 +2,7 @@ import type { MutableRefObject } from 'react';
 import AncientStoneGate from '../components/AncientStoneGate';
 import Character from '../components/Character';
 import Environment from '../components/Environment';
+import World1SceneryAddon from '../components/World1SceneryAddon';
 import StageChallenges from '../components/StageChallenges';
 import ThirdPersonCamera from '../components/ThirdPersonCamera';
 import type { MovementInput } from '../hooks/usePlayerControls';
@@ -49,6 +50,9 @@ export default function AncientGateScene({
 
       {/* Cambodian Courtyard Environment & Warm Golden Lighting */}
       <Environment />
+
+      {/* World 1 Scenic Dressing Add-on (LITE) */}
+      <World1SceneryAddon quality="lite" />
 
       {/* Playable Hero Character with Cambodian Regalia & Organic Blending */}
       <Character
