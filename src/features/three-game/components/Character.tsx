@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef, type MutableRefObject } from 'react';
+import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import { useGltfClone } from '../hooks/useGltfAsset';
 import type { MovementInput } from '../hooks/usePlayerControls';
@@ -37,6 +37,29 @@ interface HeroGlbParts {
   rightLeg: THREE.Object3D;
 }
 
+interface HeroBones {
+  root: THREE.Object3D;
+  hips: THREE.Object3D;
+  spine: THREE.Object3D;
+  chest: THREE.Object3D;
+  neck: THREE.Object3D;
+  head: THREE.Object3D;
+  upperArmL: THREE.Object3D;
+  forearmL: THREE.Object3D;
+  handL: THREE.Object3D;
+  upperArmR: THREE.Object3D;
+  forearmR: THREE.Object3D;
+  handR: THREE.Object3D;
+  upperLegL: THREE.Object3D;
+  lowerLegL: THREE.Object3D;
+  footL: THREE.Object3D;
+  upperLegR: THREE.Object3D;
+  lowerLegR: THREE.Object3D;
+  footR: THREE.Object3D;
+  cape01: THREE.Object3D;
+  cape02: THREE.Object3D;
+}
+
 export default function Character({
   positionRef,
   movement,
@@ -72,10 +95,72 @@ export default function Character({
   const successPulseRef = useRef<number>(0);
   const mistakeShakeRef = useRef<number>(0);
 
-  const glbScene = useGltfClone('/models/characters/khmer_student_hero.glb');
+  const glbScene = useGltfClone('/models/characters/Khmer_Student_Hero_Rigged.glb');
 
-  const glbParts = useMemo<HeroGlbParts | null>(() => {
+  // 1. Skinned Mesh Armature with smooth bending joints
+  const riggedModelRef = useRef<{ rig: THREE.Object3D; bones: HeroBones } | null>(null);
+
+  const riggedModel = useMemo<{ rig: THREE.Object3D; bones: HeroBones } | null>(() => {
     if (!glbScene) return null;
+    const rig = glbScene.getObjectByName('KhmerHeroRig');
+    if (!rig) return null;
+
+    const findBone = (name: string) => rig.getObjectByName(name) || null;
+    const root = findBone('Root');
+    const hips = findBone('Hips');
+    const spine = findBone('Spine');
+    const chest = findBone('Chest');
+    const neck = findBone('Neck');
+    const head = findBone('Head');
+    const upperArmL = findBone('UpperArm_L');
+    const forearmL = findBone('Forearm_L');
+    const handL = findBone('Hand_L');
+    const upperArmR = findBone('UpperArm_R');
+    const forearmR = findBone('Forearm_R');
+    const handR = findBone('Hand_R');
+    const upperLegL = findBone('UpperLeg_L');
+    const lowerLegL = findBone('LowerLeg_L');
+    const footL = findBone('Foot_L');
+    const upperLegR = findBone('UpperLeg_R');
+    const lowerLegR = findBone('LowerLeg_R');
+    const footR = findBone('Foot_R');
+    const cape01 = findBone('Cape_01');
+    const cape02 = findBone('Cape_02');
+
+    if (!root || !hips || !spine || !chest || !head || !upperArmL || !upperArmR || !upperLegL || !upperLegR) {
+      return null;
+    }
+
+    return {
+      rig,
+      bones: {
+        root,
+        hips,
+        spine,
+        chest,
+        neck: neck || chest,
+        head,
+        upperArmL,
+        forearmL: forearmL || upperArmL,
+        handL: handL || forearmL || upperArmL,
+        upperArmR,
+        forearmR: forearmR || upperArmR,
+        handR: handR || forearmR || upperArmR,
+        upperLegL,
+        lowerLegL: lowerLegL || upperLegL,
+        footL: footL || lowerLegL || upperLegL,
+        upperLegR,
+        lowerLegR: lowerLegR || upperLegR,
+        footR: footR || lowerLegR || upperLegR,
+        cape01: cape01 || chest,
+        cape02: cape02 || cape01 || chest,
+      },
+    };
+  }, [glbScene]);
+
+  // 2. Modular parts fallback if an un-rigged GLB is loaded
+  const glbParts = useMemo<HeroGlbParts | null>(() => {
+    if (!glbScene || riggedModel) return null;
     const waist = glbScene.getObjectByName('HeroWaistMesh');
     const chest = glbScene.getObjectByName('HeroChestMesh');
     const cape = glbScene.getObjectByName('HeroCapeMesh');
@@ -87,17 +172,31 @@ export default function Character({
     if (!waist || !chest || !cape || !head || !leftArm || !rightArm || !leftLeg || !rightLeg) {
       return null;
     }
-    return {
-      waist: waist.clone(true),
-      chest: chest.clone(true),
-      cape: cape.clone(true),
-      head: head.clone(true),
-      leftArm: leftArm.clone(true),
-      rightArm: rightArm.clone(true),
-      leftLeg: leftLeg.clone(true),
-      rightLeg: rightLeg.clone(true),
+    const preparePart = (obj: THREE.Object3D) => {
+      const clone = obj.clone(true);
+      clone.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      return clone;
     };
-  }, [glbScene]);
+    return {
+      waist: preparePart(waist),
+      chest: preparePart(chest),
+      cape: preparePart(cape),
+      head: preparePart(head),
+      leftArm: preparePart(leftArm),
+      rightArm: preparePart(rightArm),
+      leftLeg: preparePart(leftLeg),
+      rightLeg: preparePart(rightLeg),
+    };
+  }, [glbScene, riggedModel]);
+
+  useEffect(() => {
+    riggedModelRef.current = riggedModel;
+  }, [riggedModel]);
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
@@ -171,6 +270,124 @@ export default function Character({
       auraRingRef.current.rotation.z = time * 0.9;
       const ringScale = nearGate || mode === 'typing' ? 1.08 + Math.sin(time * 4) * 0.06 : 0.92;
       auraRingRef.current.scale.set(ringScale, ringScale, 1);
+    }
+
+    // SKINNED ARMATURE ANIMATION (smooth bending joints, elbows, knees, spine, cape)
+    const activeRig = riggedModelRef.current;
+    if (activeRig) {
+      const { bones } = activeRig;
+      const idleTime = time * 2.3;
+      const mb = moveBlendRef.current;
+
+      if (mode === 'opening' || (mode === 'completed' && !isMoving)) {
+        const cheerBounce = Math.abs(Math.sin(time * 6.5)) * 0.13;
+        const cheerWave = Math.sin(time * 9.0);
+
+        bones.hips.position.y = 0.78 + cheerBounce;
+        bones.spine.rotation.y = Math.sin(time * 4.5) * 0.08;
+        bones.chest.rotation.x = -0.04;
+        bones.head.rotation.x = -0.12 + Math.sin(time * 6.5) * 0.05;
+        bones.head.rotation.y = Math.sin(time * 3.2) * 0.10;
+
+        bones.upperArmL.rotation.x = -2.35 + cheerWave * 0.15;
+        bones.upperArmL.rotation.z = 0.35;
+        bones.forearmL.rotation.x = -0.35;
+
+        bones.upperArmR.rotation.x = -2.35 - cheerWave * 0.15;
+        bones.upperArmR.rotation.z = -0.35;
+        bones.forearmR.rotation.x = -0.35;
+
+        bones.upperLegL.rotation.x = -cheerBounce * 0.8;
+        bones.lowerLegL.rotation.x = cheerBounce * 0.6;
+        bones.upperLegR.rotation.x = cheerBounce * 0.5;
+        bones.lowerLegR.rotation.x = cheerBounce * 0.4;
+
+        bones.cape01.rotation.x = 0.25 + cheerBounce * 1.4;
+        bones.cape02.rotation.x = 0.45 + cheerBounce * 2.0;
+        return;
+      }
+
+      if (mode === 'typing') {
+        const focusBreath = Math.sin(time * 3.2) * 0.018;
+        const nod = successPulseRef.current * Math.sin(successPulseRef.current * Math.PI) * 0.18;
+        const shake = mistakeShakeRef.current * Math.sin(time * 36) * 0.22;
+
+        bones.hips.position.y = 0.78 + focusBreath + successPulseRef.current * 0.03;
+        bones.spine.rotation.x = 0.06;
+        bones.spine.rotation.z = shake * 0.15;
+        bones.chest.rotation.y = shake * 0.25;
+
+        bones.head.rotation.x = 0.08 + nod;
+        bones.head.rotation.y = shake;
+
+        bones.upperArmL.rotation.x = -0.65 - nod * 0.4 + Math.sin(time * 5) * 0.03;
+        bones.upperArmL.rotation.z = -0.15;
+        bones.forearmL.rotation.x = -0.55 + nod * 0.2;
+
+        bones.upperArmR.rotation.x = -0.65 - nod * 0.4 + Math.cos(time * 5) * 0.03;
+        bones.upperArmR.rotation.z = 0.15;
+        bones.forearmR.rotation.x = -0.55 + nod * 0.2;
+
+        bones.upperLegL.rotation.x = 0;
+        bones.lowerLegL.rotation.x = 0;
+        bones.upperLegR.rotation.x = 0;
+        bones.lowerLegR.rotation.x = 0;
+
+        bones.cape01.rotation.x = 0.08 + Math.sin(time * 2.4) * 0.04;
+        bones.cape02.rotation.x = 0.12 + Math.sin(time * 2.4) * 0.05;
+        return;
+      }
+
+      // Idle & Locomotion walk cycle
+      const idleBreath = Math.sin(idleTime) * 0.022;
+      const idleBob = Math.sin(idleTime * 0.9) * 0.018;
+      const idleArm = Math.sin(idleTime + 0.4) * 0.045;
+      const idleHead = Math.sin(time * 1.1) * 0.05;
+
+      const walkSwing = Math.sin(walkCycleRef.current) * 0.65;
+      const walkBob = Math.abs(Math.sin(walkCycleRef.current * 2)) * 0.065;
+
+      const legSwing = walkSwing * mb;
+      const armSwingLeft = -walkSwing * 0.8 * mb + idleArm * (1 - mb);
+      const armSwingRight = walkSwing * 0.8 * mb - idleArm * (1 - mb);
+      const bodyVertical = walkBob * mb + idleBob * (1 - mb);
+      const torsoLean = 0.085 * mb;
+
+      bones.hips.position.y = 0.78 + bodyVertical;
+      bones.hips.rotation.x = torsoLean;
+      bones.hips.rotation.z = THREE.MathUtils.lerp(
+        bones.hips.rotation.z,
+        turnBank + walkSwing * 0.025 * mb,
+        dt * 10
+      );
+
+      bones.spine.rotation.y = -walkSwing * 0.07 * mb + Math.sin(time * 1.1) * 0.025 * (1 - mb);
+      bones.chest.rotation.x = idleBreath * (1 - mb);
+
+      bones.head.rotation.y = idleHead * (1 - mb) + walkSwing * 0.035 * mb;
+      bones.head.rotation.x = -torsoLean * 0.4;
+
+      // Legs with natural knee bending on lift
+      bones.upperLegL.rotation.x = legSwing;
+      bones.lowerLegL.rotation.x = Math.max(0, -legSwing * 0.7);
+      bones.upperLegR.rotation.x = -legSwing;
+      bones.lowerLegR.rotation.x = Math.max(0, legSwing * 0.7);
+
+      // Arms with natural elbow bending on forward swing
+      bones.upperArmL.rotation.x = armSwingLeft;
+      bones.upperArmL.rotation.z = 0.08;
+      bones.forearmL.rotation.x = -0.2 - Math.max(0, -armSwingLeft) * 0.35;
+
+      bones.upperArmR.rotation.x = armSwingRight;
+      bones.upperArmR.rotation.z = -0.08;
+      bones.forearmR.rotation.x = -0.2 - Math.max(0, -armSwingRight) * 0.35;
+
+      // Secondary cape cloth flow
+      bones.cape01.rotation.x =
+        (0.20 + Math.abs(walkSwing) * 0.20) * mb + (0.06 + Math.sin(time * 1.8) * 0.04) * (1 - mb);
+      bones.cape02.rotation.x =
+        (0.35 + Math.abs(walkSwing) * 0.30) * mb + (0.10 + Math.sin(time * 1.8) * 0.06) * (1 - mb);
+      return;
     }
 
     // 1. STAGE / GATE COMPLETION CELEBRATION ANIMATION (when opening or standing celebrating)
@@ -320,136 +537,141 @@ export default function Character({
         />
       </mesh>
 
-      {/* Animated Torso & Head Group */}
-      <group ref={bodyRef}>
-        {/* Waist Belt & Pleated Chong Kben (pivot Y = 0.88) */}
-        <group position={[0, 0.88, 0]}>
-          {glbParts ? (
-            <primitive object={glbParts.waist} />
-          ) : (
-            <group position={[0, -0.09, 0]}>
-              <mesh castShadow receiveShadow position={[0, 0.79, 0]}>
-                <cylinderGeometry args={[0.24, 0.27, 0.34, 16]} />
+      {/* Skinned Armature Mesh (smooth bending joints, elbows, knees, spine, cape) */}
+      {riggedModel ? (
+        <primitive object={riggedModel.rig} />
+      ) : (
+        /* Animated Torso & Head Group (Modular fallback) */
+        <group ref={bodyRef}>
+          {/* Waist Belt & Pleated Chong Kben (pivot at origin for V3) */}
+          <group position={glbParts ? [0, 0, 0] : [0, 0.88, 0]}>
+            {glbParts ? (
+              <primitive object={glbParts.waist} />
+            ) : (
+              <group position={[0, -0.09, 0]}>
+                <mesh castShadow receiveShadow position={[0, 0.79, 0]}>
+                  <cylinderGeometry args={[0.24, 0.27, 0.34, 16]} />
+                  <meshStandardMaterial color="#9A4212" roughness={0.68} />
+                </mesh>
+                <mesh castShadow position={[0, 0.91, 0]}>
+                  <cylinderGeometry args={[0.25, 0.25, 0.08, 16]} />
+                  <meshStandardMaterial color="#F59E0B" roughness={0.28} metalness={0.65} />
+                </mesh>
+              </group>
+            )}
+          </group>
+
+          {/* Chest, Teal Tunic, Golden Sangvar, Pauldrons & Satchel */}
+          <group ref={chestRef} position={[0, 1.15, 0]}>
+            {glbParts ? (
+              <primitive object={glbParts.chest} />
+            ) : (
+              <group>
+                <mesh castShadow receiveShadow position={[0, 0.04, 0]}>
+                  <cylinderGeometry args={[0.21, 0.26, 0.5, 16]} />
+                  <meshStandardMaterial color="#0F766E" roughness={0.58} />
+                </mesh>
+                <mesh castShadow position={[0, 0.09, 0.22]} rotation={[0, 0, Math.PI / 4]}>
+                  <boxGeometry args={[0.12, 0.12, 0.05]} />
+                  <meshStandardMaterial
+                    color="#38BDF8"
+                    emissive="#0284C7"
+                    emissiveIntensity={1.2}
+                    roughness={0.15}
+                  />
+                </mesh>
+              </group>
+            )}
+
+            {/* Flowing Adventurer Capelet */}
+            <group ref={capeRef} position={[0, 0.29, -0.12]}>
+              {glbParts ? (
+                <primitive object={glbParts.cape} />
+              ) : (
+                <mesh castShadow position={[0, -0.26, -0.06]} rotation={[0.18, 0, 0]}>
+                  <boxGeometry args={[0.48, 0.58, 0.04]} />
+                  <meshStandardMaterial color="#0B534E" roughness={0.62} />
+                </mesh>
+              )}
+            </group>
+          </group>
+
+          {/* Expressive Head, Spiky Hair & Sapphire Diamond Diadem */}
+          <group ref={headRef} position={[0, 1.72, 0]}>
+            {glbParts ? (
+              <primitive object={glbParts.head} />
+            ) : (
+              <group>
+                <mesh castShadow receiveShadow position={[0, 0.02, 0]}>
+                  <sphereGeometry args={[0.26, 18, 16]} />
+                  <meshStandardMaterial color="#E2A373" roughness={0.62} />
+                </mesh>
+                <mesh castShadow position={[0, 0.12, -0.03]}>
+                  <sphereGeometry args={[0.27, 16, 14]} />
+                  <meshStandardMaterial color="#1D130E" roughness={0.52} />
+                </mesh>
+                <mesh castShadow position={[0, 0.135, 0.265]} rotation={[0, 0, Math.PI / 4]}>
+                  <boxGeometry args={[0.12, 0.14, 0.045]} />
+                  <meshStandardMaterial
+                    color="#38BDF8"
+                    emissive="#0284C7"
+                    emissiveIntensity={1.2}
+                    roughness={0.15}
+                  />
+                </mesh>
+              </group>
+            )}
+          </group>
+
+          {/* Left Arm */}
+          <group ref={leftArmRef} position={glbParts ? [-0.34, 1.38, 0] : [-0.22, 1.34, 0]}>
+            {glbParts ? (
+              <primitive object={glbParts.leftArm} />
+            ) : (
+              <mesh castShadow position={[0, -0.24, 0]}>
+                <cylinderGeometry args={[0.075, 0.085, 0.42, 12]} />
+                <meshStandardMaterial color="#E2A373" roughness={0.62} />
+              </mesh>
+            )}
+          </group>
+
+          {/* Right Arm */}
+          <group ref={rightArmRef} position={glbParts ? [0.34, 1.38, 0] : [0.22, 1.34, 0]}>
+            {glbParts ? (
+              <primitive object={glbParts.rightArm} />
+            ) : (
+              <mesh castShadow position={[0, -0.24, 0]}>
+                <cylinderGeometry args={[0.075, 0.085, 0.42, 12]} />
+                <meshStandardMaterial color="#E2A373" roughness={0.62} />
+              </mesh>
+            )}
+          </group>
+
+          {/* Left Leg (articulated with pelvis) */}
+          <group ref={leftLegRef} position={glbParts ? [-0.15, 0.78, 0] : [-0.14, 0.78, 0]}>
+            {glbParts ? (
+              <primitive object={glbParts.leftLeg} />
+            ) : (
+              <mesh castShadow position={[0, -0.32, 0]}>
+                <cylinderGeometry args={[0.085, 0.1, 0.56, 12]} />
                 <meshStandardMaterial color="#9A4212" roughness={0.68} />
               </mesh>
-              <mesh castShadow position={[0, 0.91, 0]}>
-                <cylinderGeometry args={[0.25, 0.25, 0.08, 16]} />
-                <meshStandardMaterial color="#F59E0B" roughness={0.28} metalness={0.65} />
-              </mesh>
-            </group>
-          )}
-        </group>
+            )}
+          </group>
 
-        {/* Chest, Teal Tunic, Golden Sangvar, Pauldrons & Satchel */}
-        <group ref={chestRef} position={[0, 1.15, 0]}>
-          {glbParts ? (
-            <primitive object={glbParts.chest} />
-          ) : (
-            <group>
-              <mesh castShadow receiveShadow position={[0, 0.04, 0]}>
-                <cylinderGeometry args={[0.21, 0.26, 0.5, 16]} />
-                <meshStandardMaterial color="#0F766E" roughness={0.58} />
-              </mesh>
-              <mesh castShadow position={[0, 0.09, 0.22]} rotation={[0, 0, Math.PI / 4]}>
-                <boxGeometry args={[0.12, 0.12, 0.05]} />
-                <meshStandardMaterial
-                  color="#38BDF8"
-                  emissive="#0284C7"
-                  emissiveIntensity={1.2}
-                  roughness={0.15}
-                />
-              </mesh>
-            </group>
-          )}
-
-          {/* Flowing Adventurer Capelet */}
-          <group ref={capeRef} position={[0, 0.29, -0.12]}>
+          {/* Right Leg (articulated with pelvis) */}
+          <group ref={rightLegRef} position={glbParts ? [0.15, 0.78, 0] : [0.14, 0.78, 0]}>
             {glbParts ? (
-              <primitive object={glbParts.cape} />
+              <primitive object={glbParts.rightLeg} />
             ) : (
-              <mesh castShadow position={[0, -0.26, -0.06]} rotation={[0.18, 0, 0]}>
-                <boxGeometry args={[0.48, 0.58, 0.04]} />
-                <meshStandardMaterial color="#0B534E" roughness={0.62} />
+              <mesh castShadow position={[0, -0.32, 0]}>
+                <cylinderGeometry args={[0.085, 0.1, 0.56, 12]} />
+                <meshStandardMaterial color="#9A4212" roughness={0.68} />
               </mesh>
             )}
           </group>
         </group>
-
-        {/* Expressive Head, Spiky Hair & Sapphire Diamond Diadem */}
-        <group ref={headRef} position={[0, 1.62, 0]}>
-          {glbParts ? (
-            <primitive object={glbParts.head} />
-          ) : (
-            <group>
-              <mesh castShadow receiveShadow position={[0, 0.02, 0]}>
-                <sphereGeometry args={[0.26, 18, 16]} />
-                <meshStandardMaterial color="#E2A373" roughness={0.62} />
-              </mesh>
-              <mesh castShadow position={[0, 0.12, -0.03]}>
-                <sphereGeometry args={[0.27, 16, 14]} />
-                <meshStandardMaterial color="#1D130E" roughness={0.52} />
-              </mesh>
-              <mesh castShadow position={[0, 0.135, 0.265]} rotation={[0, 0, Math.PI / 4]}>
-                <boxGeometry args={[0.12, 0.14, 0.045]} />
-                <meshStandardMaterial
-                  color="#38BDF8"
-                  emissive="#0284C7"
-                  emissiveIntensity={1.2}
-                  roughness={0.15}
-                />
-              </mesh>
-            </group>
-          )}
-        </group>
-
-        {/* Left Arm */}
-        <group ref={leftArmRef} position={[-0.22, 1.34, 0]}>
-          {glbParts ? (
-            <primitive object={glbParts.leftArm} />
-          ) : (
-            <mesh castShadow position={[0, -0.24, 0]}>
-              <cylinderGeometry args={[0.075, 0.085, 0.42, 12]} />
-              <meshStandardMaterial color="#E2A373" roughness={0.62} />
-            </mesh>
-          )}
-        </group>
-
-        {/* Right Arm */}
-        <group ref={rightArmRef} position={[0.22, 1.34, 0]}>
-          {glbParts ? (
-            <primitive object={glbParts.rightArm} />
-          ) : (
-            <mesh castShadow position={[0, -0.24, 0]}>
-              <cylinderGeometry args={[0.075, 0.085, 0.42, 12]} />
-              <meshStandardMaterial color="#E2A373" roughness={0.62} />
-            </mesh>
-          )}
-        </group>
-
-        {/* Left Leg (articulated with pelvis) */}
-        <group ref={leftLegRef} position={[-0.14, 0.78, 0]}>
-          {glbParts ? (
-            <primitive object={glbParts.leftLeg} />
-          ) : (
-            <mesh castShadow position={[0, -0.32, 0]}>
-              <cylinderGeometry args={[0.085, 0.1, 0.56, 12]} />
-              <meshStandardMaterial color="#9A4212" roughness={0.68} />
-            </mesh>
-          )}
-        </group>
-
-        {/* Right Leg (articulated with pelvis) */}
-        <group ref={rightLegRef} position={[0.14, 0.78, 0]}>
-          {glbParts ? (
-            <primitive object={glbParts.rightLeg} />
-          ) : (
-            <mesh castShadow position={[0, -0.32, 0]}>
-              <cylinderGeometry args={[0.085, 0.1, 0.56, 12]} />
-              <meshStandardMaterial color="#9A4212" roughness={0.68} />
-            </mesh>
-          )}
-        </group>
-      </group>
+      )}
     </group>
   );
 }
