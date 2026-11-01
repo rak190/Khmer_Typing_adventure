@@ -18,6 +18,8 @@ type StageBarrierProps = {
   completedCount?: number;
   incorrectCount?: number;
   onOpeningFinished?: () => void;
+  lessonId?: number;
+  stageId?: string;
 };
 
 function StageLotusAltar({
@@ -681,6 +683,154 @@ function AncientBanyanRoots({
 }
 
 /**
+ * Stage 2 Lesson 2: Careful Pairs (គូប្រយ័ត្ន)
+ * Twin ceremonial stone lanterns that ignite in unison as confusing consonant pairs are typed accurately
+ */
+function CarefulPairsTwinLanterns({
+  completedCount = 0,
+  streak = 0,
+  incorrectCount = 0,
+  isActiveStage = false,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  incorrectCount?: number;
+  isActiveStage?: boolean;
+  isUnlocked?: boolean;
+}) {
+  const completedPairs = Math.floor(completedCount / 2);
+  const prevIncorrectRef = useRef(incorrectCount);
+  const errorFlashRef = useRef(0);
+  const leftFlameRef = useRef<THREE.MeshStandardMaterial>(null);
+  const rightFlameRef = useRef<THREE.MeshStandardMaterial>(null);
+  const leftLightRef = useRef<THREE.PointLight>(null);
+  const rightLightRef = useRef<THREE.PointLight>(null);
+
+  useFrame((state, delta) => {
+    const time = state.clock.getElapsedTime();
+    if (isActiveStage && incorrectCount > prevIncorrectRef.current) {
+      errorFlashRef.current = 1.0;
+    }
+    prevIncorrectRef.current = incorrectCount;
+
+    if (errorFlashRef.current > 0) {
+      errorFlashRef.current = Math.max(0, errorFlashRef.current - delta * 3.5);
+    }
+
+    const flameIntensity = isUnlocked
+      ? 2.2 + Math.sin(time * 4) * 0.3
+      : errorFlashRef.current > 0.1
+      ? 0.4
+      : 0.8 + Math.min(streak * 0.15, 1.2) + Math.min(completedPairs * 0.12, 1.0) + Math.sin(time * 3.5) * 0.15;
+
+    const flameColor = isUnlocked
+      ? '#38BDF8'
+      : errorFlashRef.current > 0.1
+      ? '#EF4444'
+      : streak >= 3
+      ? '#FBBF24'
+      : '#F59E0B';
+
+    if (leftFlameRef.current) {
+      leftFlameRef.current.color.set(flameColor);
+      leftFlameRef.current.emissive.set(flameColor);
+      leftFlameRef.current.emissiveIntensity = flameIntensity;
+    }
+    if (rightFlameRef.current) {
+      rightFlameRef.current.color.set(flameColor);
+      rightFlameRef.current.emissive.set(flameColor);
+      rightFlameRef.current.emissiveIntensity = flameIntensity;
+    }
+    if (leftLightRef.current) {
+      leftLightRef.current.color.set(flameColor);
+      leftLightRef.current.intensity = flameIntensity * 1.5;
+    }
+    if (rightLightRef.current) {
+      rightLightRef.current.color.set(flameColor);
+      rightLightRef.current.intensity = flameIntensity * 1.5;
+    }
+  });
+
+  return (
+    <group position={[0, 0, -1.2]}>
+      {[-1.65, 1.65].map((lx, idx) => (
+        <group key={`pair-lantern-${idx}`} position={[lx, 0.22, 0]}>
+          {/* Stepped Octagonal Plinth */}
+          <mesh position={[0, 0.16, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[0.38, 0.46, 0.32, 8]} />
+            <meshStandardMaterial color="#6B5037" roughness={0.88} />
+          </mesh>
+          <mesh position={[0, 0.36, 0]} castShadow>
+            <cylinderGeometry args={[0.32, 0.38, 0.14, 8]} />
+            <meshStandardMaterial color="#8A6A48" roughness={0.84} />
+          </mesh>
+
+          {/* Fluted Lantern Shaft with 8 Paired Niches */}
+          <mesh position={[0, 0.95, 0]} castShadow>
+            <cylinderGeometry args={[0.18, 0.22, 1.05, 8]} />
+            <meshStandardMaterial color="#A48259" roughness={0.82} />
+          </mesh>
+
+          {/* 8 Running Paired Tier Rings */}
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((pIdx) => {
+            const isPairLit = isUnlocked || pIdx < completedPairs;
+            return (
+              <mesh key={`ring-${pIdx}`} position={[0, 0.52 + pIdx * 0.11, 0]}>
+                <cylinderGeometry args={[0.22, 0.22, 0.04, 8]} />
+                <meshStandardMaterial
+                  color={isPairLit ? '#38BDF8' : '#5C442F'}
+                  emissive={isPairLit ? '#0284C7' : '#000000'}
+                  emissiveIntensity={isPairLit ? 1.4 : 0}
+                  roughness={0.3}
+                />
+              </mesh>
+            );
+          })}
+
+          {/* Ceremonial Fire Bowl / Brazier */}
+          <mesh position={[0, 1.58, 0]} castShadow>
+            <cylinderGeometry args={[0.34, 0.2, 0.24, 8]} />
+            <meshStandardMaterial color="#B58F5C" roughness={0.78} />
+          </mesh>
+
+          {/* Sacred Flame Core */}
+          <mesh position={[0, 1.76, 0]}>
+            <sphereGeometry args={[0.16, 8, 8]} />
+            <meshStandardMaterial
+              ref={idx === 0 ? leftFlameRef : rightFlameRef}
+              color="#F59E0B"
+              emissive="#F59E0B"
+              emissiveIntensity={1.0}
+              roughness={0.15}
+            />
+          </mesh>
+
+          {/* Golden Flame Crown Spike */}
+          <mesh position={[0, 1.94, 0]}>
+            <coneGeometry args={[0.08, 0.22, 6]} />
+            <meshStandardMaterial
+              color="#F59E0B"
+              emissive="#F59E0B"
+              emissiveIntensity={0.8}
+            />
+          </mesh>
+
+          <pointLight
+            ref={idx === 0 ? leftLightRef : rightLightRef}
+            position={[0, 1.82, 0]}
+            color="#F59E0B"
+            intensity={1.5}
+            distance={5.5}
+            decay={2}
+          />
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/**
  * Barrier 2: Cruciform Inner Terrace Gopura (គោបុរៈថ្នាក់កណ្តាល រាងកាកបាទ) at Z = 16
  * Elevated terrace, guardian Singha lions, bas-relief gallery wings and sliding carved monoliths
  */
@@ -693,6 +843,8 @@ function TwinStonesChallenge({
   completedCount = 0,
   incorrectCount = 0,
   onOpeningFinished,
+  lessonId,
+  stageId,
 }: StageBarrierProps) {
   const leftMonolithRef = useRef<THREE.Group>(null);
   const rightMonolithRef = useRef<THREE.Group>(null);
@@ -1045,6 +1197,89 @@ function TwinStonesChallenge({
         accentColor="#38BDF8"
         runeRef={runeGlowRef}
       />
+
+      {/* Stage 2 Lesson 2: Careful Pairs (គូប្រយ័ត្ន) Twin Lanterns */}
+      {(stageId === 'w1-l2-s2' || (lessonId === 2 && (!stageId || stageId === 'w1-l2-s2'))) && (
+        <CarefulPairsTwinLanterns
+          completedCount={completedCount}
+          streak={streak}
+          incorrectCount={incorrectCount}
+          isActiveStage={isActiveStage}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
+    </group>
+  );
+}
+
+const W1_L2_WORD_THRESHOLDS = [2, 4, 6, 8, 10, 12, 15, 19] as const;
+
+/**
+ * Stage 3 Lesson 2: Hill Steps (ជើងភ្នំ)
+ * 8 ascending sacred sandstone steps with golden lotus carvings that rise towards the final Bakan sanctuary
+ */
+function HillStepsStaircase({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const sandstoneDark = useMemo(() => new THREE.MeshStandardMaterial({ color: '#684E34', roughness: 0.92 }), []);
+  const sandstoneLit = useMemo(() => new THREE.MeshStandardMaterial({ color: '#9E7D5B', roughness: 0.82 }), []);
+
+  return (
+    <group position={[0, 0, 0.6]}>
+      {W1_L2_WORD_THRESHOLDS.map((thresh, idx) => {
+        const isStepActive = isUnlocked || completedCount >= thresh;
+        const isNextStep = !isUnlocked && completedCount < thresh && (idx === 0 || completedCount >= W1_L2_WORD_THRESHOLDS[idx - 1]);
+        const zPos = -0.8 + idx * 0.36;
+        const riserHeight = 0.08 + idx * 0.06;
+        const elevation = isStepActive ? riserHeight : isNextStep ? riserHeight * 0.6 : 0.04;
+
+        return (
+          <group key={`hill-step-${idx}`} position={[0, elevation, zPos]}>
+            {/* Sandstone Step Tread */}
+            <mesh receiveShadow castShadow>
+              <boxGeometry args={[3.4, 0.12, 0.34]} />
+              <primitive object={isStepActive ? sandstoneLit : sandstoneDark} attach="material" />
+            </mesh>
+
+            {/* Inlaid Lotus Petal Frieze / Golden Step Inscription */}
+            <mesh position={[0, 0.065, 0]}>
+              <boxGeometry args={[2.8, 0.02, 0.18]} />
+              <meshStandardMaterial
+                color={isStepActive ? '#FBBF24' : isNextStep ? '#F59E0B' : '#523C27'}
+                emissive={isStepActive ? '#D97706' : isNextStep ? '#B45309' : '#000000'}
+                emissiveIntensity={isStepActive ? 1.5 + Math.min(streak * 0.12, 0.8) : isNextStep ? 0.7 : 0}
+                roughness={0.25}
+              />
+            </mesh>
+
+            {/* Lateral Step Guard Curb Blocks with Lotus Flame Finials */}
+            {[-1.6, 1.6].map((cx, cIdx) => (
+              <group key={`curb-${cIdx}`} position={[cx, 0.08, 0]}>
+                <mesh castShadow>
+                  <boxGeometry args={[0.2, 0.16, 0.34]} />
+                  <meshStandardMaterial color="#8F6E47" roughness={0.85} />
+                </mesh>
+                {isStepActive && (
+                  <mesh position={[0, 0.14, 0]}>
+                    <coneGeometry args={[0.06, 0.14, 6]} />
+                    <meshStandardMaterial
+                      color="#FBBF24"
+                      emissive="#D97706"
+                      emissiveIntensity={1.0}
+                    />
+                  </mesh>
+                )}
+              </group>
+            ))}
+          </group>
+        );
+      })}
     </group>
   );
 }
@@ -1064,6 +1299,8 @@ function JunglePathChallenge({
   completedCount = 0,
   incorrectCount = 0,
   onOpeningFinished,
+  lessonId,
+  stageId,
 }: StageBarrierProps) {
   const leftGateRef = useRef<THREE.Group>(null);
   const rightGateRef = useRef<THREE.Group>(null);
@@ -1373,6 +1610,15 @@ function JunglePathChallenge({
         accentColor="#34D399"
         runeRef={runeGlowRef}
       />
+
+      {/* Stage 3 Lesson 2: Hill Steps (ជើងភ្នំ) Ascending Stairway */}
+      {(stageId === 'w1-l2-s3' || (lessonId === 2 && (!stageId || stageId === 'w1-l2-s3'))) && (
+        <HillStepsStaircase
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
     </group>
   );
 }
@@ -1466,6 +1712,8 @@ type StageChallengesProps = {
   completedCount?: number;
   incorrectCount?: number;
   onStageOpeningFinished?: (stageIndex: number) => void;
+  lessonId?: number;
+  stageId?: string;
 };
 
 export default function StageChallenges({
@@ -1475,6 +1723,8 @@ export default function StageChallenges({
   completedCount = 0,
   incorrectCount = 0,
   onStageOpeningFinished,
+  lessonId,
+  stageId,
 }: StageChallengesProps) {
   const barrierStatuses = getPhysicalBarrierStatuses(stageStatuses);
   const activeBarrierIndex = getStageBarrierIndex(activeStageIndex, stageStatuses.length);
@@ -1497,6 +1747,8 @@ export default function StageChallenges({
           completedCount={activeBarrierIndex === 1 ? completedCount : 0}
           incorrectCount={activeBarrierIndex === 1 ? incorrectCount : 0}
           onOpeningFinished={() => onStageOpeningFinished?.(barrier2StageIdx)}
+          lessonId={lessonId}
+          stageId={stageId}
         />
       )}
 
@@ -1510,6 +1762,8 @@ export default function StageChallenges({
           completedCount={activeBarrierIndex === 2 ? completedCount : 0}
           incorrectCount={activeBarrierIndex === 2 ? incorrectCount : 0}
           onOpeningFinished={() => onStageOpeningFinished?.(barrier3StageIdx)}
+          lessonId={lessonId}
+          stageId={stageId}
         />
       )}
 

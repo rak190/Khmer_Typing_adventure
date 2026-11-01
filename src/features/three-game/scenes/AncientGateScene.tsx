@@ -23,6 +23,9 @@ type AncientGateSceneProps = {
   onNearGateChange: (isNear: boolean) => void;
   onGateOpeningFinished: () => void;
   onStageOpeningFinished?: (stageIndex: number) => void;
+  lessonId?: number;
+  stageId?: string;
+  totalStageUnits?: number;
 };
 
 export default function AncientGateScene({
@@ -39,6 +42,9 @@ export default function AncientGateScene({
   onNearGateChange,
   onGateOpeningFinished,
   onStageOpeningFinished,
+  lessonId,
+  stageId,
+  totalStageUnits,
 }: AncientGateSceneProps) {
   const activeBarrierIndex = getStageBarrierIndex(activeStageIndex, stageStatuses.length);
   const firstBarrierUnlockStageIndex = stageStatuses.length === 5 ? 1 : 0;
@@ -79,6 +85,9 @@ export default function AncientGateScene({
           onGateOpeningFinished();
           onStageOpeningFinished?.(firstBarrierUnlockStageIndex);
         }}
+        lessonId={lessonId}
+        stageId={stageId}
+        totalStageUnits={totalStageUnits}
       />
 
       {/* Barrier 2 (ថ្មភ្លោះ / Twin Stones at Z = 16) & Barrier 3 (ផ្លូវព្រៃ / Jungle Path at Z = 26) */}
@@ -89,6 +98,8 @@ export default function AncientGateScene({
         completedCount={completedCount}
         incorrectCount={incorrectCount}
         onStageOpeningFinished={onStageOpeningFinished}
+        lessonId={lessonId}
+        stageId={stageId}
       />
     </>
   );

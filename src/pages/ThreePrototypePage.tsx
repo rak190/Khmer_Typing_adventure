@@ -221,6 +221,11 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     win.__threeGetPlayerPos = () => playerPositionRef.current;
     win.__threeSetPlayerPos = (x: number, y: number, z: number) => { playerPositionRef.current = [x, y, z]; };
     win.__threeUnlockAllStages = () => { setStageStates((prev) => prev.map((s) => ({ ...s, status: 'open', passed: true }))); setGateState({ status: 'open', openProgress: 1.0 }); };
+    win.__threeStartStage = (stageIdx: number) => {
+      setActiveStageIndex(stageIdx);
+      startStageTypingSession(stageIdx);
+      setMode('typing');
+    };
     win.__threeGetLessonDebug = () => ({
       activeStageIndex,
       stageStates,
@@ -608,6 +613,9 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           onNearGateChange={setIsNearGate}
           onGateOpeningFinished={handleGateOpeningFinished}
           onStageOpeningFinished={handleStageOpeningFinished}
+          lessonId={typeof lesson.id === 'number' ? lesson.id : undefined}
+          stageId={activeStage?.id}
+          totalStageUnits={typingPlan.units.length}
         />
       </ThreeGameCanvas>
 

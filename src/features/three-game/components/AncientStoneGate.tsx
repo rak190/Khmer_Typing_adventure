@@ -13,6 +13,9 @@ type AncientStoneGateProps = {
   incorrectCount?: number;
   onOpeningFinished: () => void;
   playerPositionRef?: MutableRefObject<Position3D>;
+  lessonId?: number;
+  stageId?: string;
+  totalStageUnits?: number;
 };
 
 /**
@@ -1346,6 +1349,73 @@ function AngkorGalleryWing({
   );
 }
 
+const W1_L2_FIRST_BRIDGE_CONSONANTS = [
+  'ដ', 'ឋ', 'ឌ', 'ឍ', 'ណ', 'ត', 'ថ', 'ទ', 'ធ', 'ន', 'ប', 'ផ', 'ព', 'ភ', 'ម',
+] as const;
+
+/**
+ * Stage 1 Lesson 2: The First Bridge (ស្ពានដំបូង)
+ * Ancient damaged stone bridge planks that illuminate and solidify with Khmer consonant runes
+ */
+function FirstBridgePlanks({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const sandstoneDark = useMemo(() => new THREE.MeshStandardMaterial({ color: '#684E34', roughness: 0.92 }), []);
+  const sandstoneLit = useMemo(() => new THREE.MeshStandardMaterial({ color: '#A6845B', roughness: 0.82 }), []);
+
+  return (
+    <group position={[0, 0, -5.6]}>
+      {/* 15 Rune Planks bridging across the causeway approach */}
+      {W1_L2_FIRST_BRIDGE_CONSONANTS.map((_, idx) => {
+        const isLit = isUnlocked || idx < completedCount;
+        const isCurrent = !isUnlocked && idx === completedCount;
+        const zPos = -3.4 + idx * 0.42;
+        const elevation = isLit ? 0.08 : isCurrent ? 0.04 : 0.02;
+
+        return (
+          <group key={`bridge-plank-${idx}`} position={[0, elevation, zPos]}>
+            {/* Sandstone Plank Slab */}
+            <mesh receiveShadow castShadow>
+              <boxGeometry args={[4.2, 0.12, 0.36]} />
+              <primitive object={isLit ? sandstoneLit : sandstoneDark} attach="material" />
+            </mesh>
+
+            {/* Inlaid Rune Glyph Band */}
+            <mesh position={[0, 0.065, 0]}>
+              <boxGeometry args={[1.2, 0.02, 0.22]} />
+              <meshStandardMaterial
+                color={isLit ? '#38BDF8' : isCurrent ? '#F59E0B' : '#453526'}
+                emissive={isLit ? '#0284C7' : isCurrent ? '#D97706' : '#000000'}
+                emissiveIntensity={isLit ? 1.4 + Math.min(streak * 0.1, 0.8) : isCurrent ? 0.9 : 0.0}
+                roughness={0.2}
+              />
+            </mesh>
+
+            {/* Glowing Edge Border Channels */}
+            {[-1.85, 1.85].map((cx, cIdx) => (
+              <mesh key={`plank-curb-${cIdx}`} position={[cx, 0.08, 0]} castShadow>
+                <boxGeometry args={[0.22, 0.16, 0.36]} />
+                <meshStandardMaterial
+                  color={isLit ? '#FBBF24' : '#785A3C'}
+                  emissive={isLit ? '#D97706' : '#000000'}
+                  emissiveIntensity={isLit ? 0.8 : 0}
+                  roughness={0.6}
+                />
+              </mesh>
+            ))}
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
 export default function AncientStoneGate({
   gateState,
   streak = 0,
@@ -1353,6 +1423,8 @@ export default function AncientStoneGate({
   incorrectCount = 0,
   onOpeningFinished,
   playerPositionRef,
+  lessonId,
+  stageId,
 }: AncientStoneGateProps) {
   const leftDoorRef = useRef<THREE.Group>(null);
   const rightDoorRef = useRef<THREE.Group>(null);
@@ -1577,6 +1649,15 @@ export default function AncientStoneGate({
         crystalRef={altarCrystalRef}
         auraRef={altarAuraRef}
       />
+
+      {/* Stage 1 Lesson 2: The First Bridge (ស្ពានដំបូង) Rune Planks */}
+      {(stageId === 'w1-l2-s1' || (lessonId === 2 && (!stageId || stageId === 'w1-l2-s1'))) && (
+        <FirstBridgePlanks
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={isUnlocked}
+        />
+      )}
     </group>
   );
 }
