@@ -13,6 +13,15 @@ type VictoryModalProps = {
   stageStates?: StageProgressState[];
   finalLessonMetrics?: TypingMetricResult | null;
   isDuplicateReward?: boolean;
+  saveStatus?:
+    | 'saving'
+    | 'saved'
+    | 'pending-offline'
+    | 'backend-unavailable'
+    | 'save-failed'
+    | 'local-demo'
+    | 'idle';
+  isFoundationLesson?: boolean;
   onWalkThrough: () => void;
   onRetry: () => void;
   onReplayLesson?: () => void;
@@ -27,6 +36,8 @@ export default function VictoryModal({
   stageStates = [],
   finalLessonMetrics = null,
   isDuplicateReward = false,
+  saveStatus = 'idle',
+  isFoundationLesson = false,
   onWalkThrough,
   onRetry,
   onReplayLesson,
@@ -136,7 +147,9 @@ export default function VictoryModal({
                   data-testid="three-modal-xp"
                   className="text-lg sm:text-xl font-black text-blue-400 font-sans"
                 >
-                  +{isDuplicateReward ? 0 : reward.xpEarned} XP
+                  {saveStatus === 'saving' && reward.xpEarned === 0
+                    ? 'កំពុងគណនា... (Confirming…)'
+                    : `+${isDuplicateReward ? 0 : reward.xpEarned} XP`}
                 </div>
               </div>
 
@@ -147,7 +160,9 @@ export default function VictoryModal({
                   data-score={displayScore}
                   className="text-lg sm:text-xl font-black text-yellow-400 font-sans"
                 >
-                  +{isDuplicateReward ? 0 : reward.coinsEarned} 🪙 • {displayScore} pts
+                  {saveStatus === 'saving' && reward.coinsEarned === 0
+                    ? 'កំពុងគណនា... (Confirming…)'
+                    : `+${isDuplicateReward ? 0 : reward.coinsEarned} 🪙 • ${displayScore} pts`}
                 </div>
               </div>
             </>
@@ -260,10 +275,36 @@ export default function VictoryModal({
           </div>
         )}
 
-        {/* Action Buttons */}
-        <p data-testid="three-temporary-results-notice" className="mt-3 text-xs leading-relaxed text-amber-200">
-          លទ្ធផល និងរង្វាន់សាកល្បងនេះមិនត្រូវបានរក្សាទុកជាអចិន្ត្រៃយ៍ទេ ហើយមិនបើកមេរៀនថ្មីទេ។ Prototype results and session rewards are temporary. They are not permanently saved and do not unlock lessons.
-        </p>
+        {/* Progress & Save Status Notice */}
+        <div data-testid="three-temporary-results-notice" className="mt-3 text-xs leading-relaxed">
+          {isFoundationLesson ? (
+            <p className="text-amber-200">
+              ការអនុវត្តគ្រឹះវាយអក្សរ — លទ្ធផលត្រូវបានកត់ត្រាលើឧបករណ៍នេះ។
+              {' '}Foundation typing practice results are recorded on this device.
+            </p>
+          ) : saveStatus === 'saved' ? (
+            <p className="text-emerald-300 font-semibold">
+              ✓ លទ្ធផល និងរង្វាន់ត្រូវបានរក្សាទុកដោយជោគជ័យទៅកាន់ Cloud! មេរៀនបន្ទាប់ត្រូវបានដោះសោ។
+              {' '}Results and rewards successfully saved to cloud! Next lesson unlocked.
+            </p>
+          ) : saveStatus === 'saving' ? (
+            <p className="text-blue-300 font-semibold animate-pulse">
+              ⏳ កំពុងផ្ទៀងផ្ទាត់ និងរក្សាទុកទៅកាន់ Cloud...
+              {' '}Confirming and saving results to secure cloud...
+            </p>
+          ) : saveStatus === 'pending-offline' ? (
+            <p className="text-amber-300 font-medium">
+              💾 លទ្ធផលត្រូវបានរក្សាទុកលើឧបករណ៍នេះ ហើយនឹងបញ្ជូនទៅ Cloud ពេលមានអ៊ីនធឺណិត។ មេរៀនបន្ទាប់ត្រូវបានដោះសោ!
+              {' '}Results saved to this device and will sync when online. Next lesson unlocked!
+            </p>
+          ) : (
+            <p className="text-slate-300">
+              💾 លទ្ធផល និងរង្វាន់ត្រូវបានរក្សាទុកនៅលើឧបករណ៍នេះ។ មេរៀនបន្ទាប់ត្រូវបានដោះសោ!
+              {' '}Results and rewards saved locally on this device! Next lesson unlocked.
+            </p>
+          )}
+        </div>
+
         <div className="mt-5 flex flex-col gap-2.5">
           {passed ? (
             <button

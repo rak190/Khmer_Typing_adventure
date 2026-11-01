@@ -1,11 +1,11 @@
 import CompletionSaveStatus from '../components/lesson/CompletionSaveStatus';
 import { auth } from '../lib/firebase';
-import { submitLessonAttempt } from '../lib/lessonCompletion';
+import { submitLessonAttempt, isStudentOnlineSaveAvailable } from '../lib/lessonCompletion';
 import { CURRICULUM_VERSION } from '../lib/completionContract';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { buildAdventureWorlds } from '../data/adventureWorlds';
-import { LESSON_PROGRESS_EVENT } from '../data/mockData';
+import { LESSON_PROGRESS_EVENT, saveMockLessonProgress, type LessonProgressRecord } from '../data/mockData';
 import { getThreeLessonAccess } from '../data/threeLessonAvailability';
 import {
   createKeyPracticeTracker,
@@ -115,6 +115,9 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
 
   const attemptUidRef = useRef(auth?.currentUser?.uid);
   const [saveMessage, setSaveMessage] = useState('');
+  const [saveStatus, setSaveStatus] = useState<
+    'saving' | 'saved' | 'pending-offline' | 'backend-unavailable' | 'save-failed' | 'local-demo' | 'idle'
+  >('idle');
   const [mode, setMode] = useState<GameMode>('exploration');
   const playerPositionRef = useRef<Position3D>([...INITIAL_PLAYER_POSITION]);
   const [activeStageIndex, setActiveStageIndex] = useState(0);
@@ -211,6 +214,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       __threeGetPlayerPos?: () => Position3D;
       __threeSetPlayerPos?: (x: number, y: number, z: number) => void;
       __threeUnlockAllStages?: () => void;
+      __threeStartStage?: (stageIdx: number) => void;
       __threeGetLessonDebug?: () => {
         activeStageIndex: number;
         stageStates: StageProgressState[];
@@ -234,9 +238,12 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     });
     return () => {
       delete win.__threeGetPlayerPos;
+      delete win.__threeSetPlayerPos;
+      delete win.__threeUnlockAllStages;
+      delete win.__threeStartStage;
       delete win.__threeGetLessonDebug;
     };
-  }, [activeStageIndex, stageStates]);
+  }, [activeStageIndex, stageStates, startStageTypingSession]);
 
   const movement = usePlayerControls(
     mode,
@@ -367,9 +374,32 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
               completedSession.attemptId,
             );
           setFinalLessonMetrics(aggregatedMetrics);
-          setReward(auth?.currentUser ? { ...claimedReward, xpEarned: 0, coinsEarned: 0, totalSessionXp: 0, totalSessionCoins: 0 } : claimedReward);
-          if (auth?.currentUser && auth.currentUser.uid === attemptUidRef.current) {
-            setSaveMessage('Saving?');
+          // Save local student progress so World Map unlocks the next lesson
+          if (!isFoundationLesson && aggregatedMetrics.passed) {
+            const progressRecord: LessonProgressRecord = {
+              worldId,
+              lessonId: lesson.id,
+              score: aggregatedMetrics.finalScore,
+              accuracy: aggregatedMetrics.accuracy,
+              cpm: aggregatedMetrics.cpm,
+              wpm: Math.round(aggregatedMetrics.cpm / 5),
+              stars: aggregatedMetrics.stars,
+              xpEarned: claimedReward.xpEarned,
+              coinsEarned: claimedReward.coinsEarned,
+              bestStreak: nextStageStates.reduce((max, s) => Math.max(max, s.bestStreak), 0),
+              passed: true,
+              completed: true,
+              timeSeconds: aggregatedMetrics.elapsedSeconds,
+              mistakes: aggregatedMetrics.errorCount,
+              backspaces: aggregatedMetrics.backspaceCount,
+            };
+            saveMockLessonProgress(progressRecord);
+          }
+          const canSaveOnline = isStudentOnlineSaveAvailable();
+          if (canSaveOnline && auth?.currentUser && auth.currentUser.uid === attemptUidRef.current) {
+            setReward(claimedReward);
+            setSaveStatus('saving');
+            setSaveMessage('Saving…');
             void submitLessonAttempt({
               attemptId: crypto.randomUUID(), lessonId: isFoundationLesson ? FOUNDATION_LESSON_ID : `${worldId}:${lesson.id}`,
               version: CURRICULUM_VERSION, mode: isFoundationLesson ? 'foundation' : '3d', category: isFoundationLesson ? 'mixed' : 'unicode-output',
@@ -377,10 +407,50 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
               metrics: { accuracy: aggregatedMetrics.accuracy, cpm: aggregatedMetrics.cpm, score: aggregatedMetrics.finalScore, stars: aggregatedMetrics.stars, mistakes: aggregatedMetrics.errorCount, backspaces: aggregatedMetrics.backspaceCount, elapsedSeconds: aggregatedMetrics.elapsedSeconds, passed: aggregatedMetrics.passed },
               ...(isFoundationLesson ? { foundation: keyPracticeTrackerRef.current.getSummary() } : {}),
               stages: nextStageStates.map(s => ({ id:s.stageId, accuracy:s.bestAccuracy, completed:s.passed })),
-            }).then(saved => {
-              setReward({ ...claimedReward, xpEarned:saved.reward.XP, coinsEarned:saved.reward.coins, totalSessionXp:saved.reward.XP, totalSessionCoins:saved.reward.coins });
-              setSaveMessage(`Saved ? XP ${saved.reward.XP} ? coins ${saved.reward.coins}`);
-            }).catch(error => setSaveMessage(`Save failed / pending on this device: ${error.message}`));
+            }).then((saved) => {
+              setReward({
+                ...claimedReward,
+                xpEarned: saved.reward.XP,
+                coinsEarned: saved.reward.coins,
+                totalSessionXp: saved.reward.XP,
+                totalSessionCoins: saved.reward.coins,
+              });
+              setSaveStatus('saved');
+              setSaveMessage(`Saved · XP ${saved.reward.XP} · coins ${saved.reward.coins}`);
+              if (!isFoundationLesson && aggregatedMetrics.passed) {
+                saveMockLessonProgress({
+                  worldId,
+                  lessonId: lesson.id,
+                  score: aggregatedMetrics.finalScore,
+                  accuracy: aggregatedMetrics.accuracy,
+                  cpm: aggregatedMetrics.cpm,
+                  wpm: Math.round(aggregatedMetrics.cpm / 5),
+                  stars: aggregatedMetrics.stars,
+                  xpEarned: saved.reward.XP,
+                  coinsEarned: saved.reward.coins,
+                  bestStreak: nextStageStates.reduce((max, s) => Math.max(max, s.bestStreak), 0),
+                  passed: true,
+                  completed: true,
+                  timeSeconds: aggregatedMetrics.elapsedSeconds,
+                  mistakes: aggregatedMetrics.errorCount,
+                  backspaces: aggregatedMetrics.backspaceCount,
+                });
+              }
+            }).catch((error: Error) => {
+              const isOffline = !navigator.onLine || error.message?.includes('network') || error.message?.includes('unavailable');
+              if (isOffline) {
+                setSaveStatus('pending-offline');
+                setSaveMessage('Pending on this device: Saved locally; will sync when online');
+              } else {
+                setSaveStatus('save-failed');
+                setSaveMessage(`Save failed / pending on this device: ${error.message}`);
+              }
+            });
+          } else {
+            setReward(claimedReward);
+            const isGuest = auth?.currentUser?.isAnonymous;
+            setSaveStatus(isGuest ? 'local-demo' : 'backend-unavailable');
+            setSaveMessage('');
           }
           setIsDuplicateReward(duplicate);
 
@@ -597,7 +667,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       className="relative h-screen w-screen overflow-hidden bg-black select-none"
     >
       {/* 3D R3F Canvas Viewport */}
-      <CompletionSaveStatus message={saveMessage} />
+      <CompletionSaveStatus message={saveMessage} status={saveStatus} />
       <ThreeGameCanvas>
         <AncientGateScene
           mode={mode}
@@ -666,6 +736,8 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           stageStates={stageStates}
           finalLessonMetrics={finalLessonMetrics}
           isDuplicateReward={isDuplicateReward}
+          saveStatus={saveStatus}
+          isFoundationLesson={isFoundationLesson}
           onWalkThrough={handleWalkThrough}
           onRetry={handleRetryChallenge}
           onReplayLesson={handleReplayLesson}

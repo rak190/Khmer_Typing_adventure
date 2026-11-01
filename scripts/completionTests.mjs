@@ -66,7 +66,9 @@ const validAttempt = {
 assert.equal(validateLessonAttempt(validAttempt).id, '1:1');
 assert.throws(() => validateLessonAttempt({ ...validAttempt, XP: 9999 }));
 assert.throws(() => validateLessonAttempt({ ...validAttempt, mode: '3d' }));
-assert.throws(() => validateLessonAttempt({ ...validAttempt, lessonId: '1:2', mode: '3d' }));
+const validStagesL2 = resolveLessonIdentity('1:2').lesson.stages.map(s => ({ id: s.id, accuracy: s.accuracyGoal, completed: true }));
+assert.equal(validateLessonAttempt({ ...validAttempt, lessonId: '1:2', mode: '3d', stages: validStagesL2 }).id, '1:2');
+assert.throws(() => validateLessonAttempt({ ...validAttempt, lessonId: '1:3', mode: '3d' }));
 assert.throws(() => validateLessonAttempt({ ...validAttempt, metrics: { ...validAttempt.metrics, cpm: NaN } }));
 assert.throws(() => validateLessonAttempt({ ...validAttempt, lessonId: 'foundation-home-row' }));
 assert.throws(() => validateLessonAttempt({ ...validAttempt, attemptId: '../bad' }));

@@ -1,6 +1,6 @@
 import CompletionSaveStatus from './CompletionSaveStatus';
 import { auth } from '../../lib/firebase';
-import { submitLessonAttempt } from '../../lib/lessonCompletion';
+import { submitLessonAttempt, isStudentOnlineSaveAvailable } from '../../lib/lessonCompletion';
 import { CURRICULUM_VERSION } from '../../lib/completionContract';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -490,7 +490,7 @@ export default function LessonWorldScreen({
       queueMicrotask(() => setSaveMessage('Adaptive practice is local-only pending trusted identity support.'));
       return;
     }
-    if (auth?.currentUser) {
+    if (auth?.currentUser && isStudentOnlineSaveAvailable()) {
       progressSavedRef.current = true;
       const foundationStages = practiceMode === 'foundation' ? lesson.stages.map(stage => {
         const count = targetUnits.filter(unit => unit.stageId === stage.id).length;

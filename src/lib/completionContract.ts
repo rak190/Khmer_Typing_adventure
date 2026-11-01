@@ -46,7 +46,7 @@ export function validateLessonAttempt(input: LessonAttempt) {
   const identity = resolveLessonIdentity(input.lessonId);
   if (!['2d','3d','foundation'].includes(input.mode) || !['physical-key','unicode-output','mixed'].includes(input.category)) throw new Error('Invalid mode');
   if ((identity.worldId === 0) !== (input.mode === 'foundation')) throw new Error('Foundation identity mismatch');
-  if (input.mode === '3d' && identity.id !== '1:1') throw new Error('Unsupported 3D lesson');
+  if (input.mode === '3d' && !['1:1', '1:2'].includes(identity.id)) throw new Error('Unsupported 3D lesson');
   if (!Number.isFinite(Date.parse(input.completedAt))) throw new Error('Invalid completion time');
   const m = input.metrics;
   if (!m || Object.keys(m).sort().join() !== ['accuracy','cpm','score','stars','mistakes','backspaces','elapsedSeconds','passed'].sort().join()) throw new Error('Invalid metrics');
