@@ -72,7 +72,7 @@ export default function Character({
   const successPulseRef = useRef<number>(0);
   const mistakeShakeRef = useRef<number>(0);
 
-  const glbScene = useGltfClone('/models/characters/khmer_student_hero.glb');
+  const glbScene = useGltfClone('/models/characters/Khmer_Student_Hero_V3_CharacterTSX.glb');
 
   const glbParts = useMemo<HeroGlbParts | null>(() => {
     if (!glbScene) return null;
@@ -87,15 +87,25 @@ export default function Character({
     if (!waist || !chest || !cape || !head || !leftArm || !rightArm || !leftLeg || !rightLeg) {
       return null;
     }
+    const preparePart = (obj: THREE.Object3D) => {
+      const clone = obj.clone(true);
+      clone.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      return clone;
+    };
     return {
-      waist: waist.clone(true),
-      chest: chest.clone(true),
-      cape: cape.clone(true),
-      head: head.clone(true),
-      leftArm: leftArm.clone(true),
-      rightArm: rightArm.clone(true),
-      leftLeg: leftLeg.clone(true),
-      rightLeg: rightLeg.clone(true),
+      waist: preparePart(waist),
+      chest: preparePart(chest),
+      cape: preparePart(cape),
+      head: preparePart(head),
+      leftArm: preparePart(leftArm),
+      rightArm: preparePart(rightArm),
+      leftLeg: preparePart(leftLeg),
+      rightLeg: preparePart(rightLeg),
     };
   }, [glbScene]);
 
@@ -322,8 +332,8 @@ export default function Character({
 
       {/* Animated Torso & Head Group */}
       <group ref={bodyRef}>
-        {/* Waist Belt & Pleated Chong Kben (pivot Y = 0.88) */}
-        <group position={[0, 0.88, 0]}>
+        {/* Waist Belt & Pleated Chong Kben (pivot at origin for V3) */}
+        <group position={glbParts ? [0, 0, 0] : [0, 0.88, 0]}>
           {glbParts ? (
             <primitive object={glbParts.waist} />
           ) : (
@@ -376,7 +386,7 @@ export default function Character({
         </group>
 
         {/* Expressive Head, Spiky Hair & Sapphire Diamond Diadem */}
-        <group ref={headRef} position={[0, 1.62, 0]}>
+        <group ref={headRef} position={[0, 1.72, 0]}>
           {glbParts ? (
             <primitive object={glbParts.head} />
           ) : (
@@ -403,7 +413,7 @@ export default function Character({
         </group>
 
         {/* Left Arm */}
-        <group ref={leftArmRef} position={[-0.22, 1.34, 0]}>
+        <group ref={leftArmRef} position={glbParts ? [-0.34, 1.38, 0] : [-0.22, 1.34, 0]}>
           {glbParts ? (
             <primitive object={glbParts.leftArm} />
           ) : (
@@ -415,7 +425,7 @@ export default function Character({
         </group>
 
         {/* Right Arm */}
-        <group ref={rightArmRef} position={[0.22, 1.34, 0]}>
+        <group ref={rightArmRef} position={glbParts ? [0.34, 1.38, 0] : [0.22, 1.34, 0]}>
           {glbParts ? (
             <primitive object={glbParts.rightArm} />
           ) : (
@@ -427,7 +437,7 @@ export default function Character({
         </group>
 
         {/* Left Leg (articulated with pelvis) */}
-        <group ref={leftLegRef} position={[-0.14, 0.78, 0]}>
+        <group ref={leftLegRef} position={glbParts ? [-0.15, 0.78, 0] : [-0.14, 0.78, 0]}>
           {glbParts ? (
             <primitive object={glbParts.leftLeg} />
           ) : (
@@ -439,7 +449,7 @@ export default function Character({
         </group>
 
         {/* Right Leg (articulated with pelvis) */}
-        <group ref={rightLegRef} position={[0.14, 0.78, 0]}>
+        <group ref={rightLegRef} position={glbParts ? [0.15, 0.78, 0] : [0.14, 0.78, 0]}>
           {glbParts ? (
             <primitive object={glbParts.rightLeg} />
           ) : (
