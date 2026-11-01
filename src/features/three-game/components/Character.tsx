@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
+import { useMemo, useRef, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import { useGltfClone } from '../hooks/useGltfAsset';
 import type { MovementInput } from '../hooks/usePlayerControls';
@@ -60,12 +60,6 @@ interface HeroBones {
   cape02: THREE.Object3D;
 }
 
-interface HeroRigModel {
-  rig: THREE.Object3D;
-  bones: HeroBones;
-  restQuats: Map<string, THREE.Quaternion>;
-}
-
 const _deltaEuler = new THREE.Euler();
 const _deltaQuat = new THREE.Quaternion();
 
@@ -122,99 +116,21 @@ export default function Character({
   const fallbackScene = useGltfClone('/models/characters/khmer_student_hero.glb');
   const glbScene = riggedScene ?? fallbackScene;
 
-  // 1. Skinned Mesh Armature with smooth bending joints
-  const riggedModelRef = useRef<HeroRigModel | null>(null);
-
-  const riggedModel = useMemo<HeroRigModel | null>(() => {
+  // 1. Skinned Mesh Armature object for JSX rendering
+  const rigObject = useMemo(() => {
     if (!glbScene) return null;
-    const rig = glbScene.getObjectByName('KhmerHeroRig');
-    if (!rig) return null;
-
-    const findBone = (name: string) => rig.getObjectByName(name) || null;
-    const root = findBone('Root');
-    const hips = findBone('Hips');
-    const spine = findBone('Spine');
-    const chest = findBone('Chest');
-    const neck = findBone('Neck');
-    const head = findBone('Head');
-    const upperArmL = findBone('UpperArm_L');
-    const forearmL = findBone('Forearm_L');
-    const handL = findBone('Hand_L');
-    const upperArmR = findBone('UpperArm_R');
-    const forearmR = findBone('Forearm_R');
-    const handR = findBone('Hand_R');
-    const upperLegL = findBone('UpperLeg_L');
-    const lowerLegL = findBone('LowerLeg_L');
-    const footL = findBone('Foot_L');
-    const upperLegR = findBone('UpperLeg_R');
-    const lowerLegR = findBone('LowerLeg_R');
-    const footR = findBone('Foot_R');
-    const cape01 = findBone('Cape_01');
-    const cape02 = findBone('Cape_02');
-
-    if (!root || !hips || !spine || !chest || !head || !upperArmL || !upperArmR || !upperLegL || !upperLegR) {
-      return null;
-    }
-
-    const restQuats = new Map<string, THREE.Quaternion>();
-    const bonesList = [
-      ['Root', root],
-      ['Hips', hips],
-      ['Spine', spine],
-      ['Chest', chest],
-      ['Neck', neck || chest],
-      ['Head', head],
-      ['UpperArm_L', upperArmL],
-      ['Forearm_L', forearmL || upperArmL],
-      ['Hand_L', handL || forearmL || upperArmL],
-      ['UpperArm_R', upperArmR],
-      ['Forearm_R', forearmR || upperArmR],
-      ['Hand_R', handR || forearmR || upperArmR],
-      ['UpperLeg_L', upperLegL],
-      ['LowerLeg_L', lowerLegL || upperLegL],
-      ['Foot_L', footL || lowerLegL || upperLegL],
-      ['UpperLeg_R', upperLegR],
-      ['LowerLeg_R', lowerLegR || upperLegR],
-      ['Foot_R', footR || lowerLegR || upperLegR],
-      ['Cape_01', cape01 || chest],
-      ['Cape_02', cape02 || cape01 || chest],
-    ] as const;
-
-    for (const [name, b] of bonesList) {
-      restQuats.set(name, b.quaternion.clone());
-    }
-
-    return {
-      rig,
-      bones: {
-        root,
-        hips,
-        spine,
-        chest,
-        neck: neck || chest,
-        head,
-        upperArmL,
-        forearmL: forearmL || upperArmL,
-        handL: handL || forearmL || upperArmL,
-        upperArmR,
-        forearmR: forearmR || upperArmR,
-        handR: handR || forearmR || upperArmR,
-        upperLegL,
-        lowerLegL: lowerLegL || upperLegL,
-        footL: footL || lowerLegL || upperLegL,
-        upperLegR,
-        lowerLegR: lowerLegR || upperLegR,
-        footR: footR || lowerLegR || upperLegR,
-        cape01: cape01 || chest,
-        cape02: cape02 || cape01 || chest,
-      },
-      restQuats,
-    };
+    return glbScene.getObjectByName('KhmerHeroRig') || null;
   }, [glbScene]);
+
+  // Mutable bone and rest kinematics references owned strictly by refs during useFrame
+  const rigBonesRef = useRef<HeroBones | null>(null);
+  const restQuatsRef = useRef<Map<string, THREE.Quaternion>>(new Map());
+  const restPositionsRef = useRef<Map<string, THREE.Vector3>>(new Map());
+  const lastRigRef = useRef<THREE.Object3D | null>(null);
 
   // 2. Modular parts fallback if an un-rigged GLB is loaded
   const glbParts = useMemo<HeroGlbParts | null>(() => {
-    if (!glbScene || riggedModel) return null;
+    if (!glbScene || rigObject) return null;
     const waist = glbScene.getObjectByName('HeroWaistMesh');
     const chest = glbScene.getObjectByName('HeroChestMesh');
     const cape = glbScene.getObjectByName('HeroCapeMesh');
@@ -246,11 +162,7 @@ export default function Character({
       leftLeg: preparePart(leftLeg),
       rightLeg: preparePart(rightLeg),
     };
-  }, [glbScene, riggedModel]);
-
-  useEffect(() => {
-    riggedModelRef.current = riggedModel;
-  }, [riggedModel]);
+  }, [glbScene, rigObject]);
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
@@ -327,17 +239,110 @@ export default function Character({
     }
 
     // SKINNED ARMATURE ANIMATION (smooth bending joints, elbows, knees, spine, cape)
-    const activeRig = riggedModelRef.current;
-    if (activeRig) {
-      const { bones, restQuats } = activeRig;
+    if (rigObject) {
+      if (lastRigRef.current !== rigObject || !rigBonesRef.current) {
+        lastRigRef.current = rigObject;
+        const findBone = (name: string) => rigObject.getObjectByName(name) || null;
+        const root = findBone('Root');
+        const hips = findBone('Hips');
+        const spine = findBone('Spine');
+        const chest = findBone('Chest');
+        const neck = findBone('Neck');
+        const head = findBone('Head');
+        const upperArmL = findBone('UpperArm_L');
+        const forearmL = findBone('Forearm_L');
+        const handL = findBone('Hand_L');
+        const upperArmR = findBone('UpperArm_R');
+        const forearmR = findBone('Forearm_R');
+        const handR = findBone('Hand_R');
+        const upperLegL = findBone('UpperLeg_L');
+        const lowerLegL = findBone('LowerLeg_L');
+        const footL = findBone('Foot_L');
+        const upperLegR = findBone('UpperLeg_R');
+        const lowerLegR = findBone('LowerLeg_R');
+        const footR = findBone('Foot_R');
+        const cape01 = findBone('Cape_01');
+        const cape02 = findBone('Cape_02');
+
+        if (root && hips && spine && chest && head && upperArmL && upperArmR && upperLegL && upperLegR) {
+          rigBonesRef.current = {
+            root,
+            hips,
+            spine,
+            chest,
+            neck: neck || chest,
+            head,
+            upperArmL,
+            forearmL: forearmL || upperArmL,
+            handL: handL || forearmL || upperArmL,
+            upperArmR,
+            forearmR: forearmR || upperArmR,
+            handR: handR || forearmR || upperArmR,
+            upperLegL,
+            lowerLegL: lowerLegL || upperLegL,
+            footL: footL || lowerLegL || upperLegL,
+            upperLegR,
+            lowerLegR: lowerLegR || upperLegR,
+            footR: footR || lowerLegR || upperLegR,
+            cape01: cape01 || chest,
+            cape02: cape02 || cape01 || chest,
+          };
+
+          const bonesList = [
+            ['Root', root],
+            ['Hips', hips],
+            ['Spine', spine],
+            ['Chest', chest],
+            ['Neck', neck || chest],
+            ['Head', head],
+            ['UpperArm_L', upperArmL],
+            ['Forearm_L', forearmL || upperArmL],
+            ['Hand_L', handL || forearmL || upperArmL],
+            ['UpperArm_R', upperArmR],
+            ['Forearm_R', forearmR || upperArmR],
+            ['Hand_R', handR || forearmR || upperArmR],
+            ['UpperLeg_L', upperLegL],
+            ['LowerLeg_L', lowerLegL || upperLegL],
+            ['Foot_L', footL || lowerLegL || upperLegL],
+            ['UpperLeg_R', upperLegR],
+            ['LowerLeg_R', lowerLegR || upperLegR],
+            ['Foot_R', footR || lowerLegR || upperLegR],
+            ['Cape_01', cape01 || chest],
+            ['Cape_02', cape02 || cape01 || chest],
+          ] as const;
+
+          restQuatsRef.current.clear();
+          restPositionsRef.current.clear();
+          for (const [name, b] of bonesList) {
+            restQuatsRef.current.set(name, b.quaternion.clone());
+            restPositionsRef.current.set(name, b.position.clone());
+          }
+        } else {
+          rigBonesRef.current = null;
+        }
+      }
+    } else {
+      lastRigRef.current = null;
+      rigBonesRef.current = null;
+    }
+
+    const bones = rigBonesRef.current;
+    if (bones) {
+      const restQuats = restQuatsRef.current;
+      const restPositions = restPositionsRef.current;
       const idleTime = time * 2.3;
       const mb = moveBlendRef.current;
+
+      const restHips = restPositions.get('Hips');
+      const baseHipsX = restHips ? restHips.x : 0;
+      const baseHipsY = restHips ? restHips.y : 0.78;
+      const baseHipsZ = restHips ? restHips.z : 0;
 
       if (mode === 'opening' || (mode === 'completed' && !isMoving)) {
         const cheerBounce = Math.abs(Math.sin(time * 6.5)) * 0.13;
         const cheerWave = Math.sin(time * 9.0);
 
-        bones.hips.position.y = 0.78 + cheerBounce;
+        bones.hips.position.set(baseHipsX, baseHipsY + cheerBounce, baseHipsZ);
         applyRelativeBoneRotation(bones.spine, restQuats.get('Spine'), 0, Math.sin(time * 4.5) * 0.08, 0);
         applyRelativeBoneRotation(bones.chest, restQuats.get('Chest'), -0.04, 0, 0);
         applyRelativeBoneRotation(
@@ -382,7 +387,11 @@ export default function Character({
         const nod = successPulseRef.current * Math.sin(successPulseRef.current * Math.PI) * 0.18;
         const shake = mistakeShakeRef.current * Math.sin(time * 36) * 0.22;
 
-        bones.hips.position.y = 0.78 + focusBreath + successPulseRef.current * 0.03;
+        bones.hips.position.set(
+          baseHipsX,
+          baseHipsY + focusBreath + successPulseRef.current * 0.03,
+          baseHipsZ
+        );
         applyRelativeBoneRotation(bones.spine, restQuats.get('Spine'), 0.06, 0, shake * 0.15);
         applyRelativeBoneRotation(bones.chest, restQuats.get('Chest'), 0, shake * 0.25, 0);
 
@@ -433,7 +442,7 @@ export default function Character({
       const bodyVertical = walkBob * mb + idleBob * (1 - mb);
       const torsoLean = 0.085 * mb;
 
-      bones.hips.position.y = 0.78 + bodyVertical;
+      bones.hips.position.set(baseHipsX, baseHipsY + bodyVertical, baseHipsZ);
       applyRelativeBoneRotation(
         bones.hips,
         restQuats.get('Hips'),
@@ -642,8 +651,8 @@ export default function Character({
       </mesh>
 
       {/* Skinned Armature Mesh (smooth bending joints, elbows, knees, spine, cape) */}
-      {riggedModel ? (
-        <primitive object={riggedModel.rig} />
+      {rigObject ? (
+        <primitive object={rigObject} />
       ) : (
         /* Animated Torso & Head Group (Modular fallback) */
         <group ref={bodyRef}>

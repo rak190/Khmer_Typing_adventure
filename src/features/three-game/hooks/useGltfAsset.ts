@@ -67,7 +67,7 @@ export function useGltfClone(url: string): THREE.Group | null {
 
   useEffect(() => {
     let active = true;
-    loadCachedGltf(resolvedUrl).then((scene) => {
+    loadCachedGltf(url).then((scene) => {
       if (active && scene) {
         setTemplate(scene);
       }
@@ -75,7 +75,7 @@ export function useGltfClone(url: string): THREE.Group | null {
     return () => {
       active = false;
     };
-  }, [resolvedUrl]);
+  }, [url]);
 
   return useMemo(() => {
     if (!template) return null;
