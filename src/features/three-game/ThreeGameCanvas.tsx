@@ -42,7 +42,7 @@ export default function ThreeGameCanvas({ children }: ThreeGameCanvasProps) {
       <div className="relative h-full w-full select-none overflow-hidden bg-gradient-to-b from-[#0284C7] via-[#38BDF8] to-[#FDE68A]">
         <Canvas
           shadows
-          camera={{ position: [0, 3, -6], fov: 50, near: 0.1, far: 160 }}
+          camera={{ position: [0, 2.8, -6.5], fov: 56, near: 0.1, far: 160 }}
           dpr={[1, 1.5]}
           gl={{
             antialias: true,

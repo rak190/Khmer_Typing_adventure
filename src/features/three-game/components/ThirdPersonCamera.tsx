@@ -21,17 +21,17 @@ export default function ThirdPersonCamera({ targetPositionRef, mode }: ThirdPers
     const dt = Math.min(delta, 0.05);
     const [tx, ty, tz] = targetPositionRef.current;
 
-    let offsetBack = -5.6;
-    let offsetUp = 2.6;
-    let lookUp = 1.35;
-    let lookAheadZ = 1.6;
+    let offsetBack = -6.2;
+    let offsetUp = 2.25;
+    let lookUp = 2.05;
+    let lookAheadZ = 2.2;
     let damping = 5.0;
 
     if (mode === 'typing') {
       // Intimate, focused framing on student character and glowing altar pedestal
       offsetBack = -4.2;
       offsetUp = 2.2;
-      lookUp = 1.35;
+      lookUp = 2.05;
       lookAheadZ = 1.0;
       damping = 4.2;
     } else if (mode === 'opening') {

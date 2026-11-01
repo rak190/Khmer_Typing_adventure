@@ -314,6 +314,362 @@ function GopuraColumn({ x }: { x: number }) {
   );
 }
 
+/**
+ * Monumental Angkor Wat Corbelled Lotus Prasat Tower (កំពូលផ្កាឈូកអង្គរវត្ត)
+ * Features 5 diminishing corbelled sandstone tiers with horizontal moldings,
+ * cardinal antefixes (ហោជាងទិសទាំង៤), deeply ribbed lotus-bud crown (ផ្កាឈូកក្រពុំ),
+ * and radiant golden kalasha pot finial.
+ */
+function AngkorPrasatTower({
+  position = [0, 0, 0],
+  scale = 1,
+  showAntefixes = true,
+}: {
+  position?: [number, number, number];
+  scale?: number;
+  showAntefixes?: boolean;
+}) {
+  return (
+    <group position={position} scale={[scale, scale, scale]}>
+      {/* 1. Base Architrave Plinth */}
+      <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
+        <boxGeometry args={[4.8, 0.7, 3.8]} />
+        <meshStandardMaterial color="#8F714A" roughness={0.88} />
+      </mesh>
+      <mesh position={[0, 0.78, 0]} castShadow receiveShadow>
+        <boxGeometry args={[5.1, 0.22, 4.0]} />
+        <meshStandardMaterial color="#B08D5B" roughness={0.84} />
+      </mesh>
+
+      {/* 2. Tier 1 (Lowest & Widest Corbelled Tier) */}
+      <mesh position={[0, 1.45, 0]} castShadow receiveShadow>
+        <boxGeometry args={[4.2, 1.15, 3.3]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+      </mesh>
+      <mesh position={[0, 2.1, 0]} castShadow>
+        <boxGeometry args={[4.5, 0.22, 3.55]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.78} />
+      </mesh>
+      {showAntefixes && (
+        <group position={[0, 1.55, 0]}>
+          <mesh position={[0, 0, 1.75]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.9, 0.85, 4]} />
+            <meshStandardMaterial color="#CDB082" roughness={0.75} />
+          </mesh>
+          <mesh position={[0, 0, -1.75]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.9, 0.85, 4]} />
+            <meshStandardMaterial color="#CDB082" roughness={0.75} />
+          </mesh>
+          <mesh position={[-2.2, 0, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.8, 0.85, 4]} />
+            <meshStandardMaterial color="#CDB082" roughness={0.75} />
+          </mesh>
+          <mesh position={[2.2, 0, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.8, 0.85, 4]} />
+            <meshStandardMaterial color="#CDB082" roughness={0.75} />
+          </mesh>
+        </group>
+      )}
+
+      {/* 3. Tier 2 (Diminishing Corbelled Tier) */}
+      <mesh position={[0, 2.75, 0]} castShadow receiveShadow>
+        <boxGeometry args={[3.6, 1.05, 2.8]} />
+        <meshStandardMaterial color="#B59668" roughness={0.82} />
+      </mesh>
+      <mesh position={[0, 3.35, 0]} castShadow>
+        <boxGeometry args={[3.85, 0.2, 3.0]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.78} />
+      </mesh>
+      {showAntefixes && (
+        <group position={[0, 2.85, 0]}>
+          <mesh position={[0, 0, 1.48]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.75, 0.75, 4]} />
+            <meshStandardMaterial color="#C8A978" roughness={0.75} />
+          </mesh>
+          <mesh position={[0, 0, -1.48]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.75, 0.75, 4]} />
+            <meshStandardMaterial color="#C8A978" roughness={0.75} />
+          </mesh>
+          <mesh position={[-1.88, 0, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.68, 0.75, 4]} />
+            <meshStandardMaterial color="#C8A978" roughness={0.75} />
+          </mesh>
+          <mesh position={[1.88, 0, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.68, 0.75, 4]} />
+            <meshStandardMaterial color="#C8A978" roughness={0.75} />
+          </mesh>
+        </group>
+      )}
+
+      {/* 4. Tier 3 */}
+      <mesh position={[0, 3.95, 0]} castShadow>
+        <boxGeometry args={[3.0, 0.95, 2.35]} />
+        <meshStandardMaterial color="#C0A170" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 4.48, 0]} castShadow>
+        <boxGeometry args={[3.25, 0.18, 2.5]} />
+        <meshStandardMaterial color="#D6B785" roughness={0.76} />
+      </mesh>
+
+      {/* 5. Tier 4 */}
+      <mesh position={[0, 5.05, 0]} castShadow>
+        <boxGeometry args={[2.4, 0.85, 1.9]} />
+        <meshStandardMaterial color="#C8A978" roughness={0.78} />
+      </mesh>
+      <mesh position={[0, 5.52, 0]} castShadow>
+        <boxGeometry args={[2.6, 0.16, 2.05]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.74} />
+      </mesh>
+
+      {/* 6. Tier 5 (Top Stepped Tier) */}
+      <mesh position={[0, 6.05, 0]} castShadow>
+        <boxGeometry args={[1.85, 0.75, 1.5]} />
+        <meshStandardMaterial color="#D0B180" roughness={0.76} />
+      </mesh>
+      <mesh position={[0, 6.46, 0]} castShadow>
+        <boxGeometry args={[2.02, 0.14, 1.62]} />
+        <meshStandardMaterial color="#E8CE9D" roughness={0.72} />
+      </mesh>
+
+      {/* 7. Lotus Neck & Petal Collars (កញ្ចឹងឈូក) */}
+      <mesh position={[0, 6.8, 0]} castShadow>
+        <cylinderGeometry args={[0.82, 0.98, 0.5, 12]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 7.15, 0]} castShadow>
+        <cylinderGeometry args={[1.05, 0.78, 0.32, 12]} />
+        <meshStandardMaterial color="#D6B785" roughness={0.74} />
+      </mesh>
+
+      {/* 8. Corbelled Ribbed Lotus Bud Crown (ផ្កាឈូកក្រពុំ) */}
+      <mesh position={[0, 7.9, 0]} castShadow>
+        <cylinderGeometry args={[1.18, 0.88, 1.25, 12]} />
+        <meshStandardMaterial color="#D4B584" roughness={0.75} />
+      </mesh>
+      <mesh position={[0, 9.15, 0]} castShadow>
+        <coneGeometry args={[1.08, 1.85, 12]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.72} />
+      </mesh>
+      {[
+        0,
+        Math.PI / 4,
+        Math.PI / 2,
+        (3 * Math.PI) / 4,
+        Math.PI,
+        (5 * Math.PI) / 4,
+        (3 * Math.PI) / 2,
+        (7 * Math.PI) / 4,
+      ].map((rad, idx) => (
+        <group key={`rib-${idx}`} rotation={[0, rad, 0]}>
+          <mesh position={[0, 8.4, 0.92]} rotation={[0.18, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.07, 0.12, 1.7, 6]} />
+            <meshStandardMaterial color="#F59E0B" roughness={0.55} metalness={0.3} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* 9. Golden Kalasha Finial Spire (កលសាសិល្បៈខ្មែរ) */}
+      <mesh position={[0, 10.25, 0]} castShadow>
+        <sphereGeometry args={[0.28, 12, 10]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.28} metalness={0.75} />
+      </mesh>
+      <mesh position={[0, 10.65, 0]} castShadow>
+        <cylinderGeometry args={[0.14, 0.22, 0.45, 8]} />
+        <meshStandardMaterial color="#D97706" roughness={0.32} metalness={0.7} />
+      </mesh>
+      <mesh position={[0, 11.45, 0]}>
+        <cylinderGeometry args={[0.03, 0.14, 1.45, 8]} />
+        <meshStandardMaterial color="#FBBF24" roughness={0.2} metalness={0.85} />
+      </mesh>
+      <mesh position={[0, 12.25, 0]}>
+        <sphereGeometry args={[0.13, 12, 12]} />
+        <meshStandardMaterial
+          color="#FEF08A"
+          emissive="#F59E0B"
+          emissiveIntensity={0.85}
+          roughness={0.1}
+          metalness={0.9}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Symmetrical Colonnaded Temple Gallery Wing (ថែវប្រាសាទសងខាង)
+ * Features fluted sandstone colonnades, turned window balusters (បង្អួចចម្រឹង),
+ * continuous corbelled barrel-vault roof with ridge crests, and terminal corner pavilion.
+ */
+function AngkorGalleryWing({
+  isLeft,
+  startX = 3.2,
+  endX = 15.5,
+}: {
+  isLeft: boolean;
+  startX?: number;
+  endX?: number;
+}) {
+  const dir = isLeft ? -1 : 1;
+  const length = endX - startX;
+  const midX = dir * (startX + length / 2);
+  const pavilionX = dir * endX;
+
+  const pillarXOffsets = [
+    startX + 1.2,
+    startX + 3.4,
+    startX + 5.6,
+    startX + 7.8,
+    startX + 10.0,
+  ].map((x) => dir * x);
+
+  const windowBayCenters = [
+    startX + 2.3,
+    startX + 4.5,
+    startX + 6.7,
+    startX + 8.9,
+  ].map((x) => dir * x);
+
+  const balusterOffsets = [-0.34, -0.17, 0, 0.17, 0.34];
+
+  const ridgePositions: number[] = [];
+  for (let x = startX + 0.6; x <= endX - 0.6; x += 0.8) {
+    ridgePositions.push(dir * x);
+  }
+
+  return (
+    <group>
+      {/* 1. Continuous Gallery Plinth Base */}
+      <mesh position={[midX, 0.35, 0]} castShadow receiveShadow>
+        <boxGeometry args={[length, 0.7, 2.6]} />
+        <meshStandardMaterial color="#8F714A" roughness={0.9} />
+      </mesh>
+      <mesh position={[midX, 0.78, 0]} castShadow receiveShadow>
+        <boxGeometry args={[length, 0.22, 2.8]} />
+        <meshStandardMaterial color="#B08D5B" roughness={0.86} />
+      </mesh>
+
+      {/* 2. Recessed Solid Sandstone Back Wall */}
+      <mesh position={[midX, 2.75, 0.85]} castShadow receiveShadow>
+        <boxGeometry args={[length, 3.8, 0.45]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.88} />
+      </mesh>
+
+      {/* 3. Colonnade of Fluted Sandstone Columns (Front Open Colonnade) */}
+      {pillarXOffsets.map((px, idx) => (
+        <group key={`col-${idx}`} position={[px, 0, -0.7]}>
+          <mesh position={[0, 0.98, 0]} castShadow receiveShadow>
+            <boxGeometry args={[0.58, 0.22, 0.58]} />
+            <meshStandardMaterial color="#B08D5B" roughness={0.85} />
+          </mesh>
+          <mesh position={[0, 2.7, 0]} castShadow receiveShadow>
+            <boxGeometry args={[0.42, 3.3, 0.42]} />
+            <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+          </mesh>
+          <mesh position={[0, 2.7, -0.22]}>
+            <boxGeometry args={[0.26, 3.1, 0.05]} />
+            <meshStandardMaterial color="#D6B57E" roughness={0.76} />
+          </mesh>
+          <mesh position={[0, 4.45, 0]} castShadow>
+            <boxGeometry args={[0.56, 0.18, 0.56]} />
+            <meshStandardMaterial color="#DFC090" roughness={0.75} />
+          </mesh>
+          <mesh position={[0, 4.6, 0]} castShadow>
+            <boxGeometry args={[0.66, 0.14, 0.66]} />
+            <meshStandardMaterial color="#E8CE9D" roughness={0.72} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* 4. Carved Window Bays with Turned Sandstone Balusters (បង្អួចចម្រឹងថ្ម) */}
+      {windowBayCenters.map((wx, bIdx) => (
+        <group key={`window-${bIdx}`} position={[wx, 0, 0]}>
+          <mesh position={[0, 1.15, 0]} castShadow>
+            <boxGeometry args={[1.5, 0.22, 0.9]} />
+            <meshStandardMaterial color="#A4855E" roughness={0.84} />
+          </mesh>
+          <mesh position={[0, 3.95, 0]} castShadow>
+            <boxGeometry args={[1.5, 0.26, 0.9]} />
+            <meshStandardMaterial color="#BFA06C" roughness={0.8} />
+          </mesh>
+          {balusterOffsets.map((bx, balIdx) => (
+            <group key={`baluster-${balIdx}`} position={[bx, 2.55, 0]}>
+              <mesh castShadow>
+                <cylinderGeometry args={[0.048, 0.048, 2.45, 8]} />
+                <meshStandardMaterial color="#CDB082" roughness={0.72} />
+              </mesh>
+              <mesh position={[0, 0, 0]}>
+                <sphereGeometry args={[0.075, 8, 8]} />
+                <meshStandardMaterial color="#D97706" roughness={0.5} metalness={0.3} />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      ))}
+
+      {/* 5. Continuous Entablature & Architrave Beam */}
+      <mesh position={[midX, 4.85, 0]} castShadow receiveShadow>
+        <boxGeometry args={[length, 0.5, 2.6]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.86} />
+      </mesh>
+      <mesh position={[midX, 5.2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[length, 0.24, 2.8]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+      </mesh>
+
+      {/* 6. Stepped Corbelled Barrel-Vault Roof (ដំបូលកោងថែវ) */}
+      <mesh position={[midX, 5.5, 0]} castShadow>
+        <boxGeometry args={[length, 0.42, 2.2]} />
+        <meshStandardMaterial color="#B59668" roughness={0.82} />
+      </mesh>
+      <mesh position={[midX, 5.85, 0]} castShadow>
+        <boxGeometry args={[length, 0.35, 1.7]} />
+        <meshStandardMaterial color="#C8A978" roughness={0.78} />
+      </mesh>
+      <mesh position={[midX, 6.12, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.65, 0.65, length, 12]} />
+        <meshStandardMaterial color="#BA9966" roughness={0.8} />
+      </mesh>
+
+      {/* 7. Decorative Ridge Crest Finials (ក្បាច់ខ្នងដំបូល) */}
+      {ridgePositions.map((rx, rIdx) => (
+        <mesh key={`ridge-${rIdx}`} position={[rx, 6.78, 0]} castShadow>
+          <coneGeometry args={[0.12, 0.32, 6]} />
+          <meshStandardMaterial color="#D97706" roughness={0.45} metalness={0.4} />
+        </mesh>
+      ))}
+
+      {/* 8. Terminal Corner Pavilion (ពន្លាជ្រុង) */}
+      <group position={[pavilionX, 0, 0]}>
+        <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+          <boxGeometry args={[3.2, 0.9, 3.2]} />
+          <meshStandardMaterial color="#7D6345" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 0.98, 0]} castShadow receiveShadow>
+          <boxGeometry args={[3.45, 0.22, 3.45]} />
+          <meshStandardMaterial color="#947754" roughness={0.88} />
+        </mesh>
+        <mesh position={[0, 2.85, 0]} castShadow receiveShadow>
+          <boxGeometry args={[2.7, 3.6, 2.7]} />
+          <meshStandardMaterial color="#A4855E" roughness={0.84} />
+        </mesh>
+        {[-1.25, 1.25].map((cx, cIdx) =>
+          [-1.25, 1.25].map((cz, zIdx) => (
+            <mesh key={`pcol-${cIdx}-${zIdx}`} position={[cx, 2.85, cz]} castShadow>
+              <boxGeometry args={[0.38, 3.6, 0.38]} />
+              <meshStandardMaterial color="#DFC090" roughness={0.76} />
+            </mesh>
+          ))
+        )}
+        <mesh position={[0, 4.8, 0]} castShadow>
+          <boxGeometry args={[3.3, 0.45, 3.3]} />
+          <meshStandardMaterial color="#BFA06C" roughness={0.8} />
+        </mesh>
+        <AngkorPrasatTower position={[0, 5.0, 0]} scale={0.58} showAntefixes={false} />
+      </group>
+    </group>
+  );
+}
+
 export default function AncientStoneGate({
   gateState,
   streak = 0,
@@ -428,11 +784,15 @@ export default function AncientStoneGate({
 
   return (
     <group position={[0, 0, 6]}>
-      {/* ===== 1. OUTER KHMER SANDSTONE GOPURA COLUMNS ===== */}
+      {/* ===== 1. SYMMETRICAL COLONNADED ANGKOR GALLERY WINGS (ថែវប្រាសាទសងខាង) ===== */}
+      <AngkorGalleryWing startX={3.2} endX={15.5} isLeft={true} />
+      <AngkorGalleryWing startX={3.2} endX={15.5} isLeft={false} />
+
+      {/* ===== 2. OUTER KHMER SANDSTONE GOPURA COLUMNS ===== */}
       <GopuraColumn x={-3.2} />
       <GopuraColumn x={3.2} />
 
-      {/* ===== 2. STEPPED ANGKORIAN GOPURA ROOF & CORBELLED PEDIMENT ===== */}
+      {/* ===== 3. STEPPED ANGKORIAN GOPURA ROOF & CORBELLED PEDIMENT ===== */}
       {/* Heavy Main Architrave Beam */}
       <mesh position={[0, 5.2, 0]} castShadow receiveShadow>
         <boxGeometry args={[9.4, 0.55, 2.5]} />
@@ -467,16 +827,6 @@ export default function AncientStoneGate({
         </mesh>
       </group>
 
-      {/* Stepped Superstructure Tiers */}
-      <mesh position={[0, 6.05, 0]} castShadow>
-        <boxGeometry args={[7.2, 0.75, 2.0]} />
-        <meshStandardMaterial color="#B59668" roughness={0.82} />
-      </mesh>
-      <mesh position={[0, 6.75, 0]} castShadow>
-        <boxGeometry args={[4.8, 0.70, 1.6]} />
-        <meshStandardMaterial color="#C8A978" roughness={0.78} />
-      </mesh>
-
       {/* Flanking Acroteria Mini-Spires on Cornice Shoulders */}
       {[-3.6, 3.6].map((ax, aIdx) => (
         <group key={`acroteria-${aIdx}`} position={[ax, 5.95, 0]}>
@@ -491,23 +841,8 @@ export default function AncientStoneGate({
         </group>
       ))}
 
-      {/* Central Lotus Bud Spire (កំពូលប្រាសាទ) & Golden Kalasha Finial */}
-      <mesh position={[0, 7.55, 0]} castShadow>
-        <cylinderGeometry args={[0.7, 1.15, 0.95, 8]} />
-        <meshStandardMaterial color="#C8A978" roughness={0.78} />
-      </mesh>
-      <mesh position={[0, 8.25, 0]} castShadow>
-        <coneGeometry args={[0.75, 1.35, 8]} />
-        <meshStandardMaterial color="#D6B785" roughness={0.74} />
-      </mesh>
-      <mesh position={[0, 9.15, 0]}>
-        <cylinderGeometry args={[0.04, 0.18, 1.05, 8]} />
-        <meshStandardMaterial color="#F59E0B" metalness={0.75} roughness={0.22} />
-      </mesh>
-      <mesh position={[0, 9.75, 0]}>
-        <sphereGeometry args={[0.12, 12, 12]} />
-        <meshStandardMaterial color="#FBBF24" emissive="#F59E0B" emissiveIntensity={0.6} />
-      </mesh>
+      {/* ===== 4. MONUMENTAL CENTRAL LOTUS PRASAT SPIRE (កំពូលផ្កាឈូកកណ្ដាល) ===== */}
+      <AngkorPrasatTower position={[0, 5.6, 0]} scale={1.22} showAntefixes={true} />
 
       {/* ===== 3. GLOWING CENTRAL LINTEL & PROGRESSIVE KHMER RUNES ===== */}
       <mesh position={[0, 5.2, -1.23]}>
