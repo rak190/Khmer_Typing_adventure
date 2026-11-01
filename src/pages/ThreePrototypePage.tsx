@@ -211,6 +211,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       __threeGetPlayerPos?: () => Position3D;
       __threeSetPlayerPos?: (x: number, y: number, z: number) => void;
       __threeUnlockAllStages?: () => void;
+      __threeStartStage?: (stageIdx: number) => void;
       __threeGetLessonDebug?: () => {
         activeStageIndex: number;
         stageStates: StageProgressState[];
@@ -234,9 +235,12 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     });
     return () => {
       delete win.__threeGetPlayerPos;
+      delete win.__threeSetPlayerPos;
+      delete win.__threeUnlockAllStages;
+      delete win.__threeStartStage;
       delete win.__threeGetLessonDebug;
     };
-  }, [activeStageIndex, stageStates]);
+  }, [activeStageIndex, stageStates, startStageTypingSession]);
 
   const movement = usePlayerControls(
     mode,
