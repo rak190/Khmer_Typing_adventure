@@ -587,6 +587,162 @@ function AngkorDevataNiche({
 }
 
 /**
+ * Armed Angkorian Dvarapala Temple Sentinel (ទ្វារបាល / Guardian Warrior)
+ * Standing stone warrior sentinels flanking the gopura entrance,
+ * holding massive carved stone clubs (Gada) to protect the sanctuary.
+ */
+function DvarapalaSentinel({
+  position,
+  rotation = [0, 0, 0],
+  scale = 1,
+}: {
+  position: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: number;
+}) {
+  return (
+    <group position={position} rotation={rotation} scale={[scale, scale, scale]}>
+      {/* 1. Stepped Sandstone Plinth */}
+      <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.74, 0.3, 0.74]} />
+        <meshStandardMaterial color="#8F714A" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.34, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.32, 0.36, 0.12, 10]} />
+        <meshStandardMaterial color="#B08D5B" roughness={0.86} />
+      </mesh>
+
+      {/* 2. Warrior Feet planted firmly in guardian stance */}
+      <mesh position={[-0.14, 0.44, 0.05]} castShadow>
+        <boxGeometry args={[0.12, 0.1, 0.22]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+      </mesh>
+      <mesh position={[0.14, 0.44, 0.05]} castShadow>
+        <boxGeometry args={[0.12, 0.1, 0.22]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+      </mesh>
+
+      {/* 3. Muscular Lower Legs & Calves */}
+      <mesh position={[-0.14, 0.72, 0]} castShadow>
+        <cylinderGeometry args={[0.075, 0.09, 0.48, 8]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.14, 0.72, 0]} castShadow>
+        <cylinderGeometry args={[0.075, 0.09, 0.48, 8]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.8} />
+      </mesh>
+
+      {/* 4. Pleated Sampot Dhoti Kben & Golden Belt */}
+      <mesh position={[0, 1.15, 0]} castShadow>
+        <cylinderGeometry args={[0.26, 0.22, 0.46, 10]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.85} />
+      </mesh>
+      <mesh position={[0, 1.34, 0]} castShadow>
+        <cylinderGeometry args={[0.27, 0.27, 0.08, 10]} />
+        <meshStandardMaterial color="#D97706" roughness={0.45} metalness={0.4} />
+      </mesh>
+      {/* Central Hanging Fishtail Sash (ជាយសំពត់) */}
+      <mesh position={[0, 0.98, 0.16]} castShadow>
+        <boxGeometry args={[0.1, 0.42, 0.04]} />
+        <meshStandardMaterial color="#D97706" roughness={0.5} metalness={0.35} />
+      </mesh>
+
+      {/* 5. Powerful Torso & Crossed Sangvar Pectoral Baldric Bands */}
+      <mesh position={[0, 1.62, 0]} castShadow>
+        <boxGeometry args={[0.42, 0.52, 0.24]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.8} />
+      </mesh>
+      {/* Crossed Golden Sangvar Bands */}
+      <mesh position={[0, 1.62, 0.13]} rotation={[0, 0, 0.65]}>
+        <boxGeometry args={[0.06, 0.58, 0.02]} />
+        <meshStandardMaterial color="#D97706" metalness={0.5} roughness={0.35} />
+      </mesh>
+      <mesh position={[0, 1.62, 0.13]} rotation={[0, 0, -0.65]}>
+        <boxGeometry args={[0.06, 0.58, 0.02]} />
+        <meshStandardMaterial color="#D97706" metalness={0.5} roughness={0.35} />
+      </mesh>
+      {/* Central Chest Medallion */}
+      <mesh position={[0, 1.62, 0.14]}>
+        <sphereGeometry args={[0.05, 8, 8]} />
+        <meshStandardMaterial color="#FEF08A" emissive="#F59E0B" emissiveIntensity={0.5} />
+      </mesh>
+
+      {/* 6. Shoulders & Muscular Arms Grasping Central Club */}
+      <mesh position={[-0.24, 1.68, 0.02]} rotation={[0.3, 0, -0.35]} castShadow>
+        <cylinderGeometry args={[0.07, 0.065, 0.38, 8]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.24, 1.68, 0.02]} rotation={[0.3, 0, 0.35]} castShadow>
+        <cylinderGeometry args={[0.07, 0.065, 0.38, 8]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.8} />
+      </mesh>
+      {/* Hands clasping the Gada club pommel */}
+      <mesh position={[-0.05, 1.45, 0.26]} castShadow>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.05, 1.45, 0.26]} castShadow>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.8} />
+      </mesh>
+
+      {/* 7. Massive Stone Guardian Club (Gada / ដំបងថ្ម) */}
+      <group position={[0, 0, 0.26]}>
+        {/* Pointed Pommel Finial */}
+        <mesh position={[0, 1.58, 0]} castShadow>
+          <coneGeometry args={[0.07, 0.16, 8]} />
+          <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.5} />
+        </mesh>
+        {/* Upper Handle Shaft */}
+        <mesh position={[0, 1.25, 0]} castShadow>
+          <cylinderGeometry args={[0.045, 0.045, 0.5, 8]} />
+          <meshStandardMaterial color="#8F714A" roughness={0.88} />
+        </mesh>
+        {/* Fluted Ribbed Striking Head */}
+        <mesh position={[0, 0.78, 0]} castShadow receiveShadow>
+          <cylinderGeometry args={[0.13, 0.11, 0.55, 8]} />
+          <meshStandardMaterial color="#A4855E" roughness={0.84} />
+        </mesh>
+        {/* Base Spike planted into plinth */}
+        <mesh position={[0, 0.45, 0]} rotation={[Math.PI, 0, 0]} castShadow>
+          <coneGeometry args={[0.09, 0.14, 8]} />
+          <meshStandardMaterial color="#6B5237" roughness={0.92} />
+        </mesh>
+      </group>
+
+      {/* 8. Warrior Head, Fierce Expression & Royal Diadem (Mokot) */}
+      <mesh position={[0, 2.05, 0.02]} castShadow>
+        <sphereGeometry args={[0.16, 10, 10]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.8} />
+      </mesh>
+      {/* Bulging Guardian Eyes */}
+      <mesh position={[-0.07, 2.08, 0.15]}>
+        <sphereGeometry args={[0.032, 6, 6]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.3} metalness={0.6} />
+      </mesh>
+      <mesh position={[0.07, 2.08, 0.15]}>
+        <sphereGeometry args={[0.032, 6, 6]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.3} metalness={0.6} />
+      </mesh>
+      {/* Fierce Mustache / Guardian Brow */}
+      <mesh position={[0, 2.02, 0.16]}>
+        <boxGeometry args={[0.16, 0.035, 0.03]} />
+        <meshStandardMaterial color="#6B5237" roughness={0.9} />
+      </mesh>
+      {/* Tiered Royal Diadem Spire */}
+      <mesh position={[0, 2.24, 0]} castShadow>
+        <cylinderGeometry args={[0.12, 0.17, 0.16, 8]} />
+        <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.5} />
+      </mesh>
+      <mesh position={[0, 2.42, 0]} castShadow>
+        <coneGeometry args={[0.1, 0.28, 8]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.35} metalness={0.55} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
  * Classical Angkorian Entrance Portal Jambs, Pilasters & Carved Lintel
  * (សសរផ្អោប និងផ្តែរប្រាសាទអង្គរវត្ត)
  */
@@ -607,6 +763,17 @@ function AngkorDoorPilastersAndLintel() {
           <boxGeometry args={[0.14, 3.8, 0.04]} />
           <meshStandardMaterial color="#DFC090" roughness={0.76} />
         </mesh>
+        {/* Ancient Khmer Inscription Stele (សិលាចារឹកខ្មែរ) on doorpost */}
+        <mesh position={[0, 2.45, -0.14]}>
+          <boxGeometry args={[0.16, 3.2, 0.02]} />
+          <meshStandardMaterial color="#8F714A" roughness={0.88} />
+        </mesh>
+        {[-1.2, -0.6, 0, 0.6, 1.2].map((sy, sIdx) => (
+          <mesh key={`stele-line-l-${sIdx}`} position={[0, 2.45 + sy, -0.155]}>
+            <boxGeometry args={[0.12, 0.025, 0.01]} />
+            <meshStandardMaterial color="#FEF08A" emissive="#F59E0B" emissiveIntensity={0.4} />
+          </mesh>
+        ))}
         <mesh position={[0, 4.55, 0]} castShadow>
           <boxGeometry args={[0.34, 0.2, 0.3]} />
           <meshStandardMaterial color="#DFC090" roughness={0.76} />
@@ -627,28 +794,108 @@ function AngkorDoorPilastersAndLintel() {
           <boxGeometry args={[0.14, 3.8, 0.04]} />
           <meshStandardMaterial color="#DFC090" roughness={0.76} />
         </mesh>
+        {/* Ancient Khmer Inscription Stele (សិលាចារឹកខ្មែរ) on doorpost */}
+        <mesh position={[0, 2.45, -0.14]}>
+          <boxGeometry args={[0.16, 3.2, 0.02]} />
+          <meshStandardMaterial color="#8F714A" roughness={0.88} />
+        </mesh>
+        {[-1.2, -0.6, 0, 0.6, 1.2].map((sy, sIdx) => (
+          <mesh key={`stele-line-r-${sIdx}`} position={[0, 2.45 + sy, -0.155]}>
+            <boxGeometry args={[0.12, 0.025, 0.01]} />
+            <meshStandardMaterial color="#FEF08A" emissive="#F59E0B" emissiveIntensity={0.4} />
+          </mesh>
+        ))}
         <mesh position={[0, 4.55, 0]} castShadow>
           <boxGeometry args={[0.34, 0.2, 0.3]} />
           <meshStandardMaterial color="#DFC090" roughness={0.76} />
         </mesh>
       </group>
 
-      {/* Classical Sculpted Sandstone Lintel (ផ្តែរប្រាសាទ) spanning above the sliding doors */}
+      {/* Classical Sculpted Sandstone Lintel with Fierce Kala / Rahu Mask (ផ្តែរប្រាសាទចម្លាក់ក្បាលរាហូ) */}
       <group position={[0, 4.75, -0.42]}>
+        {/* Main Architrave Beam */}
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[2.85, 0.46, 0.32]} />
+          <boxGeometry args={[2.95, 0.52, 0.36]} />
           <meshStandardMaterial color="#A4855E" roughness={0.85} />
         </mesh>
-        {/* Central Kala / Lotus Rosette Medallion */}
-        <mesh position={[0, 0, -0.18]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.22, 0.22, 0.08, 12]} />
-          <meshStandardMaterial color="#D97706" metalness={0.55} roughness={0.35} />
+        {/* Upper Molded Cornice Lip */}
+        <mesh position={[0, 0.28, 0]} castShadow>
+          <boxGeometry args={[3.08, 0.10, 0.40]} />
+          <meshStandardMaterial color="#CDB082" roughness={0.8} />
         </mesh>
-        {/* Outward Flaring Garland Carving Arcs */}
-        {[-0.68, 0.68].map((gx, gIdx) => (
-          <mesh key={`garland-${gIdx}`} position={[gx, -0.04, -0.17]}>
-            <boxGeometry args={[0.9, 0.16, 0.04]} />
-            <meshStandardMaterial color="#DFC090" roughness={0.74} />
+
+        {/* Central Sculpted Kala / Rahu Mask (ក្បាលរាហូ) */}
+        <group position={[0, -0.02, -0.19]}>
+          {/* Broad Monster Forehead with Crest */}
+          <mesh castShadow>
+            <boxGeometry args={[0.42, 0.24, 0.12]} />
+            <meshStandardMaterial color="#CDB082" roughness={0.76} />
+          </mesh>
+          {/* Monster Crest Horns */}
+          <mesh position={[0, 0.18, 0]} castShadow>
+            <coneGeometry args={[0.09, 0.18, 6]} />
+            <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.5} />
+          </mesh>
+          {/* Bulging Round Monster Eyes */}
+          <mesh position={[-0.12, 0.04, 0.06]}>
+            <sphereGeometry args={[0.065, 8, 8]} />
+            <meshStandardMaterial color="#F59E0B" roughness={0.25} metalness={0.65} />
+          </mesh>
+          <mesh position={[0.12, 0.04, 0.06]}>
+            <sphereGeometry args={[0.065, 8, 8]} />
+            <meshStandardMaterial color="#F59E0B" roughness={0.25} metalness={0.65} />
+          </mesh>
+          {/* Lion Snout / Wide Nose */}
+          <mesh position={[0, -0.02, 0.08]}>
+            <boxGeometry args={[0.14, 0.08, 0.08]} />
+            <meshStandardMaterial color="#B08D5B" roughness={0.82} />
+          </mesh>
+          {/* Gaping Mouth with Curved Upper Fangs grasping garland loop */}
+          <mesh position={[0, -0.12, 0.06]}>
+            <boxGeometry args={[0.34, 0.12, 0.08]} />
+            <meshStandardMaterial color="#7D6345" roughness={0.9} />
+          </mesh>
+          {/* Fangs */}
+          <mesh position={[-0.11, -0.15, 0.08]} rotation={[Math.PI, 0, 0.2]}>
+            <coneGeometry args={[0.025, 0.08, 4]} />
+            <meshStandardMaterial color="#FFFBEB" roughness={0.4} />
+          </mesh>
+          <mesh position={[0.11, -0.15, 0.08]} rotation={[Math.PI, 0, -0.2]}>
+            <coneGeometry args={[0.025, 0.08, 4]} />
+            <meshStandardMaterial color="#FFFBEB" roughness={0.4} />
+          </mesh>
+
+          {/* Sprawling Kala Arms holding the Garland Swags */}
+          <mesh position={[-0.26, -0.06, 0.03]} rotation={[0, 0, 0.4]} castShadow>
+            <cylinderGeometry args={[0.04, 0.05, 0.24, 6]} />
+            <meshStandardMaterial color="#BFA06C" roughness={0.8} />
+          </mesh>
+          <mesh position={[0.26, -0.06, 0.03]} rotation={[0, 0, -0.4]} castShadow>
+            <cylinderGeometry args={[0.04, 0.05, 0.24, 6]} />
+            <meshStandardMaterial color="#BFA06C" roughness={0.8} />
+          </mesh>
+        </group>
+
+        {/* Cascading Floral Garlands (Kbach Changva Por) billowing outward */}
+        {[-0.82, 0.82].map((gx, gIdx) => (
+          <group key={`kala-garland-${gIdx}`} position={[gx, -0.05, -0.18]}>
+            <mesh castShadow>
+              <boxGeometry args={[0.98, 0.20, 0.05]} />
+              <meshStandardMaterial color="#DFC090" roughness={0.74} />
+            </mesh>
+            {/* Medallion Boss along the garland swag */}
+            <mesh position={[gIdx === 0 ? -0.2 : 0.2, 0, 0.03]} rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.07, 0.07, 0.04, 8]} />
+              <meshStandardMaterial color="#D97706" metalness={0.5} roughness={0.35} />
+            </mesh>
+          </group>
+        ))}
+
+        {/* Pendant Lotus Tassels hanging under lintel */}
+        {[-1.1, -0.55, 0, 0.55, 1.1].map((px, pIdx) => (
+          <mesh key={`tassel-${pIdx}`} position={[px, -0.32, -0.14]} rotation={[Math.PI, 0, 0]} castShadow>
+            <coneGeometry args={[0.04, 0.14, 6]} />
+            <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.4} />
           </mesh>
         ))}
       </group>
@@ -1054,6 +1301,10 @@ export default function AncientStoneGate({
       {/* ===== 2. FLANKING ENTRANCE DEVATA HIGH-RELIEF NICHES (ចម្លាក់ទេវតាអមទ្វារ) ===== */}
       <AngkorDevataNiche position={[-2.25, 2.45, -0.45]} />
       <AngkorDevataNiche position={[2.25, 2.45, -0.45]} />
+
+      {/* ===== 2B. ARMED DVARAPALA TEMPLE SENTINELS (ទ្វារបាលកាន់ដំបងយាមទ្វារ) ===== */}
+      <DvarapalaSentinel position={[-1.82, 0, -0.65]} scale={1.02} />
+      <DvarapalaSentinel position={[1.82, 0, -0.65]} scale={1.02} />
 
       {/* ===== 3. CARVED DOOR PILASTERS & SCULPTED LINTEL (សសរផ្អោប និងផ្តែរទ្វារ) ===== */}
       <AngkorDoorPilastersAndLintel />
