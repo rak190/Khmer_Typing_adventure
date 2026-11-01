@@ -315,10 +315,53 @@ function GopuraColumn({ x }: { x: number }) {
 }
 
 /**
+ * Projecting Cardinal Gable / Antefix (ហោជាងទិស Gavaksha) on each Prasat tier
+ */
+function PrasatCardinalAntefix({
+  angle,
+  distX,
+  distZ,
+  width,
+  height,
+}: {
+  angle: number;
+  distX: number;
+  distZ: number;
+  width: number;
+  height: number;
+}) {
+  return (
+    <group rotation={[0, angle, 0]}>
+      <group position={[0, 0, Math.max(distX, distZ)]}>
+        {/* Triangular Corbelled Gable Pediment */}
+        <mesh position={[0, height * 0.42, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+          <coneGeometry args={[width * 0.52, height * 0.88, 4]} />
+          <meshStandardMaterial color="#CDB082" roughness={0.76} />
+        </mesh>
+        {/* Miniature Lintel & Kala Medallion */}
+        <mesh position={[0, height * 0.12, 0.08]} castShadow>
+          <boxGeometry args={[width * 0.72, height * 0.22, 0.14]} />
+          <meshStandardMaterial color="#9C7E54" roughness={0.84} />
+        </mesh>
+        <mesh position={[0, height * 0.14, 0.16]}>
+          <sphereGeometry args={[height * 0.12, 6, 6]} />
+          <meshStandardMaterial color="#D97706" roughness={0.45} metalness={0.4} />
+        </mesh>
+        {/* Flame Antefix Crest Finial */}
+        <mesh position={[0, height * 0.92, 0.04]} castShadow>
+          <coneGeometry args={[width * 0.14, height * 0.38, 6]} />
+          <meshStandardMaterial color="#D99B38" roughness={0.4} metalness={0.45} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+/**
  * Monumental Angkor Wat Corbelled Lotus Prasat Tower (កំពូលផ្កាឈូកអង្គរវត្ត)
- * Features 5 diminishing corbelled sandstone tiers with horizontal moldings,
- * cardinal antefixes (ហោជាងទិសទាំង៤), deeply ribbed lotus-bud crown (ផ្កាឈូកក្រពុំ),
- * and radiant golden kalasha pot finial.
+ * Features 5 diminishing corbelled sandstone tiers with stepped cruciform re-entrant profiles,
+ * projecting cardinal antefixes (ហោជាងទិសទាំង៤), horizontal dentils and lotus-petal friezes,
+ * deeply ribbed lotus-bud crown (ផ្កាឈូកក្រពុំ), and radiant tiered golden kalasha pot finial.
  */
 function AngkorPrasatTower({
   position = [0, 0, 0],
@@ -331,7 +374,7 @@ function AngkorPrasatTower({
 }) {
   return (
     <group position={position} scale={[scale, scale, scale]}>
-      {/* 1. Base Architrave Plinth */}
+      {/* 1. Base Architrave Plinth with Lotus Petal & Dentil Moldings */}
       <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
         <boxGeometry args={[4.8, 0.7, 3.8]} />
         <meshStandardMaterial color="#8F714A" roughness={0.88} />
@@ -340,34 +383,47 @@ function AngkorPrasatTower({
         <boxGeometry args={[5.1, 0.22, 4.0]} />
         <meshStandardMaterial color="#B08D5B" roughness={0.84} />
       </mesh>
+      {/* Base Cyma Lotus Molding */}
+      <mesh position={[0, 0.92, 0]} castShadow>
+        <boxGeometry args={[5.25, 0.12, 4.15]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.8} />
+      </mesh>
 
-      {/* 2. Tier 1 (Lowest & Widest Corbelled Tier) */}
+      {/* 2. Tier 1 (Lowest & Widest Stepped Corbelled Tier) */}
       <mesh position={[0, 1.45, 0]} castShadow receiveShadow>
         <boxGeometry args={[4.2, 1.15, 3.3]} />
         <meshStandardMaterial color="#BFA06C" roughness={0.82} />
       </mesh>
-      <mesh position={[0, 2.1, 0]} castShadow>
-        <boxGeometry args={[4.5, 0.22, 3.55]} />
-        <meshStandardMaterial color="#DFC090" roughness={0.78} />
+      {/* Stepped Re-Entrant Corner Pilasters (Cruciform indentations) */}
+      <mesh position={[0, 1.45, 0]} castShadow>
+        <boxGeometry args={[4.45, 1.12, 2.5]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+      </mesh>
+      <mesh position={[0, 1.45, 0]} castShadow>
+        <boxGeometry args={[3.2, 1.12, 3.55]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+      </mesh>
+      {/* Tier 1 Dentil Molding & Lotus Cornice */}
+      <mesh position={[0, 2.05, 0]} castShadow>
+        <boxGeometry args={[4.5, 0.16, 3.55]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.76} />
+      </mesh>
+      <mesh position={[0, 2.18, 0]} castShadow>
+        <boxGeometry args={[4.65, 0.10, 3.7]} />
+        <meshStandardMaterial color="#C8A978" roughness={0.8} />
       </mesh>
       {showAntefixes && (
         <group position={[0, 1.55, 0]}>
-          <mesh position={[0, 0, 1.75]} rotation={[0, Math.PI / 4, 0]} castShadow>
-            <coneGeometry args={[0.9, 0.85, 4]} />
-            <meshStandardMaterial color="#CDB082" roughness={0.75} />
-          </mesh>
-          <mesh position={[0, 0, -1.75]} rotation={[0, Math.PI / 4, 0]} castShadow>
-            <coneGeometry args={[0.9, 0.85, 4]} />
-            <meshStandardMaterial color="#CDB082" roughness={0.75} />
-          </mesh>
-          <mesh position={[-2.2, 0, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
-            <coneGeometry args={[0.8, 0.85, 4]} />
-            <meshStandardMaterial color="#CDB082" roughness={0.75} />
-          </mesh>
-          <mesh position={[2.2, 0, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
-            <coneGeometry args={[0.8, 0.85, 4]} />
-            <meshStandardMaterial color="#CDB082" roughness={0.75} />
-          </mesh>
+          {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, idx) => (
+            <PrasatCardinalAntefix
+              key={`t1-antefix-${idx}`}
+              angle={angle}
+              distX={2.25}
+              distZ={1.82}
+              width={1.25}
+              height={1.05}
+            />
+          ))}
         </group>
       )}
 
@@ -376,50 +432,89 @@ function AngkorPrasatTower({
         <boxGeometry args={[3.6, 1.05, 2.8]} />
         <meshStandardMaterial color="#B59668" roughness={0.82} />
       </mesh>
-      <mesh position={[0, 3.35, 0]} castShadow>
-        <boxGeometry args={[3.85, 0.2, 3.0]} />
-        <meshStandardMaterial color="#DFC090" roughness={0.78} />
+      <mesh position={[0, 2.75, 0]} castShadow>
+        <boxGeometry args={[3.85, 1.02, 2.1]} />
+        <meshStandardMaterial color="#B59668" roughness={0.82} />
+      </mesh>
+      <mesh position={[0, 2.75, 0]} castShadow>
+        <boxGeometry args={[2.7, 1.02, 3.05]} />
+        <meshStandardMaterial color="#B59668" roughness={0.82} />
+      </mesh>
+      {/* Tier 2 Dentil Molding & Cornice */}
+      <mesh position={[0, 3.32, 0]} castShadow>
+        <boxGeometry args={[3.85, 0.16, 3.0]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.76} />
+      </mesh>
+      <mesh position={[0, 3.44, 0]} castShadow>
+        <boxGeometry args={[4.0, 0.09, 3.15]} />
+        <meshStandardMaterial color="#C8A978" roughness={0.8} />
       </mesh>
       {showAntefixes && (
         <group position={[0, 2.85, 0]}>
-          <mesh position={[0, 0, 1.48]} rotation={[0, Math.PI / 4, 0]} castShadow>
-            <coneGeometry args={[0.75, 0.75, 4]} />
-            <meshStandardMaterial color="#C8A978" roughness={0.75} />
-          </mesh>
-          <mesh position={[0, 0, -1.48]} rotation={[0, Math.PI / 4, 0]} castShadow>
-            <coneGeometry args={[0.75, 0.75, 4]} />
-            <meshStandardMaterial color="#C8A978" roughness={0.75} />
-          </mesh>
-          <mesh position={[-1.88, 0, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
-            <coneGeometry args={[0.68, 0.75, 4]} />
-            <meshStandardMaterial color="#C8A978" roughness={0.75} />
-          </mesh>
-          <mesh position={[1.88, 0, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
-            <coneGeometry args={[0.68, 0.75, 4]} />
-            <meshStandardMaterial color="#C8A978" roughness={0.75} />
-          </mesh>
+          {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, idx) => (
+            <PrasatCardinalAntefix
+              key={`t2-antefix-${idx}`}
+              angle={angle}
+              distX={1.92}
+              distZ={1.54}
+              width={1.05}
+              height={0.92}
+            />
+          ))}
         </group>
       )}
 
       {/* 4. Tier 3 */}
-      <mesh position={[0, 3.95, 0]} castShadow>
+      <mesh position={[0, 3.98, 0]} castShadow>
         <boxGeometry args={[3.0, 0.95, 2.35]} />
         <meshStandardMaterial color="#C0A170" roughness={0.8} />
       </mesh>
+      <mesh position={[0, 3.98, 0]} castShadow>
+        <boxGeometry args={[3.2, 0.92, 1.75]} />
+        <meshStandardMaterial color="#C0A170" roughness={0.8} />
+      </mesh>
       <mesh position={[0, 4.48, 0]} castShadow>
-        <boxGeometry args={[3.25, 0.18, 2.5]} />
+        <boxGeometry args={[3.25, 0.16, 2.5]} />
         <meshStandardMaterial color="#D6B785" roughness={0.76} />
       </mesh>
+      {showAntefixes && (
+        <group position={[0, 4.02, 0]}>
+          {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, idx) => (
+            <PrasatCardinalAntefix
+              key={`t3-antefix-${idx}`}
+              angle={angle}
+              distX={1.62}
+              distZ={1.28}
+              width={0.88}
+              height={0.78}
+            />
+          ))}
+        </group>
+      )}
 
       {/* 5. Tier 4 */}
-      <mesh position={[0, 5.05, 0]} castShadow>
+      <mesh position={[0, 5.08, 0]} castShadow>
         <boxGeometry args={[2.4, 0.85, 1.9]} />
         <meshStandardMaterial color="#C8A978" roughness={0.78} />
       </mesh>
       <mesh position={[0, 5.52, 0]} castShadow>
-        <boxGeometry args={[2.6, 0.16, 2.05]} />
+        <boxGeometry args={[2.6, 0.15, 2.05]} />
         <meshStandardMaterial color="#DFC090" roughness={0.74} />
       </mesh>
+      {showAntefixes && (
+        <group position={[0, 5.1, 0]}>
+          {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, idx) => (
+            <PrasatCardinalAntefix
+              key={`t4-antefix-${idx}`}
+              angle={angle}
+              distX={1.3}
+              distZ={1.05}
+              width={0.72}
+              height={0.65}
+            />
+          ))}
+        </group>
+      )}
 
       {/* 6. Tier 5 (Top Stepped Tier) */}
       <mesh position={[0, 6.05, 0]} castShadow>
@@ -430,24 +525,39 @@ function AngkorPrasatTower({
         <boxGeometry args={[2.02, 0.14, 1.62]} />
         <meshStandardMaterial color="#E8CE9D" roughness={0.72} />
       </mesh>
+      {showAntefixes && (
+        <group position={[0, 6.08, 0]}>
+          {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, idx) => (
+            <PrasatCardinalAntefix
+              key={`t5-antefix-${idx}`}
+              angle={angle}
+              distX={1.02}
+              distZ={0.82}
+              width={0.58}
+              height={0.52}
+            />
+          ))}
+        </group>
+      )}
 
       {/* 7. Lotus Neck & Petal Collars (កញ្ចឹងឈូក) */}
       <mesh position={[0, 6.8, 0]} castShadow>
-        <cylinderGeometry args={[0.82, 0.98, 0.5, 12]} />
+        <cylinderGeometry args={[0.82, 0.98, 0.5, 16]} />
         <meshStandardMaterial color="#BFA06C" roughness={0.8} />
       </mesh>
+      {/* Flared Lotus Petal Ring */}
       <mesh position={[0, 7.15, 0]} castShadow>
-        <cylinderGeometry args={[1.05, 0.78, 0.32, 12]} />
+        <cylinderGeometry args={[1.1, 0.78, 0.32, 16]} />
         <meshStandardMaterial color="#D6B785" roughness={0.74} />
       </mesh>
 
       {/* 8. Corbelled Ribbed Lotus Bud Crown (ផ្កាឈូកក្រពុំ) */}
       <mesh position={[0, 7.9, 0]} castShadow>
-        <cylinderGeometry args={[1.18, 0.88, 1.25, 12]} />
+        <cylinderGeometry args={[1.22, 0.92, 1.25, 16]} />
         <meshStandardMaterial color="#D4B584" roughness={0.75} />
       </mesh>
       <mesh position={[0, 9.15, 0]} castShadow>
-        <coneGeometry args={[1.08, 1.85, 12]} />
+        <coneGeometry args={[1.12, 1.85, 16]} />
         <meshStandardMaterial color="#DFC090" roughness={0.72} />
       </mesh>
       {[
@@ -461,32 +571,48 @@ function AngkorPrasatTower({
         (7 * Math.PI) / 4,
       ].map((rad, idx) => (
         <group key={`rib-${idx}`} rotation={[0, rad, 0]}>
-          <mesh position={[0, 8.4, 0.92]} rotation={[0.18, 0, 0]} castShadow>
-            <cylinderGeometry args={[0.07, 0.12, 1.7, 6]} />
-            <meshStandardMaterial color="#F59E0B" roughness={0.55} metalness={0.3} />
+          <mesh position={[0, 8.4, 0.95]} rotation={[0.18, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.075, 0.13, 1.72, 6]} />
+            <meshStandardMaterial color="#F59E0B" roughness={0.5} metalness={0.35} />
           </mesh>
         </group>
       ))}
 
-      {/* 9. Golden Kalasha Finial Spire (កលសាសិល្បៈខ្មែរ) */}
+      {/* 9. Golden Kalasha Finial Spire with Chatra Rings (កលសាសិល្បៈខ្មែរ) */}
       <mesh position={[0, 10.25, 0]} castShadow>
-        <sphereGeometry args={[0.28, 12, 10]} />
-        <meshStandardMaterial color="#F59E0B" roughness={0.28} metalness={0.75} />
+        <sphereGeometry args={[0.3, 12, 10]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.25} metalness={0.8} />
       </mesh>
       <mesh position={[0, 10.65, 0]} castShadow>
-        <cylinderGeometry args={[0.14, 0.22, 0.45, 8]} />
-        <meshStandardMaterial color="#D97706" roughness={0.32} metalness={0.7} />
+        <cylinderGeometry args={[0.15, 0.24, 0.45, 8]} />
+        <meshStandardMaterial color="#D97706" roughness={0.3} metalness={0.75} />
       </mesh>
-      <mesh position={[0, 11.45, 0]}>
-        <cylinderGeometry args={[0.03, 0.14, 1.45, 8]} />
+
+      {/* 3-Tier Royal Chatra Umbrella Rings (ឆ័ត្ររួចថ្នាក់មាស) */}
+      <mesh position={[0, 11.0, 0]} castShadow>
+        <cylinderGeometry args={[0.42, 0.42, 0.06, 12]} />
+        <meshStandardMaterial color="#FBBF24" roughness={0.22} metalness={0.85} />
+      </mesh>
+      <mesh position={[0, 11.22, 0]} castShadow>
+        <cylinderGeometry args={[0.34, 0.34, 0.05, 12]} />
+        <meshStandardMaterial color="#FBBF24" roughness={0.22} metalness={0.85} />
+      </mesh>
+      <mesh position={[0, 11.42, 0]} castShadow>
+        <cylinderGeometry args={[0.26, 0.26, 0.05, 12]} />
+        <meshStandardMaterial color="#FBBF24" roughness={0.22} metalness={0.85} />
+      </mesh>
+
+      {/* Tapered Spire Shaft & Luminous Jewel Tip */}
+      <mesh position={[0, 11.85, 0]}>
+        <cylinderGeometry args={[0.03, 0.12, 1.15, 8]} />
         <meshStandardMaterial color="#FBBF24" roughness={0.2} metalness={0.85} />
       </mesh>
-      <mesh position={[0, 12.25, 0]}>
+      <mesh position={[0, 12.52, 0]}>
         <sphereGeometry args={[0.13, 12, 12]} />
         <meshStandardMaterial
           color="#FEF08A"
           emissive="#F59E0B"
-          emissiveIntensity={0.85}
+          emissiveIntensity={0.9}
           roughness={0.1}
           metalness={0.9}
         />

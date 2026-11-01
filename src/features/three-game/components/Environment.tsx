@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useGltfClone } from '../hooks/useGltfAsset';
+import { SinghaGuardianLion } from './StageChallenges';
 
 const FLAGSTONE_TINTS = ['#D4B27C', '#C29C64', '#DEBF8E', '#B2884E', '#CCA46E', '#E4C99A'];
 
@@ -172,7 +173,47 @@ function SacredLotusBloom({
 }
 
 /**
- * Angkorian Stepped Lotus Prasat Tower with Tiered Cornices
+ * Projecting Cardinal Antefix on each AngkorLotusTower corbelled tier
+ */
+function LotusTowerCardinalAntefix({
+  angle,
+  dist,
+  width,
+  height,
+}: {
+  angle: number;
+  dist: number;
+  width: number;
+  height: number;
+}) {
+  return (
+    <group rotation={[0, angle, 0]}>
+      <group position={[0, 0, dist]}>
+        {/* Triangular Gable Pediment */}
+        <mesh position={[0, height * 0.44, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+          <coneGeometry args={[width * 0.5, height * 0.85, 4]} />
+          <meshStandardMaterial color="#CDB082" roughness={0.76} />
+        </mesh>
+        {/* Miniature Lintel */}
+        <mesh position={[0, height * 0.12, 0.06]} castShadow>
+          <boxGeometry args={[width * 0.75, height * 0.22, 0.12]} />
+          <meshStandardMaterial color="#9C7E54" roughness={0.84} />
+        </mesh>
+        {/* Flame Antefix Crest */}
+        <mesh position={[0, height * 0.9, 0.03]} castShadow>
+          <coneGeometry args={[width * 0.14, height * 0.35, 6]} />
+          <meshStandardMaterial color="#D99B38" roughness={0.4} metalness={0.4} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+/**
+ * Authentic Angkorian Stepped Lotus Prasat Tower (កំពូលផ្កាឈូកអង្គរវត្ត)
+ * Features 5 diminishing corbelled sandstone tiers with stepped cruciform re-entrant profiles,
+ * projecting cardinal antefixes (ហោជាងទិស), dentil friezes, deeply ribbed lotus-bud dome (ផ្កាឈូកក្រពុំ),
+ * and radiant golden Kalasha pot finial with royal Chatra rings.
  */
 function AngkorLotusTower({
   position,
@@ -183,91 +224,189 @@ function AngkorLotusTower({
 }) {
   return (
     <group position={position} scale={[scale, scale, scale]}>
-      {/* Stepped Temple Base Plinth */}
+      {/* 1. Stepped Plinth with Re-Entrant Angles & Lotus Carving */}
       <mesh position={[0, 1.2, 0]} receiveShadow castShadow>
         <boxGeometry args={[4.6, 2.4, 4.6]} />
         <meshStandardMaterial color="#8C7050" roughness={0.9} />
       </mesh>
-      <mesh position={[0, 2.5, 0]} castShadow>
-        <boxGeometry args={[4.8, 0.28, 4.8]} />
+      <mesh position={[0, 1.2, 0]} castShadow>
+        <boxGeometry args={[5.2, 2.35, 3.2]} />
+        <meshStandardMaterial color="#8C7050" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 1.2, 0]} castShadow>
+        <boxGeometry args={[3.2, 2.35, 5.2]} />
+        <meshStandardMaterial color="#8C7050" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 2.48, 0]} castShadow>
+        <boxGeometry args={[4.9, 0.22, 4.9]} />
         <meshStandardMaterial color="#BA9B6A" roughness={0.82} />
       </mesh>
+      <mesh position={[0, 2.62, 0]} castShadow>
+        <boxGeometry args={[5.1, 0.12, 5.1]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.78} />
+      </mesh>
 
-      {/* Sanctuary Body with Miniature Portico Projections */}
-      <mesh position={[0, 4.1, 0]} castShadow>
+      {/* 2. Sanctuary Body with Projecting Cardinal Porticos & Carved Pilasters */}
+      <mesh position={[0, 4.1, 0]} castShadow receiveShadow>
         <boxGeometry args={[3.8, 2.9, 3.8]} />
         <meshStandardMaterial color="#A4855E" roughness={0.86} />
       </mesh>
-      {/* Front Entrance Porch */}
-      <mesh position={[0, 3.2, 2.05]} castShadow>
-        <boxGeometry args={[1.6, 2.2, 0.6]} />
-        <meshStandardMaterial color="#785E3E" roughness={0.9} />
+      {/* Stepped Portico Projections */}
+      <mesh position={[0, 4.1, 0]} castShadow>
+        <boxGeometry args={[4.25, 2.85, 2.6]} />
+        <meshStandardMaterial color="#A4855E" roughness={0.86} />
+      </mesh>
+      <mesh position={[0, 4.1, 0]} castShadow>
+        <boxGeometry args={[2.6, 2.85, 4.25]} />
+        <meshStandardMaterial color="#A4855E" roughness={0.86} />
       </mesh>
 
-      {/* 5 Diminishing Stepped Corbelled Tower Roof Levels */}
+      {/* Front Entrance Porch with Corbelled Pediment */}
+      <mesh position={[0, 3.2, 2.25]} castShadow>
+        <boxGeometry args={[1.7, 2.3, 0.7]} />
+        <meshStandardMaterial color="#785E3E" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 4.5, 2.3]} rotation={[0, Math.PI / 4, 0]} castShadow>
+        <coneGeometry args={[1.1, 1.1, 4]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.78} />
+      </mesh>
+
+      {/* 3. Five Diminishing Stepped Corbelled Tower Roof Levels with Cardinal Antefixes */}
       {/* Tier 1 */}
       <mesh position={[0, 5.75, 0]} castShadow>
-        <boxGeometry args={[3.4, 0.5, 3.4]} />
+        <boxGeometry args={[3.5, 0.52, 3.5]} />
         <meshStandardMaterial color="#B59668" roughness={0.82} />
       </mesh>
+      <mesh position={[0, 6.05, 0]} castShadow>
+        <boxGeometry args={[3.7, 0.12, 3.7]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.76} />
+      </mesh>
+      {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((ang, idx) => (
+        <LotusTowerCardinalAntefix
+          key={`lt-t1-${idx}`}
+          angle={ang}
+          dist={1.82}
+          width={1.1}
+          height={0.85}
+        />
+      ))}
+
       {/* Tier 2 */}
       <mesh position={[0, 6.45, 0]} castShadow>
-        <boxGeometry args={[2.9, 0.48, 2.9]} />
+        <boxGeometry args={[3.0, 0.48, 3.0]} />
         <meshStandardMaterial color="#C2A272" roughness={0.8} />
       </mesh>
+      <mesh position={[0, 6.72, 0]} castShadow>
+        <boxGeometry args={[3.18, 0.10, 3.18]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.76} />
+      </mesh>
+      {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((ang, idx) => (
+        <LotusTowerCardinalAntefix
+          key={`lt-t2-${idx}`}
+          angle={ang}
+          dist={1.55}
+          width={0.92}
+          height={0.75}
+        />
+      ))}
+
       {/* Tier 3 */}
       <mesh position={[0, 7.15, 0]} castShadow>
-        <boxGeometry args={[2.4, 0.45, 2.4]} />
+        <boxGeometry args={[2.5, 0.45, 2.5]} />
         <meshStandardMaterial color="#C8A978" roughness={0.78} />
       </mesh>
+      <mesh position={[0, 7.4, 0]} castShadow>
+        <boxGeometry args={[2.65, 0.09, 2.65]} />
+        <meshStandardMaterial color="#D6B785" roughness={0.76} />
+      </mesh>
+      {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((ang, idx) => (
+        <LotusTowerCardinalAntefix
+          key={`lt-t3-${idx}`}
+          angle={ang}
+          dist={1.28}
+          width={0.76}
+          height={0.65}
+        />
+      ))}
+
       {/* Tier 4 */}
       <mesh position={[0, 7.8, 0]} castShadow>
-        <boxGeometry args={[1.9, 0.42, 1.9]} />
+        <boxGeometry args={[2.0, 0.42, 2.0]} />
         <meshStandardMaterial color="#D0B180" roughness={0.76} />
       </mesh>
+      <mesh position={[0, 8.04, 0]} castShadow>
+        <boxGeometry args={[2.12, 0.08, 2.12]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.74} />
+      </mesh>
+
       {/* Tier 5 */}
-      <mesh position={[0, 8.4, 0]} castShadow>
-        <boxGeometry args={[1.45, 0.38, 1.45]} />
+      <mesh position={[0, 8.42, 0]} castShadow>
+        <boxGeometry args={[1.52, 0.38, 1.52]} />
         <meshStandardMaterial color="#D6B785" roughness={0.74} />
       </mesh>
 
-      {/* Lotus Neck */}
+      {/* 4. Lotus Neck & Flared Petal Collar (កញ្ចឹងឈូក) */}
       <mesh position={[0, 8.85, 0]} castShadow>
-        <cylinderGeometry args={[0.7, 0.85, 0.45, 12]} />
+        <cylinderGeometry args={[0.74, 0.88, 0.45, 16]} />
         <meshStandardMaterial color="#BA9966" roughness={0.8} />
       </mesh>
+      <mesh position={[0, 9.12, 0]} castShadow>
+        <cylinderGeometry args={[0.98, 0.72, 0.22, 16]} />
+        <meshStandardMaterial color="#D6B785" roughness={0.74} />
+      </mesh>
 
-      {/* Corbelled Ribbed Lotus Bud Crown (ផ្កាឈូកក្រពុំ) */}
-      <mesh position={[0, 9.6, 0]} castShadow>
-        <cylinderGeometry args={[0.95, 0.72, 1.1, 12]} />
+      {/* 5. Corbelled Ribbed Lotus Bud Dome (ផ្កាឈូកក្រពុំ) with 8 Fluted Ribs */}
+      <mesh position={[0, 9.75, 0]} castShadow>
+        <cylinderGeometry args={[1.08, 0.82, 1.15, 16]} />
         <meshStandardMaterial color="#DFC090" roughness={0.74} />
       </mesh>
-      <mesh position={[0, 10.7, 0]} castShadow>
-        <coneGeometry args={[0.88, 1.6, 12]} />
+      <mesh position={[0, 10.88, 0]} castShadow>
+        <coneGeometry args={[1.02, 1.65, 16]} />
         <meshStandardMaterial color="#E8CE9D" roughness={0.72} />
       </mesh>
-      {/* 4 Cardinal Ribs */}
-      {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, idx) => (
+      {[
+        0,
+        Math.PI / 4,
+        Math.PI / 2,
+        (3 * Math.PI) / 4,
+        Math.PI,
+        (5 * Math.PI) / 4,
+        (3 * Math.PI) / 2,
+        (7 * Math.PI) / 4,
+      ].map((angle, idx) => (
         <group key={`drib-${idx}`} rotation={[0, angle, 0]}>
-          <mesh position={[0, 10.1, 0.74]} rotation={[0.2, 0, 0]} castShadow>
-            <cylinderGeometry args={[0.06, 0.1, 1.4, 6]} />
-            <meshStandardMaterial color="#F59E0B" roughness={0.5} metalness={0.3} />
+          <mesh position={[0, 10.3, 0.84]} rotation={[0.2, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.065, 0.11, 1.55, 6]} />
+            <meshStandardMaterial color="#F59E0B" roughness={0.45} metalness={0.35} />
           </mesh>
         </group>
       ))}
 
-      {/* Golden Kalasha Finial Spire */}
-      <mesh position={[0, 11.75, 0]} castShadow>
-        <sphereGeometry args={[0.22, 10, 10]} />
-        <meshStandardMaterial color="#F59E0B" roughness={0.25} metalness={0.75} />
+      {/* 6. Radiant Golden Kalasha Finial Spire with Royal Chatra Rings */}
+      <mesh position={[0, 11.88, 0]} castShadow>
+        <sphereGeometry args={[0.26, 12, 10]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.25} metalness={0.8} />
       </mesh>
-      <mesh position={[0, 12.55, 0]}>
-        <cylinderGeometry args={[0.03, 0.12, 1.4, 8]} />
+      <mesh position={[0, 12.25, 0]} castShadow>
+        <cylinderGeometry args={[0.13, 0.2, 0.38, 8]} />
+        <meshStandardMaterial color="#D97706" roughness={0.3} metalness={0.75} />
+      </mesh>
+      {/* 2 Chatra Umbrella Rings */}
+      <mesh position={[0, 12.52, 0]} castShadow>
+        <cylinderGeometry args={[0.34, 0.34, 0.05, 12]} />
         <meshStandardMaterial color="#FBBF24" roughness={0.2} metalness={0.85} />
       </mesh>
-      <mesh position={[0, 13.35, 0]}>
-        <sphereGeometry args={[0.11, 10, 10]} />
-        <meshStandardMaterial color="#FEF08A" emissive="#F59E0B" emissiveIntensity={0.75} />
+      <mesh position={[0, 12.72, 0]} castShadow>
+        <cylinderGeometry args={[0.26, 0.26, 0.05, 12]} />
+        <meshStandardMaterial color="#FBBF24" roughness={0.2} metalness={0.85} />
+      </mesh>
+      <mesh position={[0, 13.15, 0]}>
+        <cylinderGeometry args={[0.03, 0.1, 0.95, 8]} />
+        <meshStandardMaterial color="#FBBF24" roughness={0.2} metalness={0.85} />
+      </mesh>
+      <mesh position={[0, 13.75, 0]}>
+        <sphereGeometry args={[0.12, 10, 10]} />
+        <meshStandardMaterial color="#FEF08A" emissive="#F59E0B" emissiveIntensity={0.85} />
       </mesh>
     </group>
   );
@@ -1108,9 +1247,9 @@ export default function Environment() {
         </group>
       ))}
 
-      {/* ===== 7. DISTANT ANGKOR WAT 5-TOWER SANCTUARY COMPLEX (Z = 40) ===== */}
-      <group position={[0, 0, 40]}>
-        {/* Tier 1 Bakan Pyramid Terrace */}
+      {/* ===== 7. DISTANT ANGKOR WAT 5-TOWER SANCTUARY COMPLEX (Z = 58) ===== */}
+      <group position={[0, 0, 58]}>
+        {/* Tier 1 Bakan Pyramid Terrace (48m x 20m x 3m) */}
         <mesh position={[0, 1.5, 0]} receiveShadow castShadow>
           <boxGeometry args={[48, 3.0, 20]} />
           <meshStandardMaterial color="#7D6345" roughness={0.92} />
@@ -1119,17 +1258,44 @@ export default function Environment() {
           <boxGeometry args={[49.2, 0.28, 20.6]} />
           <meshStandardMaterial color="#947754" roughness={0.88} />
         </mesh>
-        {/* Tier 1 Ashlar Seams */}
-        <mesh position={[0, 1.0, -10.02]}>
-          <boxGeometry args={[48, 0.04, 0.04]} />
-          <meshStandardMaterial color="#4A3420" roughness={0.95} />
+        {/* Tier 1 Carved Bas-Relief Frieze Band (ចម្លាក់លើផ្ទៃខឿនថ្នាក់ទី១) */}
+        <mesh position={[0, 1.6, -10.05]} receiveShadow>
+          <boxGeometry args={[47.4, 1.4, 0.08]} />
+          <meshStandardMaterial color="#8F714A" roughness={0.86} />
         </mesh>
-        <mesh position={[0, 2.0, -10.02]}>
-          <boxGeometry args={[48, 0.04, 0.04]} />
-          <meshStandardMaterial color="#4A3420" roughness={0.95} />
-        </mesh>
+        {/* Running Rosette Medallions along Tier 1 Wall */}
+        {[-21, -17.5, -14, -10.5, -7, 7, 10.5, 14, 17.5, 21].map((rx, idx) => (
+          <group key={`t1-rosette-${idx}`} position={[rx, 1.6, -10.11]}>
+            <mesh rotation={[0, 0, Math.PI / 4]} castShadow>
+              <boxGeometry args={[0.55, 0.55, 0.06]} />
+              <meshStandardMaterial color="#CDB082" roughness={0.78} />
+            </mesh>
+            <mesh position={[0, 0, 0.035]}>
+              <sphereGeometry args={[0.12, 6, 6]} />
+              <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.4} />
+            </mesh>
+          </group>
+        ))}
 
-        {/* Tier 2 Bakan Platform */}
+        {/* Tier 1 Grand Axial Stone Staircase & Guardian Lions */}
+        <mesh position={[0, 1.5, -11.0]} rotation={[-0.48, 0, 0]} receiveShadow castShadow>
+          <boxGeometry args={[5.2, 0.35, 4.4]} />
+          <meshStandardMaterial color="#8F714A" roughness={0.88} />
+        </mesh>
+        {/* Staircase Balustrades */}
+        <mesh position={[-2.7, 1.6, -11.0]} rotation={[-0.48, 0, 0]} castShadow>
+          <boxGeometry args={[0.32, 0.65, 4.4]} />
+          <meshStandardMaterial color="#B08D5B" roughness={0.84} />
+        </mesh>
+        <mesh position={[2.7, 1.6, -11.0]} rotation={[-0.48, 0, 0]} castShadow>
+          <boxGeometry args={[0.32, 0.65, 4.4]} />
+          <meshStandardMaterial color="#B08D5B" roughness={0.84} />
+        </mesh>
+        {/* Guardian Singha Lions at Foot of Grand Staircase */}
+        <SinghaGuardianLion position={[-3.2, 0, -12.4]} rotation={[0, 0.25, 0]} scale={1.15} />
+        <SinghaGuardianLion position={[3.2, 0, -12.4]} rotation={[0, -0.25, 0]} scale={1.15} />
+
+        {/* Tier 2 Bakan Platform (38m x 16m x 2.6m) */}
         <mesh position={[0, 4.3, 0]} receiveShadow castShadow>
           <boxGeometry args={[38, 2.6, 16]} />
           <meshStandardMaterial color="#8F714A" roughness={0.9} />
@@ -1138,13 +1304,33 @@ export default function Environment() {
           <boxGeometry args={[39.2, 0.25, 16.6]} />
           <meshStandardMaterial color="#B08D5B" roughness={0.86} />
         </mesh>
-        {/* Tier 2 Ashlar Seam */}
-        <mesh position={[0, 4.3, -8.02]}>
-          <boxGeometry args={[38, 0.04, 0.04]} />
-          <meshStandardMaterial color="#4A3420" roughness={0.95} />
+        {/* Tier 2 Carved Bas-Relief Register */}
+        <mesh position={[0, 4.3, -8.05]} receiveShadow>
+          <boxGeometry args={[37.4, 1.2, 0.08]} />
+          <meshStandardMaterial color="#A4855E" roughness={0.84} />
         </mesh>
+        {[-16, -12.5, -9, -5.5, 5.5, 9, 12.5, 16].map((rx, idx) => (
+          <group key={`t2-rosette-${idx}`} position={[rx, 4.3, -8.11]}>
+            <mesh rotation={[0, 0, Math.PI / 4]} castShadow>
+              <boxGeometry args={[0.48, 0.48, 0.05]} />
+              <meshStandardMaterial color="#DFC090" roughness={0.76} />
+            </mesh>
+            <mesh position={[0, 0, 0.03]}>
+              <sphereGeometry args={[0.1, 6, 6]} />
+              <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.4} />
+            </mesh>
+          </group>
+        ))}
 
-        {/* Tier 3 Upper Sanctum Terrace */}
+        {/* Tier 2 Axial Staircase to Tier 3 */}
+        <mesh position={[0, 4.3, -8.8]} rotation={[-0.45, 0, 0]} receiveShadow castShadow>
+          <boxGeometry args={[4.4, 0.32, 3.8]} />
+          <meshStandardMaterial color="#9C7E54" roughness={0.86} />
+        </mesh>
+        <SinghaGuardianLion position={[-2.6, 3.0, -9.8]} rotation={[0, 0.2, 0]} scale={0.95} />
+        <SinghaGuardianLion position={[2.6, 3.0, -9.8]} rotation={[0, -0.2, 0]} scale={0.95} />
+
+        {/* Tier 3 Upper Sanctum Terrace (28m x 12m x 2.2m) */}
         <mesh position={[0, 6.7, 0]} receiveShadow castShadow>
           <boxGeometry args={[28, 2.2, 12]} />
           <meshStandardMaterial color="#A4855E" roughness={0.86} />
@@ -1153,34 +1339,50 @@ export default function Environment() {
           <boxGeometry args={[29.0, 0.22, 12.5]} />
           <meshStandardMaterial color="#CDB082" roughness={0.82} />
         </mesh>
-        {/* Tier 3 Ashlar Seam */}
-        <mesh position={[0, 6.7, -6.02]}>
-          <boxGeometry args={[28, 0.04, 0.04]} />
-          <meshStandardMaterial color="#4A3420" roughness={0.95} />
+        {/* Tier 3 Stepped Base Molding */}
+        <mesh position={[0, 7.95, 0]} castShadow>
+          <boxGeometry args={[29.5, 0.14, 12.8]} />
+          <meshStandardMaterial color="#DFC090" roughness={0.78} />
         </mesh>
 
-        {/* Connecting Covered Galleries between Central and Corner Towers */}
-        <mesh position={[-5.0, 7.8, 0]} castShadow>
-          <boxGeometry args={[10, 2.0, 3.2]} />
-          <meshStandardMaterial color="#B08D5B" roughness={0.84} />
-        </mesh>
-        <mesh position={[5.0, 7.8, 0]} castShadow>
-          <boxGeometry args={[10, 2.0, 3.2]} />
-          <meshStandardMaterial color="#B08D5B" roughness={0.84} />
-        </mesh>
+        {/* Connecting Covered Galleries with Barrel Roofs & Turned Balusters */}
+        {/* North and South Cross Galleries */}
+        {[-5.0, 5.0].map((gx, idx) => (
+          <group key={`link-gallery-${idx}`} position={[gx, 7.8, 0]}>
+            {/* Gallery Colonnade Base */}
+            <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
+              <boxGeometry args={[9.6, 0.3, 3.2]} />
+              <meshStandardMaterial color="#8F714A" roughness={0.88} />
+            </mesh>
+            {/* Gallery Wall with Balusters */}
+            <mesh position={[0, 1.1, 0]} castShadow receiveShadow>
+              <boxGeometry args={[9.2, 1.8, 2.8]} />
+              <meshStandardMaterial color="#B08D5B" roughness={0.84} />
+            </mesh>
+            {/* Barrel Vault Roof */}
+            <mesh position={[0, 2.25, 0]} castShadow>
+              <boxGeometry args={[9.6, 0.5, 3.4]} />
+              <meshStandardMaterial color="#CDB082" roughness={0.78} />
+            </mesh>
+            <mesh position={[0, 2.6, 0]} castShadow>
+              <boxGeometry args={[9.0, 0.25, 2.6]} />
+              <meshStandardMaterial color="#DFC090" roughness={0.75} />
+            </mesh>
+          </group>
+        ))}
 
-        {/* Central Lotus Prasat Tower (Sanctum Sanctorum) */}
-        <AngkorLotusTower position={[0, 7.8, 0]} scale={2.3} />
+        {/* Central Lotus Prasat Tower (Sanctum Sanctorum) - Reaches Y = 22m */}
+        <AngkorLotusTower position={[0, 7.8, 0]} scale={2.45} />
 
         {/* Flanking Quincunx Towers */}
         {/* Front-Left Tower */}
-        <AngkorLotusTower position={[-8.8, 6.8, -3.5]} scale={1.5} />
+        <AngkorLotusTower position={[-8.8, 6.8, -3.5]} scale={1.55} />
         {/* Front-Right Tower */}
-        <AngkorLotusTower position={[8.8, 6.8, -3.5]} scale={1.5} />
+        <AngkorLotusTower position={[8.8, 6.8, -3.5]} scale={1.55} />
         {/* Rear-Left Tower */}
-        <AngkorLotusTower position={[-12.2, 7.2, 3.5]} scale={1.6} />
+        <AngkorLotusTower position={[-12.2, 7.2, 3.5]} scale={1.65} />
         {/* Rear-Right Tower */}
-        <AngkorLotusTower position={[12.2, 7.2, 3.5]} scale={1.6} />
+        <AngkorLotusTower position={[12.2, 7.2, 3.5]} scale={1.65} />
       </group>
     </group>
   );

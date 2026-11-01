@@ -63,6 +63,12 @@ export default function ThirdPersonCamera({ targetPositionRef, mode }: ThirdPers
       lookUp = 2.2;
       lookAheadZ = 2.0;
       damping = 3.8;
+    } else if (tz > 27.0) {
+      // Inside Inner Sanctum looking toward the majestic 5-Tower Bakan Pyramid
+      offsetBack = -3.2;
+      offsetUp = 2.4;
+      lookUp = 3.8;
+      lookAheadZ = 6.0;
     }
 
     desiredCamPos.current.set(tx * 0.75, ty + offsetUp, tz + offsetBack);
