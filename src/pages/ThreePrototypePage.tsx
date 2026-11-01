@@ -396,7 +396,11 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
             saveMockLessonProgress(progressRecord);
           }
           const canSaveOnline = isStudentOnlineSaveAvailable();
-          if (canSaveOnline && auth?.currentUser && auth.currentUser.uid === attemptUidRef.current) {
+          const currentUid = auth?.currentUser?.uid;
+          if (!attemptUidRef.current && currentUid) {
+            attemptUidRef.current = currentUid;
+          }
+          if (canSaveOnline && currentUid && (!attemptUidRef.current || attemptUidRef.current === currentUid)) {
             setReward(claimedReward);
             setSaveStatus('saving');
             setSaveMessage('Saving…');
@@ -448,7 +452,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
             });
           } else {
             setReward(claimedReward);
-            const isGuest = auth?.currentUser?.isAnonymous;
+            const isGuest = !auth?.currentUser || auth?.currentUser?.isAnonymous;
             setSaveStatus(isGuest ? 'local-demo' : 'backend-unavailable');
             setSaveMessage('');
           }
