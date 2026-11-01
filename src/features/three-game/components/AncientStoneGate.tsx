@@ -496,9 +496,171 @@ function AngkorPrasatTower({
 }
 
 /**
+ * Carved Angkorian Devata / Apsara High-Relief Wall Niche (ចម្លាក់ទេវតាលើជញ្ជាំងថ្ម)
+ * Features an arched sandstone shrine gable (ហោជាងប្រាសាទតូច), stepped lotus pedestal,
+ * and high-relief silhouette of the celestial guardian maiden holding sacred lotus buds.
+ */
+function AngkorDevataNiche({
+  position,
+  rotation = [0, 0, 0],
+  scale = 1,
+}: {
+  position: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: number;
+}) {
+  return (
+    <group position={position} rotation={rotation} scale={[scale, scale, scale]}>
+      {/* Arched Shrine Recessed Wall Niche Cavity */}
+      <mesh position={[0, 0, -0.04]} castShadow receiveShadow>
+        <boxGeometry args={[0.78, 2.05, 0.12]} />
+        <meshStandardMaterial color="#6B5237" roughness={0.92} />
+      </mesh>
+
+      {/* Sculpted Arched Shrine Gable / Phimean Crest */}
+      <mesh position={[0, 1.18, 0.02]} rotation={[0, Math.PI / 4, 0]} castShadow>
+        <coneGeometry args={[0.55, 0.68, 4]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.78} />
+      </mesh>
+      {/* Flame Scrolls at Eaves */}
+      <mesh position={[-0.45, 0.94, 0.02]} rotation={[0, 0, 0.5]} castShadow>
+        <coneGeometry args={[0.07, 0.28, 6]} />
+        <meshStandardMaterial color="#D99B38" roughness={0.5} metalness={0.3} />
+      </mesh>
+      <mesh position={[0.45, 0.94, 0.02]} rotation={[0, 0, -0.5]} castShadow>
+        <coneGeometry args={[0.07, 0.28, 6]} />
+        <meshStandardMaterial color="#D99B38" roughness={0.5} metalness={0.3} />
+      </mesh>
+
+      {/* Stepped Lotus Pedestal (Peedam) underfoot */}
+      <mesh position={[0, -0.9, 0.04]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.3, 0.25, 0.14, 10]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.76} />
+      </mesh>
+      <mesh position={[0, -0.99, 0.03]} castShadow>
+        <boxGeometry args={[0.68, 0.08, 0.24]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.88} />
+      </mesh>
+
+      {/* Devata Celestial Maiden Silhouette (High-Relief Sandstone Sculpture) */}
+      {/* Tripartite Diadem / Crown (Mokot) */}
+      <mesh position={[0, 0.76, 0.06]} castShadow>
+        <coneGeometry args={[0.11, 0.32, 6]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.4} metalness={0.5} />
+      </mesh>
+      {/* Head & Ear Pendants */}
+      <mesh position={[0, 0.56, 0.05]} castShadow>
+        <sphereGeometry args={[0.13, 10, 10]} />
+        <meshStandardMaterial color="#D6B785" roughness={0.8} />
+      </mesh>
+      {/* Ornate Torso & Bejeweled Necklace (Sangvar) */}
+      <mesh position={[0, 0.28, 0.05]} castShadow>
+        <cylinderGeometry args={[0.11, 0.14, 0.38, 8]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+      </mesh>
+      {/* Graceful Arms holding Sacred Lotus Bloom */}
+      <mesh position={[-0.18, 0.25, 0.08]} rotation={[0.2, 0, -0.35]} castShadow>
+        <cylinderGeometry args={[0.035, 0.04, 0.32, 6]} />
+        <meshStandardMaterial color="#C8A978" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.18, 0.25, 0.08]} rotation={[0.2, 0, 0.35]} castShadow>
+        <cylinderGeometry args={[0.035, 0.04, 0.32, 6]} />
+        <meshStandardMaterial color="#C8A978" roughness={0.8} />
+      </mesh>
+      {/* Handheld Sacred Lotus Bud */}
+      <mesh position={[0, 0.42, 0.12]} castShadow>
+        <coneGeometry args={[0.055, 0.12, 6]} />
+        <meshStandardMaterial color="#F472B6" roughness={0.45} />
+      </mesh>
+      {/* Pleated Sampot Skirt with Flared Fishtail Sashes */}
+      <mesh position={[0, -0.28, 0.05]} castShadow>
+        <cylinderGeometry args={[0.15, 0.24, 0.76, 8]} />
+        <meshStandardMaterial color="#BA9966" roughness={0.82} />
+      </mesh>
+      {/* Central Pleat Sash (ក្បាច់ជាយសំពត់) */}
+      <mesh position={[0, -0.32, 0.12]} castShadow>
+        <boxGeometry args={[0.08, 0.68, 0.04]} />
+        <meshStandardMaterial color="#D97706" roughness={0.5} metalness={0.35} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Classical Angkorian Entrance Portal Jambs, Pilasters & Carved Lintel
+ * (សសរផ្អោប និងផ្តែរប្រាសាទអង្គរវត្ត)
+ */
+function AngkorDoorPilastersAndLintel() {
+  return (
+    <group position={[0, 0, 0]}>
+      {/* Left Carved Door Pilaster (Sarsor Ph-ob) */}
+      <group position={[-1.25, 0, -0.42]}>
+        <mesh position={[0, 0.22, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.32, 0.44, 0.28]} />
+          <meshStandardMaterial color="#8F714A" roughness={0.88} />
+        </mesh>
+        <mesh position={[0, 2.45, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.24, 4.0, 0.22]} />
+          <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+        </mesh>
+        <mesh position={[0, 2.45, -0.12]}>
+          <boxGeometry args={[0.14, 3.8, 0.04]} />
+          <meshStandardMaterial color="#DFC090" roughness={0.76} />
+        </mesh>
+        <mesh position={[0, 4.55, 0]} castShadow>
+          <boxGeometry args={[0.34, 0.2, 0.3]} />
+          <meshStandardMaterial color="#DFC090" roughness={0.76} />
+        </mesh>
+      </group>
+
+      {/* Right Carved Door Pilaster (Sarsor Ph-ob) */}
+      <group position={[1.25, 0, -0.42]}>
+        <mesh position={[0, 0.22, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.32, 0.44, 0.28]} />
+          <meshStandardMaterial color="#8F714A" roughness={0.88} />
+        </mesh>
+        <mesh position={[0, 2.45, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.24, 4.0, 0.22]} />
+          <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+        </mesh>
+        <mesh position={[0, 2.45, -0.12]}>
+          <boxGeometry args={[0.14, 3.8, 0.04]} />
+          <meshStandardMaterial color="#DFC090" roughness={0.76} />
+        </mesh>
+        <mesh position={[0, 4.55, 0]} castShadow>
+          <boxGeometry args={[0.34, 0.2, 0.3]} />
+          <meshStandardMaterial color="#DFC090" roughness={0.76} />
+        </mesh>
+      </group>
+
+      {/* Classical Sculpted Sandstone Lintel (ផ្តែរប្រាសាទ) spanning above the sliding doors */}
+      <group position={[0, 4.75, -0.42]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[2.85, 0.46, 0.32]} />
+          <meshStandardMaterial color="#A4855E" roughness={0.85} />
+        </mesh>
+        {/* Central Kala / Lotus Rosette Medallion */}
+        <mesh position={[0, 0, -0.18]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.22, 0.22, 0.08, 12]} />
+          <meshStandardMaterial color="#D97706" metalness={0.55} roughness={0.35} />
+        </mesh>
+        {/* Outward Flaring Garland Carving Arcs */}
+        {[-0.68, 0.68].map((gx, gIdx) => (
+          <mesh key={`garland-${gIdx}`} position={[gx, -0.04, -0.17]}>
+            <boxGeometry args={[0.9, 0.16, 0.04]} />
+            <meshStandardMaterial color="#DFC090" roughness={0.74} />
+          </mesh>
+        ))}
+      </group>
+    </group>
+  );
+}
+
+/**
  * Symmetrical Colonnaded Temple Gallery Wing (ថែវប្រាសាទសងខាង)
- * Features fluted sandstone colonnades, turned window balusters (បង្អួចចម្រឹង),
- * continuous corbelled barrel-vault roof with ridge crests, and terminal corner pavilion.
+ * Features stepped cyma lotus plinths, 4-tier ashlar sandstone walls with carved
+ * narrative bas-relief friezes, celestial Devata shrines, fluted columns,
+ * turned window balusters, and terminal corner pavilions.
  */
 function AngkorGalleryWing({
   isLeft,
@@ -536,23 +698,94 @@ function AngkorGalleryWing({
     ridgePositions.push(dir * x);
   }
 
+  const dentilPositions: number[] = [];
+  for (let x = startX + 0.3; x <= endX - 0.3; x += 0.35) {
+    dentilPositions.push(dir * x);
+  }
+
+  const rosettePositions: number[] = [];
+  for (let x = startX + 0.8; x <= endX - 0.8; x += 1.4) {
+    rosettePositions.push(dir * x);
+  }
+
+  const ashlarSeamPositions: number[] = [];
+  for (let x = startX + 1.1; x <= endX - 0.5; x += 2.2) {
+    ashlarSeamPositions.push(dir * x);
+  }
+
   return (
     <group>
-      {/* 1. Continuous Gallery Plinth Base */}
-      <mesh position={[midX, 0.35, 0]} castShadow receiveShadow>
-        <boxGeometry args={[length, 0.7, 2.6]} />
-        <meshStandardMaterial color="#8F714A" roughness={0.9} />
+      {/* 1. Classical Khmer Stepped Cyma Lotus Plinth (ជើងទម្រថែវអង្គរវត្ត) */}
+      <mesh position={[midX, 0.16, 0]} castShadow receiveShadow>
+        <boxGeometry args={[length, 0.32, 2.6]} />
+        <meshStandardMaterial color="#7D6345" roughness={0.92} />
       </mesh>
-      <mesh position={[midX, 0.78, 0]} castShadow receiveShadow>
-        <boxGeometry args={[length, 0.22, 2.8]} />
+      <mesh position={[midX, 0.42, 0]} castShadow receiveShadow>
+        <boxGeometry args={[length, 0.20, 2.76]} />
+        <meshStandardMaterial color="#947754" roughness={0.88} />
+      </mesh>
+      <mesh position={[midX, 0.60, 0]} castShadow receiveShadow>
+        <boxGeometry args={[length, 0.16, 2.52]} />
         <meshStandardMaterial color="#B08D5B" roughness={0.86} />
       </mesh>
+      <mesh position={[midX, 0.79, 0]} castShadow receiveShadow>
+        <boxGeometry args={[length, 0.22, 2.86]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.82} />
+      </mesh>
 
-      {/* 2. Recessed Solid Sandstone Back Wall */}
-      <mesh position={[midX, 2.75, 0.85]} castShadow receiveShadow>
-        <boxGeometry args={[length, 3.8, 0.45]} />
+      {/* 2. Articulated Ashlar Sandstone Back Wall with Carved Bas-Relief Friezes (ចម្លាក់រាក់ថែវ) */}
+      <mesh position={[midX, 1.35, 0.85]} castShadow receiveShadow>
+        <boxGeometry args={[length, 0.9, 0.42]} />
+        <meshStandardMaterial color="#8F714A" roughness={0.88} />
+      </mesh>
+      <mesh position={[midX, 1.82, 0.84]}>
+        <boxGeometry args={[length, 0.04, 0.44]} />
+        <meshStandardMaterial color="#5C452D" roughness={0.95} />
+      </mesh>
+
+      <mesh position={[midX, 2.42, 0.85]} castShadow receiveShadow>
+        <boxGeometry args={[length, 1.16, 0.46]} />
+        <meshStandardMaterial color="#A88B60" roughness={0.84} />
+      </mesh>
+      <mesh position={[midX, 2.42, 0.61]}>
+        <boxGeometry args={[length, 0.36, 0.04]} />
+        <meshStandardMaterial color="#D6B57E" roughness={0.76} />
+      </mesh>
+      <mesh position={[midX, 3.02, 0.84]}>
+        <boxGeometry args={[length, 0.04, 0.44]} />
+        <meshStandardMaterial color="#5C452D" roughness={0.95} />
+      </mesh>
+
+      <mesh position={[midX, 3.52, 0.85]} castShadow receiveShadow>
+        <boxGeometry args={[length, 0.96, 0.42]} />
         <meshStandardMaterial color="#9C7E54" roughness={0.88} />
       </mesh>
+      <mesh position={[midX, 4.02, 0.84]}>
+        <boxGeometry args={[length, 0.04, 0.44]} />
+        <meshStandardMaterial color="#5C452D" roughness={0.95} />
+      </mesh>
+
+      <mesh position={[midX, 4.44, 0.85]} castShadow receiveShadow>
+        <boxGeometry args={[length, 0.80, 0.45]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+      </mesh>
+
+      {/* Vertical Interlocking Ashlar Masonry Joints */}
+      {ashlarSeamPositions.map((ax, aIdx) => (
+        <mesh key={`ashlar-seam-${aIdx}`} position={[ax, 2.85, 0.84]}>
+          <boxGeometry args={[0.04, 3.7, 0.45]} />
+          <meshStandardMaterial color="#5C452D" roughness={0.95} />
+        </mesh>
+      ))}
+
+      {/* Devata High-Relief Niches placed on the back wall between window bays */}
+      {windowBayCenters.map((wx, bIdx) => (
+        <AngkorDevataNiche
+          key={`wall-devata-${bIdx}`}
+          position={[wx, 2.45, 0.61]}
+          scale={0.92}
+        />
+      ))}
 
       {/* 3. Colonnade of Fluted Sandstone Columns (Front Open Colonnade) */}
       {pillarXOffsets.map((px, idx) => (
@@ -566,6 +799,10 @@ function AngkorGalleryWing({
             <meshStandardMaterial color="#BFA06C" roughness={0.82} />
           </mesh>
           <mesh position={[0, 2.7, -0.22]}>
+            <boxGeometry args={[0.26, 3.1, 0.05]} />
+            <meshStandardMaterial color="#D6B57E" roughness={0.76} />
+          </mesh>
+          <mesh position={[0, 2.7, 0.22]}>
             <boxGeometry args={[0.26, 3.1, 0.05]} />
             <meshStandardMaterial color="#D6B57E" roughness={0.76} />
           </mesh>
@@ -606,11 +843,23 @@ function AngkorGalleryWing({
         </group>
       ))}
 
-      {/* 5. Continuous Entablature & Architrave Beam */}
+      {/* 5. Continuous Entablature Beam with Dentils (ធ្មេញកណ្តុរ) & Rosette Bosses */}
       <mesh position={[midX, 4.85, 0]} castShadow receiveShadow>
         <boxGeometry args={[length, 0.5, 2.6]} />
         <meshStandardMaterial color="#9C7E54" roughness={0.86} />
       </mesh>
+      {dentilPositions.map((dx, dIdx) => (
+        <mesh key={`dentil-${dIdx}`} position={[dx, 4.62, -1.25]} castShadow>
+          <boxGeometry args={[0.16, 0.12, 0.14]} />
+          <meshStandardMaterial color="#DFC090" roughness={0.76} />
+        </mesh>
+      ))}
+      {rosettePositions.map((rx, rIdx) => (
+        <mesh key={`ent-rosette-${rIdx}`} position={[rx, 4.85, -1.32]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.12, 0.12, 0.04, 8]} />
+          <meshStandardMaterial color="#D97706" metalness={0.5} roughness={0.4} />
+        </mesh>
+      ))}
       <mesh position={[midX, 5.2, 0]} castShadow receiveShadow>
         <boxGeometry args={[length, 0.24, 2.8]} />
         <meshStandardMaterial color="#BFA06C" roughness={0.82} />
@@ -638,7 +887,7 @@ function AngkorGalleryWing({
         </mesh>
       ))}
 
-      {/* 8. Terminal Corner Pavilion (ពន្លាជ្រុង) */}
+      {/* 8. Terminal Corner Pavilion (ពន្លាជ្រុង) with Ashlar Facade & Blind Windows */}
       <group position={[pavilionX, 0, 0]}>
         <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
           <boxGeometry args={[3.2, 0.9, 3.2]} />
@@ -652,6 +901,20 @@ function AngkorGalleryWing({
           <boxGeometry args={[2.7, 3.6, 2.7]} />
           <meshStandardMaterial color="#A4855E" roughness={0.84} />
         </mesh>
+        {/* Blind Window on Outer Lateral Face */}
+        <group position={[dir * 1.36, 2.85, 0]} rotation={[0, (dir * Math.PI) / 2, 0]}>
+          <mesh castShadow>
+            <boxGeometry args={[1.4, 2.2, 0.08]} />
+            <meshStandardMaterial color="#6B5237" roughness={0.9} />
+          </mesh>
+          {[-0.32, -0.16, 0, 0.16, 0.32].map((bx, idx) => (
+            <mesh key={`blind-bal-${idx}`} position={[bx, 0, 0.04]} castShadow>
+              <cylinderGeometry args={[0.04, 0.04, 2.0, 6]} />
+              <meshStandardMaterial color="#CDB082" roughness={0.75} />
+            </mesh>
+          ))}
+        </group>
+        {/* Corner Pavilion Columns */}
         {[-1.25, 1.25].map((cx, cIdx) =>
           [-1.25, 1.25].map((cz, zIdx) => (
             <mesh key={`pcol-${cIdx}-${zIdx}`} position={[cx, 2.85, cz]} castShadow>
@@ -788,7 +1051,14 @@ export default function AncientStoneGate({
       <AngkorGalleryWing startX={3.2} endX={15.5} isLeft={true} />
       <AngkorGalleryWing startX={3.2} endX={15.5} isLeft={false} />
 
-      {/* ===== 2. OUTER KHMER SANDSTONE GOPURA COLUMNS ===== */}
+      {/* ===== 2. FLANKING ENTRANCE DEVATA HIGH-RELIEF NICHES (ចម្លាក់ទេវតាអមទ្វារ) ===== */}
+      <AngkorDevataNiche position={[-2.25, 2.45, -0.45]} />
+      <AngkorDevataNiche position={[2.25, 2.45, -0.45]} />
+
+      {/* ===== 3. CARVED DOOR PILASTERS & SCULPTED LINTEL (សសរផ្អោប និងផ្តែរទ្វារ) ===== */}
+      <AngkorDoorPilastersAndLintel />
+
+      {/* ===== 4. OUTER KHMER SANDSTONE GOPURA COLUMNS ===== */}
       <GopuraColumn x={-3.2} />
       <GopuraColumn x={3.2} />
 

@@ -578,15 +578,48 @@ export default function Environment() {
           <boxGeometry args={[48, 3.0, 20]} />
           <meshStandardMaterial color="#7D6345" roughness={0.92} />
         </mesh>
+        <mesh position={[0, 3.0, 0]} receiveShadow castShadow>
+          <boxGeometry args={[49.2, 0.28, 20.6]} />
+          <meshStandardMaterial color="#947754" roughness={0.88} />
+        </mesh>
+        {/* Tier 1 Ashlar Seams */}
+        <mesh position={[0, 1.0, -10.02]}>
+          <boxGeometry args={[48, 0.04, 0.04]} />
+          <meshStandardMaterial color="#4A3420" roughness={0.95} />
+        </mesh>
+        <mesh position={[0, 2.0, -10.02]}>
+          <boxGeometry args={[48, 0.04, 0.04]} />
+          <meshStandardMaterial color="#4A3420" roughness={0.95} />
+        </mesh>
+
         {/* Tier 2 Bakan Platform */}
         <mesh position={[0, 4.3, 0]} receiveShadow castShadow>
           <boxGeometry args={[38, 2.6, 16]} />
           <meshStandardMaterial color="#8F714A" roughness={0.9} />
         </mesh>
+        <mesh position={[0, 5.6, 0]} receiveShadow castShadow>
+          <boxGeometry args={[39.2, 0.25, 16.6]} />
+          <meshStandardMaterial color="#B08D5B" roughness={0.86} />
+        </mesh>
+        {/* Tier 2 Ashlar Seam */}
+        <mesh position={[0, 4.3, -8.02]}>
+          <boxGeometry args={[38, 0.04, 0.04]} />
+          <meshStandardMaterial color="#4A3420" roughness={0.95} />
+        </mesh>
+
         {/* Tier 3 Upper Sanctum Terrace */}
         <mesh position={[0, 6.7, 0]} receiveShadow castShadow>
           <boxGeometry args={[28, 2.2, 12]} />
           <meshStandardMaterial color="#A4855E" roughness={0.86} />
+        </mesh>
+        <mesh position={[0, 7.8, 0]} receiveShadow castShadow>
+          <boxGeometry args={[29.0, 0.22, 12.5]} />
+          <meshStandardMaterial color="#CDB082" roughness={0.82} />
+        </mesh>
+        {/* Tier 3 Ashlar Seam */}
+        <mesh position={[0, 6.7, -6.02]}>
+          <boxGeometry args={[28, 0.04, 0.04]} />
+          <meshStandardMaterial color="#4A3420" roughness={0.95} />
         </mesh>
 
         {/* Connecting Covered Galleries between Central and Corner Towers */}
