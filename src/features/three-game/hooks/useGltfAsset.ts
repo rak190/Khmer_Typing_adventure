@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 const gltfCache = new Map<string, THREE.Group>();
 const gltfPending = new Map<string, Promise<THREE.Group | null>>();
@@ -78,7 +79,7 @@ export function useGltfClone(url: string): THREE.Group | null {
 
   return useMemo(() => {
     if (!template) return null;
-    const cloned = template.clone(true);
+    const cloned = SkeletonUtils.clone(template) as THREE.Group;
     enableShadows(cloned);
     return cloned;
   }, [template]);
