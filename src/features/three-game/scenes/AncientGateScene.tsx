@@ -71,6 +71,7 @@ export default function AncientGateScene({
       {/* Barrier 1: Ancient Angkor Stone Gate (ទ្វារអក្សរ / Glyph Gate at Z = 6) */}
       <AncientStoneGate
         gateState={gateState}
+        playerPositionRef={playerPositionRef}
         streak={activeBarrierIndex === 0 ? streak : 0}
         completedCount={activeBarrierIndex === 0 ? completedCount : 0}
         incorrectCount={activeBarrierIndex === 0 ? incorrectCount : 0}

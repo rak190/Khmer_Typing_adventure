@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useRef, type MutableRefObject } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import type { GameMode, Position3D } from '../types';
 
@@ -16,22 +16,37 @@ export default function ThirdPersonCamera({ targetPositionRef, mode }: ThirdPers
   const desiredCamPos = useRef(new THREE.Vector3());
   const desiredLookAt = useRef(new THREE.Vector3());
 
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const win = window as unknown as { __threeSnapCamera?: () => void };
+    win.__threeSnapCamera = () => {
+      const [tx, ty, tz] = targetPositionRef.current;
+      currentCamPos.current.set(tx * 0.75, ty + 2.25, tz - 6.2);
+      currentLookAt.current.set(tx * 0.4, ty + 2.05, tz + 2.2);
+      camera.position.copy(currentCamPos.current);
+      camera.lookAt(currentLookAt.current);
+    };
+    return () => {
+      delete win.__threeSnapCamera;
+    };
+  }, [camera, targetPositionRef]);
+
   useFrame((_, delta) => {
     // Clamp delta to prevent huge jumps when switching tabs
     const dt = Math.min(delta, 0.05);
     const [tx, ty, tz] = targetPositionRef.current;
 
-    let offsetBack = -5.6;
-    let offsetUp = 2.6;
-    let lookUp = 1.35;
-    let lookAheadZ = 1.6;
+    let offsetBack = -6.2;
+    let offsetUp = 2.25;
+    let lookUp = 2.05;
+    let lookAheadZ = 2.2;
     let damping = 5.0;
 
     if (mode === 'typing') {
       // Intimate, focused framing on student character and glowing altar pedestal
       offsetBack = -4.2;
       offsetUp = 2.2;
-      lookUp = 1.35;
+      lookUp = 2.05;
       lookAheadZ = 1.0;
       damping = 4.2;
     } else if (mode === 'opening') {
@@ -48,6 +63,12 @@ export default function ThirdPersonCamera({ targetPositionRef, mode }: ThirdPers
       lookUp = 2.2;
       lookAheadZ = 2.0;
       damping = 3.8;
+    } else if (tz > 27.0) {
+      // Inside Inner Sanctum looking toward the majestic 5-Tower Bakan Pyramid
+      offsetBack = -3.2;
+      offsetUp = 2.4;
+      lookUp = 3.8;
+      lookAheadZ = 6.0;
     }
 
     desiredCamPos.current.set(tx * 0.75, ty + offsetUp, tz + offsetBack);

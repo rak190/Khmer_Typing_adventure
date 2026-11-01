@@ -105,6 +105,585 @@ function StageLotusAltar({
   );
 }
 
+/**
+ * Guardian Singha Lion Statue (សត្វតោថ្មអង្គរ)
+ * Seated rearing posture guarding the cruciform terrace entrance
+ */
+export function SinghaGuardianLion({
+  position,
+  rotation = [0, 0, 0],
+  scale = 1,
+}: {
+  position: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: number;
+}) {
+  return (
+    <group position={position} rotation={rotation} scale={[scale, scale, scale]}>
+      {/* Stepped Pedestal Base */}
+      <mesh position={[0, 0.12, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.72, 0.24, 0.88]} />
+        <meshStandardMaterial color="#614B35" roughness={0.92} />
+      </mesh>
+      <mesh position={[0, 0.28, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.6, 0.12, 0.74]} />
+        <meshStandardMaterial color="#7D6145" roughness={0.88} />
+      </mesh>
+
+      {/* Rearing Hindquarters & Haunches */}
+      <mesh position={[0, 0.54, -0.12]} castShadow receiveShadow>
+        <boxGeometry args={[0.44, 0.42, 0.44]} />
+        <meshStandardMaterial color="#8F714A" roughness={0.86} />
+      </mesh>
+
+      {/* Upright Broad Muscular Chest */}
+      <mesh position={[0, 0.82, 0.08]} castShadow>
+        <cylinderGeometry args={[0.22, 0.28, 0.58, 8]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.84} />
+      </mesh>
+
+      {/* Forelegs Standing Upright */}
+      <mesh position={[-0.14, 0.56, 0.18]} castShadow>
+        <cylinderGeometry args={[0.07, 0.08, 0.52, 6]} />
+        <meshStandardMaterial color="#8F714A" roughness={0.86} />
+      </mesh>
+      <mesh position={[0.14, 0.56, 0.18]} castShadow>
+        <cylinderGeometry args={[0.07, 0.08, 0.52, 6]} />
+        <meshStandardMaterial color="#8F714A" roughness={0.86} />
+      </mesh>
+
+      {/* Flared Mane Collar Fringe */}
+      <mesh position={[0, 1.08, 0.04]} rotation={[0.2, 0, 0]} castShadow>
+        <coneGeometry args={[0.3, 0.36, 8]} />
+        <meshStandardMaterial color="#A4855E" roughness={0.82} />
+      </mesh>
+
+      {/* Proud Lion Head with Open Roaring Jaws */}
+      <mesh position={[0, 1.24, 0.12]} castShadow>
+        <boxGeometry args={[0.26, 0.26, 0.28]} />
+        <meshStandardMaterial color="#B08D5B" roughness={0.8} />
+      </mesh>
+      {/* Snout & Open Jaws */}
+      <mesh position={[0, 1.18, 0.28]} rotation={[-0.15, 0, 0]} castShadow>
+        <boxGeometry args={[0.18, 0.12, 0.18]} />
+        <meshStandardMaterial color="#7D6145" roughness={0.88} />
+      </mesh>
+      {/* Amber Glowing Eyes */}
+      <mesh position={[-0.1, 1.28, 0.25]}>
+        <sphereGeometry args={[0.032, 6, 6]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.3} metalness={0.7} />
+      </mesh>
+      <mesh position={[0.1, 1.28, 0.25]}>
+        <sphereGeometry args={[0.032, 6, 6]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.3} metalness={0.7} />
+      </mesh>
+
+      {/* Royal Crown / Crest Finial */}
+      <mesh position={[0, 1.44, 0.08]} castShadow>
+        <coneGeometry args={[0.08, 0.18, 6]} />
+        <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.5} />
+      </mesh>
+
+      {/* Upright Curled Tail */}
+      <mesh position={[0, 0.72, -0.32]} rotation={[-0.35, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.035, 0.045, 0.54, 6]} />
+        <meshStandardMaterial color="#8F714A" roughness={0.86} />
+      </mesh>
+      <mesh position={[0, 0.98, -0.38]} castShadow>
+        <sphereGeometry args={[0.06, 6, 6]} />
+        <meshStandardMaterial color="#B08D5B" roughness={0.8} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Celestial Devata Wall Niche (ចម្លាក់ទេវតាលើជញ្ជាំង)
+ */
+function DevataWallNiche({
+  position,
+  rotation = [0, 0, 0],
+}: {
+  position: [number, number, number];
+  rotation?: [number, number, number];
+}) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Recessed Niche Cavity */}
+      <mesh position={[0, 1.45, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.72, 1.55, 0.18]} />
+        <meshStandardMaterial color="#4A3420" roughness={0.94} />
+      </mesh>
+      {/* Decorative Arched Frame Trim */}
+      <mesh position={[0, 2.22, 0.04]} rotation={[0, 0, -Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.36, 0.36, 0.12, 12, 1, false, 0, Math.PI]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.84} />
+      </mesh>
+
+      {/* High-Relief Devata Figure (ទេវតាចម្លាក់ថ្ម) */}
+      {/* Tiered Crown (Mokot) */}
+      <mesh position={[0, 2.12, 0.08]} castShadow>
+        <coneGeometry args={[0.07, 0.22, 6]} />
+        <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.5} />
+      </mesh>
+      {/* Serene Head */}
+      <mesh position={[0, 1.94, 0.08]} castShadow>
+        <sphereGeometry args={[0.09, 8, 8]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.8} />
+      </mesh>
+      {/* Slender Torso & Royal Cross-Sash (Sangvar) */}
+      <mesh position={[0, 1.68, 0.08]} castShadow>
+        <cylinderGeometry args={[0.08, 0.1, 0.32, 8]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+      </mesh>
+      {/* Pleated Sampot Skirt */}
+      <mesh position={[0, 1.25, 0.08]} castShadow>
+        <cylinderGeometry args={[0.11, 0.16, 0.58, 8]} />
+        <meshStandardMaterial color="#BA9966" roughness={0.82} />
+      </mesh>
+      {/* Sacred Pink Lotus Blossom in Hand */}
+      <mesh position={[0, 1.76, 0.15]} castShadow>
+        <coneGeometry args={[0.045, 0.09, 6]} />
+        <meshStandardMaterial color="#F472B6" roughness={0.42} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Authentic Khmer Bas-Relief Wall Register (ចម្លាក់លើផ្ទៃជញ្ជាំងប្រាសាទ)
+ * Multi-tiered ashlar courses with Kbach Changva Por lozenges, golden rosettes,
+ * running floral vine friezes (Kbach Phni Tes), dentil courses, and lotus plinths.
+ */
+function WallBasReliefRegister({
+  width,
+  height,
+  depth,
+  position,
+}: {
+  width: number;
+  height: number;
+  depth: number;
+  position: [number, number, number];
+}) {
+  const lozengeCount = Math.max(2, Math.floor(width / 0.52));
+  const lozenges = useMemo(() => {
+    const arr = [];
+    const step = width / (lozengeCount + 1);
+    for (let i = 1; i <= lozengeCount; i += 1) {
+      arr.push(-width / 2 + i * step);
+    }
+    return arr;
+  }, [width, lozengeCount]);
+
+  const sides = [{ rotY: Math.PI }, { rotY: 0 }];
+
+  return (
+    <group position={position}>
+      {/* Main Ashlar Sandstone Wall Block */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[width, height, depth]} />
+        <meshStandardMaterial color="#7D6145" roughness={0.88} />
+      </mesh>
+
+      {/* Authentic Bas-Relief Carvings on both front (-Z) and rear (+Z) faces */}
+      {sides.map(({ rotY }, sIdx) => (
+        <group key={`side-${sIdx}`} rotation={[0, rotY, 0]}>
+          {/* Recessed Frieze Panel Field (ផ្ទៃចម្លាក់ក្បាច់) */}
+          <mesh position={[0, 0, depth / 2 + 0.015]} receiveShadow>
+            <boxGeometry args={[width * 0.94, height * 0.76, 0.03]} />
+            <meshStandardMaterial color="#8F714A" roughness={0.86} />
+          </mesh>
+
+          {/* Running Floral Vine Frieze Band (ក្បាច់ភ្ញីទេស Kbach Phni Tes) */}
+          <mesh position={[0, height * 0.24, depth / 2 + 0.025]} castShadow>
+            <boxGeometry args={[width * 0.92, 0.12, 0.02]} />
+            <meshStandardMaterial color="#B08D5B" roughness={0.8} />
+          </mesh>
+
+          {/* Interlocking Diamond Lozenges (ក្បាច់ចង្វាយពោធិ Kbach Changva Por) */}
+          {lozenges.map((lx, idx) => (
+            <group key={`lozenge-${sIdx}-${idx}`} position={[lx, -0.05, depth / 2 + 0.035]}>
+              <mesh rotation={[0, 0, Math.PI / 4]} castShadow>
+                <boxGeometry args={[0.18, 0.18, 0.03]} />
+                <meshStandardMaterial color="#CDB082" roughness={0.76} />
+              </mesh>
+              {/* Inner Diamond Petal Relief */}
+              <mesh rotation={[0, 0, Math.PI / 4]} position={[0, 0, 0.012]}>
+                <boxGeometry args={[0.11, 0.11, 0.02]} />
+                <meshStandardMaterial color="#DFC090" roughness={0.72} />
+              </mesh>
+              {/* Central Lotus Rosette Medallion (ផ្កាចន្ទន៍) */}
+              <mesh position={[0, 0, 0.025]}>
+                <sphereGeometry args={[0.038, 6, 6]} />
+                <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.5} />
+              </mesh>
+            </group>
+          ))}
+
+          {/* Lower Running Lotus Bud Register */}
+          <mesh position={[0, -height * 0.26, depth / 2 + 0.025]} castShadow>
+            <boxGeometry args={[width * 0.92, 0.10, 0.02]} />
+            <meshStandardMaterial color="#A4855E" roughness={0.84} />
+          </mesh>
+
+          {/* Fluted Vertical Edge Pilasters (សសរផ្អោបគែមជញ្ជាំង) */}
+          {[-width / 2 + 0.12, width / 2 - 0.12].map((px, pIdx) => (
+            <group key={`edge-pilaster-${pIdx}`} position={[px, 0, depth / 2 + 0.03]}>
+              <mesh castShadow>
+                <cylinderGeometry args={[0.08, 0.09, height * 0.88, 8]} />
+                <meshStandardMaterial color="#BA9966" roughness={0.82} />
+              </mesh>
+              {/* Capital & Base */}
+              <mesh position={[0, height * 0.44, 0]} castShadow>
+                <boxGeometry args={[0.22, 0.10, 0.18]} />
+                <meshStandardMaterial color="#CDB082" roughness={0.78} />
+              </mesh>
+              <mesh position={[0, -height * 0.44, 0]} castShadow>
+                <boxGeometry args={[0.22, 0.10, 0.18]} />
+                <meshStandardMaterial color="#7D6145" roughness={0.88} />
+              </mesh>
+            </group>
+          ))}
+
+          {/* Upper Dentil Course Molding (ធ្មេញកណ្តុរ Dhmenh Kandoe) */}
+          <mesh position={[0, height / 2 - 0.04, depth / 2 + 0.025]} castShadow>
+            <boxGeometry args={[width, 0.08, 0.05]} />
+            <meshStandardMaterial color="#CDB082" roughness={0.78} />
+          </mesh>
+          {/* Base Cyma Plinth Molding (ក្បាច់ឈូក Kbach Chhuk) */}
+          <mesh position={[0, -height / 2 + 0.04, depth / 2 + 0.025]} castShadow>
+            <boxGeometry args={[width, 0.09, 0.05]} />
+            <meshStandardMaterial color="#614B35" roughness={0.92} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * Monumental Angkorian Corbelled Prasat Lotus Spire (កំពូលផ្កាឈូកប្រាសាទ)
+ * 3-tier stepped corbelled prasat with cardinal pediments, ribbed lotus bud crown, and golden finial
+ */
+function PrasatLotusSpire({
+  position = [0, 0, 0],
+  scale = 1,
+}: {
+  position?: [number, number, number];
+  scale?: number;
+}) {
+  return (
+    <group position={position} scale={[scale, scale, scale]}>
+      {/* Base Architrave Plinth */}
+      <mesh position={[0, 0.22, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.8, 0.44, 2.4]} />
+        <meshStandardMaterial color="#8F714A" roughness={0.88} />
+      </mesh>
+      <mesh position={[0, 0.50, 0]} castShadow>
+        <boxGeometry args={[3.0, 0.14, 2.6]} />
+        <meshStandardMaterial color="#B08D5B" roughness={0.84} />
+      </mesh>
+
+      {/* Tier 1 with Stepped Cruciform Bays & Cardinal Antefixes */}
+      <mesh position={[0, 0.95, 0]} castShadow>
+        <boxGeometry args={[2.4, 0.76, 2.0]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+      </mesh>
+      <mesh position={[0, 1.40, 0]} castShadow>
+        <boxGeometry args={[2.58, 0.14, 2.18]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.76} />
+      </mesh>
+      {/* 4 Cardinal Triangular Antefixes */}
+      {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((ang, idx) => (
+        <group key={`spire-t1-${idx}`} rotation={[0, ang, 0]}>
+          <mesh position={[0, 1.05, 1.12]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.55, 0.65, 4]} />
+            <meshStandardMaterial color="#CDB082" roughness={0.76} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Tier 2 */}
+      <mesh position={[0, 1.82, 0]} castShadow>
+        <boxGeometry args={[1.9, 0.70, 1.6]} />
+        <meshStandardMaterial color="#B59668" roughness={0.82} />
+      </mesh>
+      <mesh position={[0, 2.22, 0]} castShadow>
+        <boxGeometry args={[2.05, 0.12, 1.75]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.76} />
+      </mesh>
+      {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((ang, idx) => (
+        <group key={`spire-t2-${idx}`} rotation={[0, ang, 0]}>
+          <mesh position={[0, 1.88, 0.9]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.42, 0.55, 4]} />
+            <meshStandardMaterial color="#C8A978" roughness={0.75} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Tier 3 */}
+      <mesh position={[0, 2.58, 0]} castShadow>
+        <boxGeometry args={[1.45, 0.60, 1.25]} />
+        <meshStandardMaterial color="#C0A170" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 2.92, 0]} castShadow>
+        <boxGeometry args={[1.58, 0.10, 1.38]} />
+        <meshStandardMaterial color="#D6B785" roughness={0.76} />
+      </mesh>
+
+      {/* Lotus Neck Collar (កញ្ចឹងឈូក) */}
+      <mesh position={[0, 3.18, 0]} castShadow>
+        <cylinderGeometry args={[0.62, 0.78, 0.42, 12]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 3.44, 0]} castShadow>
+        <cylinderGeometry args={[0.82, 0.60, 0.18, 12]} />
+        <meshStandardMaterial color="#D6B785" roughness={0.74} />
+      </mesh>
+
+      {/* Ribbed Lotus Bud Crown (ផ្កាឈូកក្រពុំ) */}
+      <mesh position={[0, 4.02, 0]} castShadow>
+        <cylinderGeometry args={[0.92, 0.70, 0.98, 12]} />
+        <meshStandardMaterial color="#D4B584" roughness={0.75} />
+      </mesh>
+      <mesh position={[0, 4.95, 0]} castShadow>
+        <coneGeometry args={[0.86, 1.35, 12]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.72} />
+      </mesh>
+      {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((ang, idx) => (
+        <group key={`spire-rib-${idx}`} rotation={[0, ang, 0]}>
+          <mesh position={[0, 4.45, 0.72]} rotation={[0.18, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.055, 0.09, 1.25, 6]} />
+            <meshStandardMaterial color="#F59E0B" roughness={0.45} metalness={0.4} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Golden Kalasha Finial Spire */}
+      <mesh position={[0, 5.75, 0]} castShadow>
+        <sphereGeometry args={[0.22, 10, 10]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.25} metalness={0.8} />
+      </mesh>
+      <mesh position={[0, 6.08, 0]} castShadow>
+        <cylinderGeometry args={[0.11, 0.18, 0.38, 8]} />
+        <meshStandardMaterial color="#D97706" roughness={0.3} metalness={0.75} />
+      </mesh>
+      {/* Royal Chatra Ring */}
+      <mesh position={[0, 6.32, 0]} castShadow>
+        <cylinderGeometry args={[0.28, 0.28, 0.05, 12]} />
+        <meshStandardMaterial color="#FBBF24" roughness={0.2} metalness={0.85} />
+      </mesh>
+      <mesh position={[0, 6.72, 0]}>
+        <cylinderGeometry args={[0.025, 0.09, 0.85, 8]} />
+        <meshStandardMaterial color="#FBBF24" roughness={0.2} metalness={0.85} />
+      </mesh>
+      <mesh position={[0, 7.22, 0]}>
+        <sphereGeometry args={[0.10, 10, 10]} />
+        <meshStandardMaterial
+          color="#FEF08A"
+          emissive="#F59E0B"
+          emissiveIntensity={0.85}
+          roughness={0.1}
+          metalness={0.9}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Turned Sandstone Baluster Window (បង្អួចជើងទៀន)
+ */
+function TurnedBalusterWindow({
+  position,
+  rotation = [0, 0, 0],
+}: {
+  position: [number, number, number];
+  rotation?: [number, number, number];
+}) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Window Embrasures & Sill */}
+      <mesh position={[0, 0, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.78, 1.25, 0.28]} />
+        <meshStandardMaterial color="#4A3420" roughness={0.95} />
+      </mesh>
+      <mesh position={[0, -0.64, 0.04]} castShadow>
+        <boxGeometry args={[0.88, 0.12, 0.36]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.86} />
+      </mesh>
+      <mesh position={[0, 0.64, 0.04]} castShadow>
+        <boxGeometry args={[0.88, 0.12, 0.36]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.86} />
+      </mesh>
+
+      {/* Three Turned Sandstone Balusters (បង្អួចជើងទៀន) */}
+      {[-0.22, 0, 0.22].map((bx, bIdx) => (
+        <group key={`baluster-${bIdx}`} position={[bx, 0, 0.04]}>
+          <mesh castShadow>
+            <cylinderGeometry args={[0.045, 0.045, 1.05, 8]} />
+            <meshStandardMaterial color="#B08D5B" roughness={0.82} />
+          </mesh>
+          {/* Upper Turned Bead Ring */}
+          <mesh position={[0, 0.26, 0]}>
+            <cylinderGeometry args={[0.072, 0.072, 0.08, 8]} />
+            <meshStandardMaterial color="#DFC090" roughness={0.76} />
+          </mesh>
+          {/* Middle Turned Bead Ring */}
+          <mesh position={[0, 0, 0]}>
+            <cylinderGeometry args={[0.085, 0.085, 0.12, 8]} />
+            <meshStandardMaterial color="#D97706" roughness={0.65} />
+          </mesh>
+          {/* Lower Turned Bead Ring */}
+          <mesh position={[0, -0.26, 0]}>
+            <cylinderGeometry args={[0.072, 0.072, 0.08, 8]} />
+            <meshStandardMaterial color="#DFC090" roughness={0.76} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * Armed Temple Dvarapala Guardian Sentinel (អ្នកយាមទ្វារប្រាសាទ)
+ */
+function DvarapalaGuardianSentinel({
+  position,
+  rotation = [0, 0, 0],
+}: {
+  position: [number, number, number];
+  rotation?: [number, number, number];
+}) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Octagonal Stepped Lotus Pedestal */}
+      <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.48, 0.56, 0.3, 8]} />
+        <meshStandardMaterial color="#614B35" roughness={0.92} />
+      </mesh>
+      <mesh position={[0, 0.33, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.42, 0.46, 0.12, 8]} />
+        <meshStandardMaterial color="#8F714A" roughness={0.86} />
+      </mesh>
+
+      {/* Muscular Armored Legs */}
+      <mesh position={[-0.14, 0.72, 0]} castShadow>
+        <cylinderGeometry args={[0.09, 0.11, 0.68, 8]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.84} />
+      </mesh>
+      <mesh position={[0.14, 0.72, 0]} castShadow>
+        <cylinderGeometry args={[0.09, 0.11, 0.68, 8]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.84} />
+      </mesh>
+
+      {/* Royal Sampot Skirt & Belt Drape */}
+      <mesh position={[0, 1.08, 0]} castShadow>
+        <cylinderGeometry args={[0.22, 0.25, 0.38, 8]} />
+        <meshStandardMaterial color="#B08D5B" roughness={0.82} />
+      </mesh>
+      <mesh position={[0, 0.94, 0.18]} castShadow>
+        <boxGeometry args={[0.16, 0.32, 0.06]} />
+        <meshStandardMaterial color="#D97706" roughness={0.65} />
+      </mesh>
+
+      {/* Muscular Torso with Crossed Sangvar Sashes */}
+      <mesh position={[0, 1.44, 0]} castShadow>
+        <cylinderGeometry args={[0.21, 0.19, 0.46, 8]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.8} />
+      </mesh>
+      {/* Gold Armlets and Torque Necklace */}
+      <mesh position={[0, 1.62, 0.02]} castShadow>
+        <torusGeometry args={[0.16, 0.035, 6, 12]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.35} metalness={0.6} />
+      </mesh>
+
+      {/* Heroic Fierce Guardian Head & Mustache */}
+      <mesh position={[0, 1.84, 0.02]} castShadow>
+        <sphereGeometry args={[0.14, 8, 8]} />
+        <meshStandardMaterial color="#BFA06C" roughness={0.78} />
+      </mesh>
+      {/* Tiered Royal Mokot Crown */}
+      <mesh position={[0, 2.12, 0.02]} castShadow>
+        <coneGeometry args={[0.11, 0.36, 6]} />
+        <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.5} />
+      </mesh>
+
+      {/* Heavy Guardian Mace (Gada / ដំបងពេជ្រ) resting vertically */}
+      <group position={[0.26, 0.95, 0.2]}>
+        {/* Mace Shaft */}
+        <mesh castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 1.45, 8]} />
+          <meshStandardMaterial color="#4A3420" roughness={0.75} metalness={0.4} />
+        </mesh>
+        {/* Mace Fluted Head */}
+        <mesh position={[0, 0.62, 0]} castShadow>
+          <sphereGeometry args={[0.14, 8, 8]} />
+          <meshStandardMaterial color="#D97706" roughness={0.35} metalness={0.65} />
+        </mesh>
+        <mesh position={[0, 0.8, 0]} castShadow>
+          <coneGeometry args={[0.07, 0.18, 6]} />
+          <meshStandardMaterial color="#FEF08A" roughness={0.3} metalness={0.7} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+/**
+ * Organic Banyan Strangler Fig Root Cluster (ឫសឈើប្រាសាទតាព្រហ្ម/អង្គរវត្ត)
+ */
+function AncientBanyanRoots({
+  position,
+}: {
+  position: [number, number, number];
+}) {
+  const rootColor = '#5C4430';
+  return (
+    <group position={position}>
+      {/* Over-arch Cascading Main Root Trunk */}
+      <mesh position={[0, 4.8, 0.58]} rotation={[0, 0, 0.2]} castShadow>
+        <cylinderGeometry args={[0.16, 0.24, 2.8, 8]} />
+        <meshStandardMaterial color={rootColor} roughness={0.92} />
+      </mesh>
+      {/* Left Pier Root Tendril descending into pavement */}
+      <mesh position={[-1.9, 2.8, 0.52]} rotation={[0.12, 0, -0.15]} castShadow>
+        <cylinderGeometry args={[0.12, 0.18, 3.4, 8]} />
+        <meshStandardMaterial color={rootColor} roughness={0.92} />
+      </mesh>
+      <mesh position={[-1.75, 1.1, 0.56]} rotation={[-0.08, 0, 0.12]} castShadow>
+        <cylinderGeometry args={[0.16, 0.22, 2.2, 8]} />
+        <meshStandardMaterial color={rootColor} roughness={0.92} />
+      </mesh>
+
+      {/* Right Pier Root Tendril descending into pavement */}
+      <mesh position={[1.9, 2.8, 0.52]} rotation={[0.12, 0, 0.15]} castShadow>
+        <cylinderGeometry args={[0.12, 0.18, 3.4, 8]} />
+        <meshStandardMaterial color={rootColor} roughness={0.92} />
+      </mesh>
+      <mesh position={[1.75, 1.1, 0.56]} rotation={[-0.08, 0, -0.12]} castShadow>
+        <cylinderGeometry args={[0.16, 0.22, 2.2, 8]} />
+        <meshStandardMaterial color={rootColor} roughness={0.92} />
+      </mesh>
+
+      {/* Crevice Foliage Clumps */}
+      <mesh position={[-1.85, 4.4, 0.62]} castShadow>
+        <sphereGeometry args={[0.26, 6, 6]} />
+        <meshStandardMaterial color="#2E7D32" roughness={0.85} />
+      </mesh>
+      <mesh position={[1.85, 4.4, 0.62]} castShadow>
+        <sphereGeometry args={[0.26, 6, 6]} />
+        <meshStandardMaterial color="#2E7D32" roughness={0.85} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Barrier 2: Cruciform Inner Terrace Gopura (គោបុរៈថ្នាក់កណ្តាល រាងកាកបាទ) at Z = 16
+ * Elevated terrace, guardian Singha lions, bas-relief gallery wings and sliding carved monoliths
+ */
 function TwinStonesChallenge({
   stageIndex,
   status,
@@ -222,65 +801,239 @@ function TwinStonesChallenge({
 
   return (
     <group position={[0, 0, stageZ]}>
-      {/* Flanking Stepped Sanctuary Obelisks */}
-      <mesh position={[-3.3, 1.9, 0]} castShadow receiveShadow>
-        <boxGeometry args={[1.15, 3.8, 1.15]} />
+      {/* ===== 1. ELEVATED CRUCIFORM TERRACE PLINTH (ថ្នាក់កាកបាទ) ===== */}
+      <mesh position={[0, 0.06, 0]} receiveShadow>
+        <boxGeometry args={[9.4, 0.12, 5.4]} />
         <primitive object={sandstoneDark} attach="material" />
       </mesh>
-      <mesh position={[-3.3, 4.1, 0]} castShadow>
-        <coneGeometry args={[0.85, 0.9, 4]} />
-        <primitive object={sandstoneLight} attach="material" />
+      <mesh position={[0, 0.18, 0]} receiveShadow>
+        <boxGeometry args={[8.8, 0.14, 4.8]} />
+        <primitive object={sandstoneMedium} attach="material" />
       </mesh>
-      <mesh position={[3.3, 1.9, 0]} castShadow receiveShadow>
-        <boxGeometry args={[1.15, 3.8, 1.15]} />
-        <primitive object={sandstoneDark} attach="material" />
-      </mesh>
-      <mesh position={[3.3, 4.1, 0]} castShadow>
-        <coneGeometry args={[0.85, 0.9, 4]} />
+      {/* Stepped Causeway Curb Extension */}
+      <mesh position={[0, 0.22, 0]} receiveShadow>
+        <boxGeometry args={[4.4, 0.08, 4.2]} />
         <primitive object={sandstoneLight} attach="material" />
       </mesh>
 
-      {/* Left Sliding Twin Monolith */}
-      <group ref={leftMonolithRef} position={[-0.95, 0, 0]}>
-        <mesh position={[0, 1.95, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.82, 3.5, 0.85]} />
-          <primitive object={sandstoneMedium} attach="material" />
-        </mesh>
-        <mesh position={[0, 3.85, 0]} castShadow>
-          <coneGeometry args={[1.15, 0.75, 4]} />
+      {/* Guardian Singha Lions flanking the Terrace Approach */}
+      <SinghaGuardianLion position={[-2.45, 0.22, -1.8]} rotation={[0, 0.15, 0]} scale={0.92} />
+      <SinghaGuardianLion position={[2.45, 0.22, -1.8]} rotation={[0, -0.15, 0]} scale={0.92} />
+
+      {/* ===== 2. FLANKING GALLERY WALLS WITH DEEP BAS-RELIEFS (ចម្លាក់លើផ្ទៃជញ្ជាំង) ===== */}
+      {/* Left (North) Gallery Wing */}
+      <group position={[-4.5, 0, 0]}>
+        <WallBasReliefRegister
+          width={4.2}
+          height={3.6}
+          depth={0.92}
+          position={[0, 2.0, 0]}
+        />
+        {/* Recessed Devata Niche */}
+        <DevataWallNiche position={[0.7, 0.25, -0.46]} rotation={[0, Math.PI, 0]} />
+        {/* Turned Sandstone Baluster Window */}
+        <TurnedBalusterWindow position={[-0.95, 2.05, 0]} />
+
+        {/* Gallery Roof Cornice & Ridge */}
+        <mesh position={[0, 3.95, 0]} castShadow>
+          <boxGeometry args={[4.4, 0.35, 1.15]} />
           <primitive object={sandstoneLight} attach="material" />
         </mesh>
-        <mesh position={[0.15, 1.95, -0.44]}>
-          <boxGeometry args={[0.32, 2.2, 0.04]} />
+        <mesh position={[0, 4.25, 0]} castShadow>
+          <boxGeometry args={[3.8, 0.28, 0.95]} />
+          <primitive object={sandstoneMedium} attach="material" />
+        </mesh>
+        {/* Ridge Flame Finials */}
+        {[-1.4, 0, 1.4].map((fx, fIdx) => (
+          <mesh key={`wing-l-finial-${fIdx}`} position={[fx, 4.52, 0]} castShadow>
+            <coneGeometry args={[0.09, 0.32, 6]} />
+            <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.5} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Right (South) Gallery Wing */}
+      <group position={[4.5, 0, 0]}>
+        <WallBasReliefRegister
+          width={4.2}
+          height={3.6}
+          depth={0.92}
+          position={[0, 2.0, 0]}
+        />
+        {/* Recessed Devata Niche */}
+        <DevataWallNiche position={[-0.7, 0.25, -0.46]} rotation={[0, Math.PI, 0]} />
+        {/* Turned Sandstone Baluster Window */}
+        <TurnedBalusterWindow position={[0.95, 2.05, 0]} />
+
+        {/* Gallery Roof Cornice & Ridge */}
+        <mesh position={[0, 3.95, 0]} castShadow>
+          <boxGeometry args={[4.4, 0.35, 1.15]} />
+          <primitive object={sandstoneLight} attach="material" />
+        </mesh>
+        <mesh position={[0, 4.25, 0]} castShadow>
+          <boxGeometry args={[3.8, 0.28, 0.95]} />
+          <primitive object={sandstoneMedium} attach="material" />
+        </mesh>
+        {/* Ridge Flame Finials */}
+        {[-1.4, 0, 1.4].map((fx, fIdx) => (
+          <mesh key={`wing-r-finial-${fIdx}`} position={[fx, 4.52, 0]} castShadow>
+            <coneGeometry args={[0.09, 0.32, 6]} />
+            <meshStandardMaterial color="#D97706" roughness={0.4} metalness={0.5} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* ===== 3. MONUMENTAL PORTAL PIERS & SCULPTED KALA LINTEL ===== */}
+      {/* Left Portal Pier */}
+      <mesh position={[-2.05, 2.15, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.92, 4.1, 1.1]} />
+        <primitive object={sandstoneDark} attach="material" />
+      </mesh>
+      {/* Left Fluted Pilaster Molding */}
+      <mesh position={[-1.75, 2.15, -0.48]} castShadow>
+        <cylinderGeometry args={[0.12, 0.15, 3.9, 8]} />
+        <primitive object={sandstoneLight} attach="material" />
+      </mesh>
+
+      {/* Right Portal Pier */}
+      <mesh position={[2.05, 2.15, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.92, 4.1, 1.1]} />
+        <primitive object={sandstoneDark} attach="material" />
+      </mesh>
+      {/* Right Fluted Pilaster Molding */}
+      <mesh position={[1.75, 2.15, -0.48]} castShadow>
+        <cylinderGeometry args={[0.12, 0.15, 3.9, 8]} />
+        <primitive object={sandstoneLight} attach="material" />
+      </mesh>
+
+      {/* Spanning Architrave Beam */}
+      <mesh position={[0, 4.28, 0]} castShadow receiveShadow>
+        <boxGeometry args={[4.8, 0.44, 1.2]} />
+        <primitive object={sandstoneMedium} attach="material" />
+      </mesh>
+      {/* Carved Sandstone Kala / Rahu Lintel */}
+      <mesh position={[0, 4.28, -0.58]} castShadow>
+        <boxGeometry args={[3.8, 0.48, 0.16]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.78} />
+      </mesh>
+      {/* Kala Monster Mask Medallion */}
+      <mesh position={[0, 4.32, -0.68]} castShadow>
+        <sphereGeometry args={[0.22, 8, 8]} />
+        <meshStandardMaterial color="#D97706" roughness={0.45} metalness={0.4} />
+      </mesh>
+      {/* Undulating Makara Garlands */}
+      <mesh position={[-0.85, 4.22, -0.65]} rotation={[0, 0, -0.15]} castShadow>
+        <boxGeometry args={[1.3, 0.12, 0.08]} />
+        <primitive object={sandstoneLight} attach="material" />
+      </mesh>
+      <mesh position={[0.85, 4.22, -0.65]} rotation={[0, 0, 0.15]} castShadow>
+        <boxGeometry args={[1.3, 0.12, 0.08]} />
+        <primitive object={sandstoneLight} attach="material" />
+      </mesh>
+
+      {/* Tiered Corbelled Triangular Pediment (ហោជាងបីថ្នាក់) */}
+      <mesh position={[0, 4.76, 0]} castShadow>
+        <boxGeometry args={[3.6, 0.52, 1.15]} />
+        <primitive object={sandstoneLight} attach="material" />
+      </mesh>
+      <mesh position={[0, 5.20, 0]} castShadow>
+        <boxGeometry args={[2.6, 0.42, 1.0]} />
+        <primitive object={sandstoneMedium} attach="material" />
+      </mesh>
+
+      {/* Monumental Angkorian Prasat Lotus Spire atop Cruciform Gopura */}
+      <PrasatLotusSpire position={[0, 5.35, 0]} scale={0.78} />
+
+      {/* ===== 4. SLIDING CARVED TEMPLE MONOLITHS (LEFT & RIGHT) ===== */}
+      {/* Left Sliding Monolith Gate */}
+      <group ref={leftMonolithRef} position={[-0.95, 0, 0]}>
+        {/* Main Monolith Body with Layered Beveled Frame */}
+        <mesh position={[0, 2.05, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.86, 3.8, 0.68]} />
+          <primitive object={sandstoneMedium} attach="material" />
+        </mesh>
+        {/* Raised Outer Molding Border */}
+        <mesh position={[0, 2.05, -0.34]} receiveShadow>
+          <boxGeometry args={[1.72, 3.6, 0.06]} />
+          <primitive object={sandstoneLight} attach="material" />
+        </mesh>
+        {/* Recessed Carved Glyph Inscription Channel */}
+        <mesh position={[0, 2.05, -0.38]}>
+          <boxGeometry args={[1.35, 3.2, 0.04]} />
+          <meshStandardMaterial color="#4A3420" roughness={0.92} />
+        </mesh>
+        {/* Ancient Bas-Relief Rosette Accents */}
+        {[1.2, 2.0, 2.8].map((ry, rIdx) => (
+          <mesh key={`l-rosette-${rIdx}`} position={[0.42, ry, -0.41]}>
+            <sphereGeometry args={[0.065, 6, 6]} />
+            <meshStandardMaterial color="#D97706" roughness={0.45} metalness={0.4} />
+          </mesh>
+        ))}
+        {/* Central Luminous Rune Strip */}
+        <mesh position={[0.12, 2.05, -0.42]}>
+          <boxGeometry args={[0.26, 2.6, 0.05]} />
           <meshStandardMaterial
             ref={leftRuneStripRef}
             color="#38BDF8"
             emissive="#0284C7"
-            emissiveIntensity={0.6}
-            roughness={0.3}
+            emissiveIntensity={0.65}
+            roughness={0.25}
           />
+        </mesh>
+        {/* Monolith Stepped Crown */}
+        <mesh position={[0, 4.05, 0]} castShadow>
+          <boxGeometry args={[1.92, 0.22, 0.74]} />
+          <primitive object={sandstoneLight} attach="material" />
+        </mesh>
+        <mesh position={[0, 4.28, 0]} castShadow>
+          <coneGeometry args={[0.65, 0.38, 4]} />
+          <primitive object={sandstoneDark} attach="material" />
         </mesh>
       </group>
 
-      {/* Right Sliding Twin Monolith */}
+      {/* Right Sliding Monolith Gate */}
       <group ref={rightMonolithRef} position={[0.95, 0, 0]}>
-        <mesh position={[0, 1.95, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.82, 3.5, 0.85]} />
+        {/* Main Monolith Body with Layered Beveled Frame */}
+        <mesh position={[0, 2.05, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.86, 3.8, 0.68]} />
           <primitive object={sandstoneMedium} attach="material" />
         </mesh>
-        <mesh position={[0, 3.85, 0]} castShadow>
-          <coneGeometry args={[1.15, 0.75, 4]} />
+        {/* Raised Outer Molding Border */}
+        <mesh position={[0, 2.05, -0.34]} receiveShadow>
+          <boxGeometry args={[1.72, 3.6, 0.06]} />
           <primitive object={sandstoneLight} attach="material" />
         </mesh>
-        <mesh position={[-0.15, 1.95, -0.44]}>
-          <boxGeometry args={[0.32, 2.2, 0.04]} />
+        {/* Recessed Carved Glyph Inscription Channel */}
+        <mesh position={[0, 2.05, -0.38]}>
+          <boxGeometry args={[1.35, 3.2, 0.04]} />
+          <meshStandardMaterial color="#4A3420" roughness={0.92} />
+        </mesh>
+        {/* Ancient Bas-Relief Rosette Accents */}
+        {[1.2, 2.0, 2.8].map((ry, rIdx) => (
+          <mesh key={`r-rosette-${rIdx}`} position={[-0.42, ry, -0.41]}>
+            <sphereGeometry args={[0.065, 6, 6]} />
+            <meshStandardMaterial color="#D97706" roughness={0.45} metalness={0.4} />
+          </mesh>
+        ))}
+        {/* Central Luminous Rune Strip */}
+        <mesh position={[-0.12, 2.05, -0.42]}>
+          <boxGeometry args={[0.26, 2.6, 0.05]} />
           <meshStandardMaterial
             ref={rightRuneStripRef}
             color="#38BDF8"
             emissive="#0284C7"
-            emissiveIntensity={0.6}
-            roughness={0.3}
+            emissiveIntensity={0.65}
+            roughness={0.25}
           />
+        </mesh>
+        {/* Monolith Stepped Crown */}
+        <mesh position={[0, 4.05, 0]} castShadow>
+          <boxGeometry args={[1.92, 0.22, 0.74]} />
+          <primitive object={sandstoneLight} attach="material" />
+        </mesh>
+        <mesh position={[0, 4.28, 0]} castShadow>
+          <coneGeometry args={[0.65, 0.38, 4]} />
+          <primitive object={sandstoneDark} attach="material" />
         </mesh>
       </group>
 
@@ -296,6 +1049,12 @@ function TwinStonesChallenge({
   );
 }
 
+/**
+ * Barrier 3: Inner Bakan Sanctuary Gateway (ក្លោងទ្វាររួចបាកាណ) at Z = 26
+ * The climactic portal to the uppermost sanctum of Angkor Wat with tiered pediments,
+ * soaring lotus tower spire, armed Dvarapala sentinels, Ta Prohm banyan roots,
+ * and deeply detailed bas-relief gallery walls.
+ */
 function JunglePathChallenge({
   stageIndex,
   status,
@@ -333,20 +1092,24 @@ function JunglePathChallenge({
     }
   }, [incorrectCount, isActiveStage]);
 
-  const mossyStone = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#4E5E42', roughness: 0.92 }),
+  const sandstoneDark = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#614B35', roughness: 0.92 }),
     [],
   );
-  const ancientRootWood = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#4A3728', roughness: 0.9 }),
+  const sandstoneMedium = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#7D6145', roughness: 0.88 }),
     [],
   );
-  const emeraldFoliage = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#2E7D32', roughness: 0.82 }),
+  const sandstoneLight = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#9E7D5B', roughness: 0.84 }),
     [],
   );
-  const goldenTrim = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#D97706', metalness: 0.55, roughness: 0.35 }),
+  const ancientTeakWood = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#4A3420', roughness: 0.78 }),
+    [],
+  );
+  const bronzeTrim = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#D97706', metalness: 0.6, roughness: 0.35 }),
     [],
   );
 
@@ -391,7 +1154,7 @@ function JunglePathChallenge({
         rightGateRef.current.rotation.y = -ease * maxAngle;
       }
       if (portalLightRef.current) {
-        portalLightRef.current.intensity = ease * 2.8;
+        portalLightRef.current.intensity = ease * 3.2;
       }
 
       if (openProgressRef.current >= 1 && !finishedCalledRef.current) {
@@ -411,78 +1174,194 @@ function JunglePathChallenge({
 
   return (
     <group position={[0, 0, stageZ]}>
+      {/* Mystical Bakan Inner Sanctum Portal Light */}
       <pointLight
         ref={portalLightRef}
-        position={[0, 2.4, 0.8]}
-        color="#FDE68A"
+        position={[0, 2.8, 1.2]}
+        color="#FEF08A"
         intensity={0}
-        distance={14}
+        distance={16}
         decay={2}
       />
 
-      {/* Mossy Sanctuary Arch Pillars */}
-      <mesh position={[-2.25, 2.3, 0]} castShadow receiveShadow>
-        <boxGeometry args={[1.15, 4.6, 1.15]} />
-        <primitive object={mossyStone} attach="material" />
+      {/* ===== 1. ELEVATED BAKAN TERRACE PLINTH ===== */}
+      <mesh position={[0, 0.08, 0]} receiveShadow>
+        <boxGeometry args={[10.2, 0.16, 5.6]} />
+        <primitive object={sandstoneDark} attach="material" />
       </mesh>
-      <mesh position={[2.25, 2.3, 0]} castShadow receiveShadow>
-        <boxGeometry args={[1.15, 4.6, 1.15]} />
-        <primitive object={mossyStone} attach="material" />
-      </mesh>
-
-      {/* Ta Prohm Banyan Root Tendrils Embracing Arch */}
-      <mesh position={[-2.1, 3.6, -0.35]} rotation={[0, 0, -0.32]} castShadow>
-        <cylinderGeometry args={[0.14, 0.26, 2.8, 8]} />
-        <primitive object={ancientRootWood} attach="material" />
-      </mesh>
-      <mesh position={[2.1, 3.6, -0.35]} rotation={[0, 0, 0.32]} castShadow>
-        <cylinderGeometry args={[0.14, 0.26, 2.8, 8]} />
-        <primitive object={ancientRootWood} attach="material" />
+      <mesh position={[0, 0.22, 0]} receiveShadow>
+        <boxGeometry args={[9.4, 0.16, 4.8]} />
+        <primitive object={sandstoneMedium} attach="material" />
       </mesh>
 
-      {/* Jungle Canopy Crown Lintel */}
-      <mesh position={[0, 4.85, 0]} castShadow>
-        <boxGeometry args={[5.8, 0.75, 1.25]} />
-        <primitive object={mossyStone} attach="material" />
+      {/* ===== 2. HEROIC DVARAPALA SENTINELS GUARDING ENTRANCE ===== */}
+      <DvarapalaGuardianSentinel position={[-2.35, 0.22, -0.75]} rotation={[0, 0.25, 0]} />
+      <DvarapalaGuardianSentinel position={[2.35, 0.22, -0.75]} rotation={[0, -0.25, 0]} />
+
+      {/* ===== 3. FLANKING BAS-RELIEF GALLERY WALLS ===== */}
+      {/* Left Gallery Wing */}
+      <group position={[-4.7, 0, 0]}>
+        <WallBasReliefRegister
+          width={4.4}
+          height={4.2}
+          depth={0.96}
+          position={[0, 2.3, 0]}
+        />
+        {/* Turned Sandstone Baluster Window */}
+        <DevataWallNiche position={[0.85, 0.45, -0.48]} rotation={[0, Math.PI, 0]} />
+        <TurnedBalusterWindow position={[-0.85, 2.3, 0]} />
+
+        {/* Gallery Roof Cornice & Ridge */}
+        <mesh position={[0, 4.45, 0]} castShadow>
+          <boxGeometry args={[4.6, 0.38, 1.2]} />
+          <primitive object={sandstoneLight} attach="material" />
+        </mesh>
+        <mesh position={[0, 4.8, 0]} castShadow>
+          <boxGeometry args={[4.0, 0.32, 1.0]} />
+          <primitive object={sandstoneMedium} attach="material" />
+        </mesh>
+        {/* Ridge Flame Finials */}
+        {[-1.5, 0, 1.5].map((fx, fIdx) => (
+          <mesh key={`bakan-w-l-${fIdx}`} position={[fx, 5.12, 0]} castShadow>
+            <coneGeometry args={[0.1, 0.35, 6]} />
+            <primitive object={bronzeTrim} attach="material" />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Right Gallery Wing */}
+      <group position={[4.7, 0, 0]}>
+        <WallBasReliefRegister
+          width={4.4}
+          height={4.2}
+          depth={0.96}
+          position={[0, 2.3, 0]}
+        />
+        {/* Turned Sandstone Baluster Window */}
+        <DevataWallNiche position={[-0.85, 0.45, -0.48]} rotation={[0, Math.PI, 0]} />
+        <TurnedBalusterWindow position={[0.85, 2.3, 0]} />
+
+        {/* Gallery Roof Cornice & Ridge */}
+        <mesh position={[0, 4.45, 0]} castShadow>
+          <boxGeometry args={[4.6, 0.38, 1.2]} />
+          <primitive object={sandstoneLight} attach="material" />
+        </mesh>
+        <mesh position={[0, 4.8, 0]} castShadow>
+          <boxGeometry args={[4.0, 0.32, 1.0]} />
+          <primitive object={sandstoneMedium} attach="material" />
+        </mesh>
+        {/* Ridge Flame Finials */}
+        {[-1.5, 0, 1.5].map((fx, fIdx) => (
+          <mesh key={`bakan-w-r-${fIdx}`} position={[fx, 5.12, 0]} castShadow>
+            <coneGeometry args={[0.1, 0.35, 6]} />
+            <primitive object={bronzeTrim} attach="material" />
+          </mesh>
+        ))}
+      </group>
+
+      {/* ===== 4. MONUMENTAL PORTAL PIERS & SCULPTED KALA ARCHITRAVE ===== */}
+      {/* Left Portal Pier */}
+      <mesh position={[-1.95, 2.45, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.96, 4.6, 1.15]} />
+        <primitive object={sandstoneDark} attach="material" />
       </mesh>
-      <mesh position={[0, 5.45, 0]} castShadow>
-        <boxGeometry args={[4.4, 0.6, 1.1]} />
-        <primitive object={emeraldFoliage} attach="material" />
-      </mesh>
-      <mesh position={[0, 6.05, 0]} castShadow>
-        <coneGeometry args={[0.5, 0.95, 8]} />
-        <primitive object={goldenTrim} attach="material" />
+      {/* Left Column Shaft Fluting */}
+      <mesh position={[-1.62, 2.45, -0.52]} castShadow>
+        <cylinderGeometry args={[0.13, 0.16, 4.4, 8]} />
+        <primitive object={sandstoneLight} attach="material" />
       </mesh>
 
-      {/* Left Jungle Arch Door Leaf */}
+      {/* Right Portal Pier */}
+      <mesh position={[1.95, 2.45, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.96, 4.6, 1.15]} />
+        <primitive object={sandstoneDark} attach="material" />
+      </mesh>
+      {/* Right Column Shaft Fluting */}
+      <mesh position={[1.62, 2.45, -0.52]} castShadow>
+        <cylinderGeometry args={[0.13, 0.16, 4.4, 8]} />
+        <primitive object={sandstoneLight} attach="material" />
+      </mesh>
+
+      {/* Spanning Architrave & Carved Kala Lintel */}
+      <mesh position={[0, 4.85, 0]} castShadow receiveShadow>
+        <boxGeometry args={[4.9, 0.52, 1.25]} />
+        <primitive object={sandstoneMedium} attach="material" />
+      </mesh>
+      {/* Sculpted Kala Lintel Relief */}
+      <mesh position={[0, 4.85, -0.62]} castShadow>
+        <boxGeometry args={[3.8, 0.52, 0.16]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.76} />
+      </mesh>
+      {/* Kala Guardian Face */}
+      <mesh position={[0, 4.9, -0.72]} castShadow>
+        <sphereGeometry args={[0.24, 8, 8]} />
+        <primitive object={bronzeTrim} attach="material" />
+      </mesh>
+
+      {/* Multi-Tiered Bakan Corbelled Pediment (ហោជាងបីថ្នាក់រួចបាកាណ) */}
+      <mesh position={[0, 5.4, 0]} castShadow>
+        <boxGeometry args={[3.8, 0.58, 1.2]} />
+        <primitive object={sandstoneLight} attach="material" />
+      </mesh>
+      <mesh position={[0, 5.92, 0]} castShadow>
+        <boxGeometry args={[2.8, 0.48, 1.05]} />
+        <primitive object={sandstoneMedium} attach="material" />
+      </mesh>
+
+      {/* Towering Central Miniature Prasat Lotus Finial (កំពូលផ្កាឈូកបាកាណ) */}
+      <PrasatLotusSpire position={[0, 6.1, 0]} scale={0.92} />
+
+      {/* Ancient Ta Prohm Banyan Roots Embracing Archway */}
+      <AncientBanyanRoots position={[0, 0, 0]} />
+
+      {/* ===== 5. CARVED ANCIENT TEMPLE DOUBLE DOORS ===== */}
+      {/* Left Double Door Leaf */}
       <group ref={leftGateRef} position={[-1.7, 0, 0]}>
-        <mesh position={[0.82, 2.15, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.66, 4.0, 0.26]} />
-          <primitive object={ancientRootWood} attach="material" />
+        <mesh position={[0.82, 2.3, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.66, 4.3, 0.22]} />
+          <primitive object={ancientTeakWood} attach="material" />
         </mesh>
-        <mesh position={[0.82, 2.15, -0.15]}>
-          <boxGeometry args={[1.28, 3.3, 0.06]} />
-          <primitive object={mossyStone} attach="material" />
+        {/* Recessed Carved Panel Field */}
+        <mesh position={[0.82, 2.3, -0.12]}>
+          <boxGeometry args={[1.32, 3.7, 0.05]} />
+          <primitive object={sandstoneMedium} attach="material" />
         </mesh>
-        <mesh position={[1.38, 2.15, -0.2]}>
-          <cylinderGeometry args={[0.1, 0.1, 0.06, 10]} />
-          <primitive object={goldenTrim} attach="material" />
+        {/* Embossed Bronze Lotus Studs (ផ្កាចន្ទន៍សំរឹទ្ធ) */}
+        {[1.2, 2.3, 3.4].map((sy, sIdx) => (
+          <mesh key={`l-stud-${sIdx}`} position={[0.82, sy, -0.16]}>
+            <sphereGeometry args={[0.08, 6, 6]} />
+            <primitive object={bronzeTrim} attach="material" />
+          </mesh>
+        ))}
+        {/* Bronze Ring Handle */}
+        <mesh position={[1.42, 2.3, -0.18]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <torusGeometry args={[0.1, 0.022, 6, 12]} />
+          <primitive object={bronzeTrim} attach="material" />
         </mesh>
       </group>
 
-      {/* Right Jungle Arch Door Leaf */}
+      {/* Right Double Door Leaf */}
       <group ref={rightGateRef} position={[1.7, 0, 0]}>
-        <mesh position={[-0.82, 2.15, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.66, 4.0, 0.26]} />
-          <primitive object={ancientRootWood} attach="material" />
+        <mesh position={[-0.82, 2.3, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.66, 4.3, 0.22]} />
+          <primitive object={ancientTeakWood} attach="material" />
         </mesh>
-        <mesh position={[-0.82, 2.15, -0.15]}>
-          <boxGeometry args={[1.28, 3.3, 0.06]} />
-          <primitive object={mossyStone} attach="material" />
+        {/* Recessed Carved Panel Field */}
+        <mesh position={[-0.82, 2.3, -0.12]}>
+          <boxGeometry args={[1.32, 3.7, 0.05]} />
+          <primitive object={sandstoneMedium} attach="material" />
         </mesh>
-        <mesh position={[-1.38, 2.15, -0.2]}>
-          <cylinderGeometry args={[0.1, 0.1, 0.06, 10]} />
-          <primitive object={goldenTrim} attach="material" />
+        {/* Embossed Bronze Lotus Studs (ផ្កាចន្ទន៍សំរឹទ្ធ) */}
+        {[1.2, 2.3, 3.4].map((sy, sIdx) => (
+          <mesh key={`r-stud-${sIdx}`} position={[-0.82, sy, -0.16]}>
+            <sphereGeometry args={[0.08, 6, 6]} />
+            <primitive object={bronzeTrim} attach="material" />
+          </mesh>
+        ))}
+        {/* Bronze Ring Handle */}
+        <mesh position={[-1.42, 2.3, -0.18]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <torusGeometry args={[0.1, 0.022, 6, 12]} />
+          <primitive object={bronzeTrim} attach="material" />
         </mesh>
       </group>
 
@@ -494,6 +1373,88 @@ function JunglePathChallenge({
         accentColor="#34D399"
         runeRef={runeGlowRef}
       />
+    </group>
+  );
+}
+
+/**
+ * Inner Bakan Sanctuary Forecourt Dressing (ទីធ្លាបាកាណខាងក្នុង)
+ * Elevated ceremonial terrace for Stages 4 & 5 leading directly to the 5-Tower Sanctuary Complex
+ */
+function InnerBakanSanctuaryForecourt() {
+  const sandstoneDark = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#614B35', roughness: 0.92 }),
+    [],
+  );
+  const sandstoneMedium = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#7D6145', roughness: 0.88 }),
+    [],
+  );
+  const sandstoneLight = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#9E7D5B', roughness: 0.84 }),
+    [],
+  );
+
+  return (
+    <group position={[0, 0, 29.5]}>
+      {/* 1. Grand Axial Flagstone Walkway connecting Stage 3 to Stages 4 & 5 */}
+      <mesh position={[0, 0.08, 0]} receiveShadow>
+        <boxGeometry args={[5.2, 0.16, 6.2]} />
+        <primitive object={sandstoneDark} attach="material" />
+      </mesh>
+      <mesh position={[0, 0.18, 0]} receiveShadow>
+        <boxGeometry args={[4.4, 0.08, 5.8]} />
+        <primitive object={sandstoneMedium} attach="material" />
+      </mesh>
+
+      {/* 2. Guardian Singha Lions at the Sanctum Approach Steps */}
+      <SinghaGuardianLion position={[-2.4, 0.18, -1.8]} rotation={[0, 0.35, 0]} scale={0.95} />
+      <SinghaGuardianLion position={[2.4, 0.18, -1.8]} rotation={[0, -0.35, 0]} scale={0.95} />
+
+      {/* 3. Ceremonial Stone Incense Braziers with Glowing Amber Embers */}
+      {[-2.2, 2.2].map((bx, idx) => (
+        <group key={`brazier-${idx}`} position={[bx, 0.18, 1.2]}>
+          <mesh position={[0, 0.22, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[0.32, 0.42, 0.44, 8]} />
+            <primitive object={sandstoneLight} attach="material" />
+          </mesh>
+          <mesh position={[0, 0.48, 0]} castShadow>
+            <cylinderGeometry args={[0.44, 0.26, 0.18, 8]} />
+            <meshStandardMaterial color="#BFA06C" roughness={0.78} />
+          </mesh>
+          {/* Glowing Embers */}
+          <mesh position={[0, 0.56, 0]}>
+            <sphereGeometry args={[0.16, 6, 6]} />
+            <meshStandardMaterial color="#F59E0B" emissive="#D97706" emissiveIntensity={1.2} />
+          </mesh>
+          <pointLight position={[0, 0.65, 0]} color="#F59E0B" intensity={1.2} distance={4} />
+        </group>
+      ))}
+
+      {/* 4. Royal Khmer Victory Banners (ទង់ជ័យខ្មែរ Tung Chey) framing the Meru Vista */}
+      {[-2.5, 2.5].map((tx, tIdx) => (
+        <group key={`tung-${tIdx}`} position={[tx, 0.18, 2.2]}>
+          {/* Flagstaff Pole */}
+          <mesh position={[0, 2.4, 0]} castShadow>
+            <cylinderGeometry args={[0.035, 0.045, 4.8, 8]} />
+            <meshStandardMaterial color="#A16207" metalness={0.4} roughness={0.6} />
+          </mesh>
+          {/* Golden Spearhead Finial */}
+          <mesh position={[0, 4.95, 0]} castShadow>
+            <coneGeometry args={[0.08, 0.32, 6]} />
+            <meshStandardMaterial color="#FBBF24" roughness={0.2} metalness={0.8} />
+          </mesh>
+          {/* Flowing Silk Banner Ribbon */}
+          <mesh
+            position={[tIdx === 0 ? -0.28 : 0.28, 3.8, 0]}
+            rotation={[0, 0, tIdx === 0 ? 0.08 : -0.08]}
+            castShadow
+          >
+            <boxGeometry args={[0.48, 1.8, 0.03]} />
+            <meshStandardMaterial color="#D97706" roughness={0.6} />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }
@@ -551,6 +1512,9 @@ export default function StageChallenges({
           onOpeningFinished={() => onStageOpeningFinished?.(barrier3StageIdx)}
         />
       )}
+
+      {/* Ceremonial Forecourt Terrace for Stages 4 & 5 Vista */}
+      <InnerBakanSanctuaryForecourt />
     </group>
   );
 }
