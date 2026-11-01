@@ -140,10 +140,10 @@ export function getActiveEconomyUserId(session?: AppSession | null) {
 export function isOnlineBackendAvailable(userId?: string): boolean {
   const allowOnline =
     import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true' ||
-    (import.meta.env.VITE_FIREBASE_STAGE === 'staging' && Boolean(functions));
+    Boolean(import.meta.env.VITE_FIREBASE_STAGE === 'staging' || import.meta.env.VITE_FIREBASE_PROJECT_ID);
   return Boolean(
     allowOnline &&
-    functions &&
+    db &&
     auth?.currentUser?.uid &&
     (!userId || auth.currentUser.uid === userId)
   );
