@@ -355,9 +355,9 @@ export function buildStageTypingPlan(
 
   if (practiceMode === 'physical-key') {
     const rawItems =
-      stage.physicalKeyCodes && stage.physicalKeyCodes.length > 0
-        ? stage.physicalKeyCodes
-        : stage.items.filter((item) => item.trim().length > 0);
+      stage.items && stage.items.length > 0
+        ? stage.items.filter((item) => item.trim().length > 0)
+        : stage.physicalKeyCodes ?? [];
     const units: TypingUnit[] = [];
     const unsupportedInputs: UnsupportedCurriculumInput[] = [];
 

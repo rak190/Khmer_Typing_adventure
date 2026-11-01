@@ -4,7 +4,9 @@ import { getStructuredLesson, getStructuredLessonByRoute } from '../data/typingP
 import { getLessonMinimumAccuracy } from './typingMetrics';
 import type { FoundationPracticeSummary } from '../data/touchTypingFoundations';
 
-export const CURRICULUM_VERSION = 'khmer-first-5.5-v1';
+export const CURRICULUM_VERSION = 'khmer-touch-typing-v2';
+export const LEGACY_CURRICULUM_VERSION = 'khmer-first-5.5-v1';
+export const SUPPORTED_CURRICULUM_VERSIONS = [CURRICULUM_VERSION, LEGACY_CURRICULUM_VERSION] as const;
 export type AttemptMetrics = { accuracy: number; cpm: number; score: number; stars: number; mistakes: number; backspaces: number; elapsedSeconds: number; passed: boolean };
 export type LessonAttempt = {
   attemptId: string;
@@ -42,7 +44,7 @@ export function validateLessonAttempt(input: LessonAttempt) {
   if (!input || typeof input !== 'object' || JSON.stringify(input).length > 32000 || Object.keys(input).some(k => !['attemptId','lessonId','version','mode','category','completedAt','metrics','stages','foundation','weakKeys'].includes(k))) throw new Error('Invalid attempt fields');
   if (input.weakKeys && (!Array.isArray(input.weakKeys) || input.weakKeys.length > 20 || input.weakKeys.some(k => typeof k.value !== 'string' || ['__proto__','constructor','prototype'].includes(k.value) || !['character','vowel','coeng','mark','key'].includes(k.category) || k.value.length > 32 || !Number.isInteger(k.mistakes) || k.mistakes < 0 || k.mistakes > 10000 || !Number.isInteger(k.backspaces) || k.backspaces < 0 || k.backspaces > 10000))) throw new Error('Invalid weak keys');
   if (input.foundation && (input.mode !== 'foundation' || !Number.isInteger(input.foundation.physicalCorrectCount) || input.foundation.physicalCorrectCount < 0 || !Number.isInteger(input.foundation.virtualAssistedCount) || input.foundation.virtualAssistedCount < 0)) throw new Error('Invalid physical practice evidence');
-  if (!/^[a-zA-Z0-9-]{16,80}$/.test(input.attemptId) || input.version !== CURRICULUM_VERSION) throw new Error('Invalid attempt/version');
+  if (!/^[a-zA-Z0-9-]{16,80}$/.test(input.attemptId) || !SUPPORTED_CURRICULUM_VERSIONS.includes(input.version as typeof CURRICULUM_VERSION)) throw new Error('Invalid attempt/version');
   const identity = resolveLessonIdentity(input.lessonId);
   if (!['2d','3d','foundation'].includes(input.mode) || !['physical-key','unicode-output','mixed'].includes(input.category)) throw new Error('Invalid mode');
   if ((identity.worldId === 0) !== (input.mode === 'foundation')) throw new Error('Foundation identity mismatch');
