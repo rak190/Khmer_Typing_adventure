@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { Component, Suspense, useState, type ReactNode } from 'react';
+import * as THREE from 'three';
 import WebGLFallback from './components/WebGLFallback';
 import { useWebGLSupport } from './hooks/useWebGLSupport';
 
@@ -50,6 +51,11 @@ export default function ThreeGameCanvas({ children }: ThreeGameCanvasProps) {
             depth: true,
           }}
           onCreated={({ gl }) => {
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMappingExposure = 1.15;
+            gl.outputColorSpace = THREE.SRGBColorSpace;
+            gl.shadowMap.enabled = true;
+            gl.shadowMap.type = THREE.PCFSoftShadowMap;
             const canvas = gl.domElement;
             const handleContextLost = (event: Event) => {
               event.preventDefault();
