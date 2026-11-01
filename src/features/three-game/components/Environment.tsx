@@ -3,7 +3,7 @@ import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useGltfClone } from '../hooks/useGltfAsset';
 
-const FLAGSTONE_TINTS = ['#D9B882', '#C6A06A', '#E2C694', '#B58D56', '#CFA972'];
+const FLAGSTONE_TINTS = ['#D4B27C', '#C29C64', '#DEBF8E', '#B2884E', '#CCA46E', '#E4C99A'];
 
 function GlbPropInstance({
   url,
@@ -40,19 +40,19 @@ function StylizedCloud({
   return (
     <group position={position} scale={[scale, scale, scale]}>
       <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[2.4, 12, 10]} />
+        <sphereGeometry args={[2.5, 14, 10]} />
         <meshBasicMaterial color="#FFFFFF" transparent opacity={0.88} />
       </mesh>
-      <mesh position={[-2.1, -0.3, 0.2]}>
-        <sphereGeometry args={[1.7, 10, 8]} />
+      <mesh position={[-2.2, -0.3, 0.2]}>
+        <sphereGeometry args={[1.75, 12, 8]} />
         <meshBasicMaterial color="#F8FAFC" transparent opacity={0.85} />
       </mesh>
-      <mesh position={[2.2, -0.25, -0.1]}>
-        <sphereGeometry args={[1.85, 10, 8]} />
+      <mesh position={[2.3, -0.25, -0.1]}>
+        <sphereGeometry args={[1.9, 12, 8]} />
         <meshBasicMaterial color="#FFFBEB" transparent opacity={0.85} />
       </mesh>
-      <mesh position={[0.6, 0.9, -0.2]}>
-        <sphereGeometry args={[1.6, 10, 8]} />
+      <mesh position={[0.6, 0.95, -0.2]}>
+        <sphereGeometry args={[1.65, 12, 8]} />
         <meshBasicMaterial color="#FFFFFF" transparent opacity={0.9} />
       </mesh>
     </group>
@@ -60,7 +60,8 @@ function StylizedCloud({
 }
 
 /**
- * Cambodian Sugar Palm (ដើមត្នោត) — complements the GLB palms
+ * Cambodian Sugar Palm (ដើមត្នោត / Borassus flabellifer)
+ * Iconic national tree of Cambodia with rounded crown, dried frond skirt, and palm fruits.
  */
 function SugarPalmTree({
   position,
@@ -71,31 +72,62 @@ function SugarPalmTree({
   scale?: number;
   lean?: number;
 }) {
-  const frondAngles = [0, Math.PI / 3, (2 * Math.PI) / 3, Math.PI, (4 * Math.PI) / 3, (5 * Math.PI) / 3];
+  const frondAngles = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4, Math.PI, (5 * Math.PI) / 4, (3 * Math.PI) / 2, (7 * Math.PI) / 4];
 
   return (
     <group position={position} scale={[scale, scale, scale]} rotation={[0, 0, lean]}>
-      <mesh position={[0, 1.1, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.22, 0.34, 2.2, 8]} />
-        <meshStandardMaterial color="#5C3A21" roughness={0.92} />
+      {/* Lower Flared Trunk Foot */}
+      <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.26, 0.42, 0.9, 10]} />
+        <meshStandardMaterial color="#4A301A" roughness={0.92} />
       </mesh>
-      <mesh position={[0.05, 3.0, 0]} rotation={[0, 0, -lean * 0.6]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.16, 0.22, 2.0, 8]} />
-        <meshStandardMaterial color="#684226" roughness={0.9} />
+      {/* Main Ringed Slender Trunk */}
+      <mesh position={[0.02, 2.1, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.20, 0.26, 2.4, 10]} />
+        <meshStandardMaterial color="#5C3B20" roughness={0.9} />
       </mesh>
-      <mesh position={[0.08, 4.1, 0]}>
-        <sphereGeometry args={[0.28, 8, 8]} />
-        <meshStandardMaterial color="#3F2714" roughness={0.88} />
+      {/* Upper Curved Trunk */}
+      <mesh position={[0.08, 3.8, 0]} rotation={[0, 0, -lean * 0.7]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.16, 0.20, 1.8, 10]} />
+        <meshStandardMaterial color="#6B4527" roughness={0.88} />
       </mesh>
-      {frondAngles.map((angle, idx) => (
-        <group key={idx} position={[0.08, 4.2, 0]} rotation={[0.42, angle, 0]}>
-          <mesh position={[0, 0, 0.95]} rotation={[0.25, 0, 0]} castShadow>
-            <boxGeometry args={[0.52, 0.07, 1.9]} />
-            <meshStandardMaterial color={idx % 2 === 0 ? '#2E7D32' : '#388E3C'} roughness={0.75} />
+
+      {/* Skirt of Dried Brown Fronds under Crown */}
+      <mesh position={[0.12, 4.45, 0]}>
+        <coneGeometry args={[0.55, 0.65, 8]} />
+        <meshStandardMaterial color="#785338" roughness={0.94} />
+      </mesh>
+
+      {/* Hanging Clusters of Palm Fruits (ផ្លែត្នោត) */}
+      {[-0.2, 0.15].map((fx, idx) => (
+        <group key={`fruit-${idx}`} position={[0.12 + fx, 4.35, 0.15]}>
+          <mesh>
+            <sphereGeometry args={[0.12, 6, 6]} />
+            <meshStandardMaterial color="#2E1C0C" roughness={0.6} />
           </mesh>
-          <mesh position={[0, -0.18, 1.85]} rotation={[0.55, 0, 0]}>
-            <coneGeometry args={[0.28, 0.85, 5]} />
-            <meshStandardMaterial color="#43A047" roughness={0.78} />
+          <mesh position={[0.08, -0.08, 0]}>
+            <sphereGeometry args={[0.10, 6, 6]} />
+            <meshStandardMaterial color="#1C1008" roughness={0.6} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Crown Core */}
+      <mesh position={[0.12, 4.7, 0]}>
+        <sphereGeometry args={[0.32, 8, 8]} />
+        <meshStandardMaterial color="#2D4A1A" roughness={0.85} />
+      </mesh>
+
+      {/* Radiating Fan-Shaped Sugar Palm Fronds */}
+      {frondAngles.map((angle, idx) => (
+        <group key={idx} position={[0.12, 4.75, 0]} rotation={[0.48, angle, 0]}>
+          <mesh position={[0, 0, 1.1]} rotation={[0.22, 0, 0]} castShadow>
+            <boxGeometry args={[0.58, 0.05, 2.1]} />
+            <meshStandardMaterial color={idx % 2 === 0 ? '#1E5E20' : '#2E7D32'} roughness={0.72} />
+          </mesh>
+          <mesh position={[0, -0.22, 2.05]} rotation={[0.55, 0, 0]}>
+            <coneGeometry args={[0.32, 0.95, 6]} />
+            <meshStandardMaterial color="#388E3C" roughness={0.75} />
           </mesh>
         </group>
       ))}
@@ -104,7 +136,7 @@ function SugarPalmTree({
 }
 
 /**
- * Sacred Lotus Flower & Pad floating on the reflecting pool
+ * Multi-Petaled Cambodian Pink Lotus (*Nelumbo nucifera* / ផ្កាឈូក)
  */
 function SacredLotusBloom({
   position,
@@ -115,32 +147,32 @@ function SacredLotusBloom({
 }) {
   return (
     <group position={position} scale={[scale, scale, scale]}>
-      {/* Green Lily Pad */}
+      {/* Floating Emerald Lily Pad */}
       <mesh position={[0, 0.02, 0]} receiveShadow>
-        <cylinderGeometry args={[0.48, 0.48, 0.025, 14]} />
-        <meshStandardMaterial color="#2E7D32" roughness={0.72} />
+        <cylinderGeometry args={[0.52, 0.52, 0.025, 16]} />
+        <meshStandardMaterial color="#227028" roughness={0.65} />
       </mesh>
-      {/* Outer Pink Lotus Petals */}
-      <mesh position={[0, 0.08, 0]}>
-        <coneGeometry args={[0.22, 0.16, 8]} />
-        <meshStandardMaterial color="#F472B6" roughness={0.45} />
+      {/* Outer Broad White-Pink Petals */}
+      <mesh position={[0, 0.09, 0]}>
+        <coneGeometry args={[0.26, 0.18, 10]} />
+        <meshStandardMaterial color="#F472B6" roughness={0.42} />
       </mesh>
-      {/* Inner Rose Petals */}
-      <mesh position={[0, 0.13, 0]} rotation={[0, Math.PI / 8, 0]}>
-        <coneGeometry args={[0.14, 0.15, 8]} />
-        <meshStandardMaterial color="#FB7185" roughness={0.4} />
+      {/* Inner Magenta Petals */}
+      <mesh position={[0, 0.14, 0]} rotation={[0, Math.PI / 10, 0]}>
+        <coneGeometry args={[0.18, 0.16, 10]} />
+        <meshStandardMaterial color="#E11D48" roughness={0.38} />
       </mesh>
-      {/* Golden Seed Pod Center */}
-      <mesh position={[0, 0.18, 0]}>
-        <sphereGeometry args={[0.055, 8, 8]} />
-        <meshStandardMaterial color="#FBBF24" emissive="#F59E0B" emissiveIntensity={0.45} />
+      {/* Golden Pistil & Anther Seedpod */}
+      <mesh position={[0, 0.19, 0]}>
+        <cylinderGeometry args={[0.07, 0.05, 0.06, 8]} />
+        <meshStandardMaterial color="#FBBF24" emissive="#F59E0B" emissiveIntensity={0.5} />
       </mesh>
     </group>
   );
 }
 
 /**
- * Angkorian Stepped Lotus Tower (Prasat Prang)
+ * Angkorian Stepped Lotus Prasat Tower with Tiered Cornices
  */
 function AngkorLotusTower({
   position,
@@ -151,33 +183,53 @@ function AngkorLotusTower({
 }) {
   return (
     <group position={position} scale={[scale, scale, scale]}>
+      {/* Stepped Temple Base Plinth */}
       <mesh position={[0, 1.2, 0]} receiveShadow castShadow>
-        <boxGeometry args={[4.4, 2.4, 4.4]} />
-        <meshStandardMaterial color="#8C7355" roughness={0.9} />
+        <boxGeometry args={[4.6, 2.4, 4.6]} />
+        <meshStandardMaterial color="#8C7050" roughness={0.9} />
       </mesh>
-      <mesh position={[0, 2.5, 0]}>
-        <boxGeometry args={[4.6, 0.25, 4.6]} />
-        <meshStandardMaterial color="#B89968" roughness={0.82} />
+      <mesh position={[0, 2.5, 0]} castShadow>
+        <boxGeometry args={[4.8, 0.28, 4.8]} />
+        <meshStandardMaterial color="#BA9B6A" roughness={0.82} />
       </mesh>
-      <mesh position={[0, 4.0, 0]} castShadow>
-        <boxGeometry args={[3.4, 2.8, 3.4]} />
-        <meshStandardMaterial color="#9E825E" roughness={0.88} />
+
+      {/* Sanctuary Body with Miniature Portico Projection */}
+      <mesh position={[0, 4.1, 0]} castShadow>
+        <boxGeometry args={[3.6, 2.9, 3.6]} />
+        <meshStandardMaterial color="#A4855E" roughness={0.86} />
       </mesh>
-      <mesh position={[0, 6.2, 0]} castShadow>
-        <cylinderGeometry args={[1.3, 2.0, 2.0, 8]} />
-        <meshStandardMaterial color="#A88B65" roughness={0.85} />
+      {/* Miniature Front Entrance Porch */}
+      <mesh position={[0, 3.2, 1.95]} castShadow>
+        <boxGeometry args={[1.5, 2.0, 0.5]} />
+        <meshStandardMaterial color="#785E3E" roughness={0.9} />
       </mesh>
-      <mesh position={[0, 7.9, 0]} castShadow>
-        <cylinderGeometry args={[0.7, 1.3, 1.6, 8]} />
-        <meshStandardMaterial color="#B89968" roughness={0.82} />
+
+      {/* Tiered Corbelled Tower Roof Levels */}
+      <mesh position={[0, 5.75, 0]} castShadow>
+        <boxGeometry args={[3.1, 0.45, 3.1]} />
+        <meshStandardMaterial color="#C2A272" roughness={0.8} />
       </mesh>
-      <mesh position={[0, 9.3, 0]} castShadow>
-        <coneGeometry args={[0.72, 1.5, 8]} />
-        <meshStandardMaterial color="#C8A978" roughness={0.78} />
+      <mesh position={[0, 6.45, 0]} castShadow>
+        <cylinderGeometry args={[1.2, 1.8, 1.6, 8]} />
+        <meshStandardMaterial color="#B09166" roughness={0.84} />
       </mesh>
-      <mesh position={[0, 10.5, 0]}>
-        <cylinderGeometry args={[0.05, 0.18, 1.2, 8]} />
-        <meshStandardMaterial color="#F59E0B" metalness={0.65} roughness={0.28} />
+      <mesh position={[0, 7.85, 0]} castShadow>
+        <cylinderGeometry args={[0.75, 1.25, 1.4, 8]} />
+        <meshStandardMaterial color="#C2A272" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 9.1, 0]} castShadow>
+        <coneGeometry args={[0.78, 1.5, 8]} />
+        <meshStandardMaterial color="#D4B584" roughness={0.76} />
+      </mesh>
+
+      {/* Golden Kalasha Finial Spire */}
+      <mesh position={[0, 10.25, 0]}>
+        <cylinderGeometry args={[0.04, 0.16, 1.1, 8]} />
+        <meshStandardMaterial color="#F59E0B" metalness={0.75} roughness={0.22} />
+      </mesh>
+      <mesh position={[0, 10.85, 0]}>
+        <sphereGeometry args={[0.11, 10, 10]} />
+        <meshStandardMaterial color="#FBBF24" emissive="#F59E0B" emissiveIntensity={0.65} />
       </mesh>
     </group>
   );
@@ -187,14 +239,22 @@ export default function Environment() {
   const waterLeftRef = useRef<THREE.MeshStandardMaterial>(null);
   const waterRightRef = useRef<THREE.MeshStandardMaterial>(null);
   const cloudGroupRef = useRef<THREE.Group>(null);
+  const lotusGroupRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    const shimmer = 0.18 + Math.sin(t * 1.8) * 0.04;
+    const shimmer = 0.22 + Math.sin(t * 2.1) * 0.06;
     if (waterLeftRef.current) waterLeftRef.current.emissiveIntensity = shimmer;
     if (waterRightRef.current) waterRightRef.current.emissiveIntensity = shimmer;
+
     if (cloudGroupRef.current) {
-      cloudGroupRef.current.position.x = Math.sin(t * 0.05) * 2.5;
+      cloudGroupRef.current.position.x = Math.sin(t * 0.04) * 3.2;
+    }
+
+    if (lotusGroupRef.current) {
+      lotusGroupRef.current.children.forEach((child, i) => {
+        child.position.y = Math.sin(t * 1.8 + i * 0.7) * 0.012;
+      });
     }
   });
 
@@ -212,159 +272,191 @@ export default function Environment() {
     <group>
       {/* ===== 1. SUNLIT CAMBODIAN SKY DOME & HORIZON ATMOSPHERE ===== */}
       <color attach="background" args={['#38BDF8']} />
-      <fog attach="fog" args={['#BAE6FD', 38, 108]} />
+      <fog attach="fog" args={['#BAE6FD', 42, 115]} />
 
       {/* Upper Cerulean Sky Dome */}
       <mesh position={[0, 0, 10]} scale={[-1, 1, 1]}>
-        <sphereGeometry args={[125, 24, 16]} />
+        <sphereGeometry args={[130, 24, 16]} />
         <meshBasicMaterial color="#38BDF8" side={THREE.BackSide} depthWrite={false} />
       </mesh>
       {/* Warm Golden Horizon Glow Band */}
-      <mesh position={[0, 6, 68]}>
-        <planeGeometry args={[220, 38]} />
-        <meshBasicMaterial color="#FDE68A" transparent opacity={0.52} depthWrite={false} />
+      <mesh position={[0, 7, 72]}>
+        <planeGeometry args={[240, 42]} />
+        <meshBasicMaterial color="#FDE68A" transparent opacity={0.48} depthWrite={false} />
       </mesh>
       {/* Glowing Golden Morning Sun behind the Angkor Sanctuary */}
       <mesh position={[18, 28, 76]}>
-        <circleGeometry args={[7.5, 24]} />
+        <circleGeometry args={[7.8, 24]} />
         <meshBasicMaterial color="#FEF08A" depthWrite={false} />
       </mesh>
       <mesh position={[18, 28, 75.5]}>
-        <circleGeometry args={[12.5, 24]} />
-        <meshBasicMaterial color="#FDE047" transparent opacity={0.28} depthWrite={false} />
+        <circleGeometry args={[13.5, 24]} />
+        <meshBasicMaterial color="#FDE047" transparent opacity={0.25} depthWrite={false} />
       </mesh>
 
-      {/* Fluffy Stylized Clouds */}
+      {/* Drifting Stylized Tropical Clouds */}
       <group ref={cloudGroupRef}>
-        <StylizedCloud position={[-22, 24, 52]} scale={1.4} />
-        <StylizedCloud position={[24, 26, 56]} scale={1.5} />
-        <StylizedCloud position={[-6, 29, 64]} scale={1.25} />
-        <StylizedCloud position={[-34, 21, 32]} scale={1.1} />
-        <StylizedCloud position={[34, 22, 36]} scale={1.15} />
+        <StylizedCloud position={[-22, 25, 52]} scale={1.45} />
+        <StylizedCloud position={[24, 27, 56]} scale={1.55} />
+        <StylizedCloud position={[-6, 30, 64]} scale={1.3} />
+        <StylizedCloud position={[-36, 22, 32]} scale={1.15} />
+        <StylizedCloud position={[36, 23, 36]} scale={1.2} />
       </group>
 
       {/* ===== 2. WARM TROPICAL SUNLIGHT & BOUNCE LIGHTING ===== */}
-      <ambientLight intensity={0.42} color="#FFF7ED" />
-      <hemisphereLight args={['#E0F2FE', '#9A6B3B', 0.92]} />
+      <ambientLight intensity={0.48} color="#FFFBF5" />
+      <hemisphereLight args={['#E0F2FE', '#A87D4D', 0.95]} />
       <directionalLight
         castShadow
-        position={[14, 24, -12]}
-        intensity={1.65}
-        color="#FFFBEB"
+        position={[15, 26, -12]}
+        intensity={1.75}
+        color="#FFF8E7"
         shadow-mapSize={[1024, 1024]}
         shadow-camera-near={1}
-        shadow-camera-far={70}
+        shadow-camera-far={72}
         shadow-camera-left={-22}
         shadow-camera-right={22}
-        shadow-camera-top={36}
+        shadow-camera-top={38}
         shadow-camera-bottom={-16}
       />
-      {/* Front Dawn Key Light — illuminates character face & diadem when turning */}
-      <directionalLight position={[-8, 14, 18]} intensity={0.82} color="#FEF3C7" />
-      <pointLight position={[0, 4.2, 4.8]} intensity={1.25} distance={14} color="#F59E0B" />
-      <pointLight position={[0, 5.5, 28]} intensity={1.35} distance={22} color="#FBBF24" />
+      {/* Front Key Light — illuminates character face & diadem when facing camera */}
+      <directionalLight position={[-8, 14, 18]} intensity={0.88} color="#FEF3C7" />
+      <pointLight position={[0, 4.2, 4.8]} intensity={1.3} distance={15} color="#F59E0B" />
+      <pointLight position={[0, 5.5, 28]} intensity={1.4} distance={22} color="#FBBF24" />
 
       {/* ===== 3. LUSH TROPICAL JUNGLE TERRAIN & COURTYARD BASE ===== */}
       {/* Outer Emerald Jungle Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.08, 12]} receiveShadow>
         <planeGeometry args={[140, 120]} />
-        <meshStandardMaterial color="#3F6212" roughness={0.94} />
+        <meshStandardMaterial color="#365314" roughness={0.92} />
       </mesh>
 
-      {/* Laterite Temple Terrace Foundation */}
+      {/* Terracotta / Laterite Temple Terrace Foundation */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 10]} receiveShadow>
         <planeGeometry args={[28, 48]} />
-        <meshStandardMaterial color="#4D7C0F" roughness={0.9} />
+        <meshStandardMaterial color="#4D7C0F" roughness={0.88} />
       </mesh>
 
-      {/* ===== 4. TURQUOISE LOTUS REFLECTING POOLS / MOATS (Matching 2D Art) ===== */}
+      {/* ===== 4. TURQUOISE LOTUS REFLECTING POOLS / SACRED CANAL ===== */}
       {[-8.4, 8.4].map((poolX, idx) => (
         <group key={`lotus-pool-${idx}`} position={[poolX, 0, 9]}>
-          {/* Carved Sandstone Pool Coping Frame */}
+          {/* Submerged Laterite Basin Bed */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.35, 0]} receiveShadow>
+            <planeGeometry args={[5.6, 33.2]} />
+            <meshStandardMaterial color="#1E3A42" roughness={0.95} />
+          </mesh>
+          {/* Carved Sandstone Pool Coping Border */}
           <mesh position={[0, 0.04, 0]} receiveShadow>
             <boxGeometry args={[6.4, 0.14, 34]} />
-            <meshStandardMaterial color="#B59264" roughness={0.86} />
+            <meshStandardMaterial color="#B08D5E" roughness={0.86} />
           </mesh>
-          {/* Shimmering Turquoise Water Surface */}
+          {/* Translucent Shimmering Turquoise Water Surface */}
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.12, 0]} receiveShadow>
             <planeGeometry args={[5.6, 33.2]} />
             <meshStandardMaterial
               ref={idx === 0 ? waterLeftRef : waterRightRef}
               color="#06B6D4"
               emissive="#0891B2"
-              emissiveIntensity={0.18}
-              roughness={0.18}
-              metalness={0.12}
+              emissiveIntensity={0.22}
+              roughness={0.12}
+              metalness={0.18}
+              transparent
+              opacity={0.9}
             />
           </mesh>
         </group>
       ))}
 
-      {/* CC0 Quaternius Lilypads & Sacred Lotus Blooms floating on both reflecting pools */}
-      {[
-        [-7.2, 0.13, -3.5, 0.9, 0.4],
-        [-9.1, 0.13, 0.8, 1.1, 1.8],
-        [-7.6, 0.13, 5.2, 0.95, 2.7],
-        [-8.8, 0.13, 11.4, 1.05, 0.9],
-        [-7.4, 0.13, 17.5, 0.9, 2.1],
-        [7.2, 0.13, -2.8, 1.0, 1.2],
-        [9.0, 0.13, 1.6, 0.95, 2.9],
-        [7.5, 0.13, 6.4, 1.1, 0.5],
-        [8.7, 0.13, 12.2, 0.9, 1.7],
-        [7.4, 0.13, 18.0, 1.05, 2.4],
-      ].map(([lx, ly, lz, lscale, lrot], idx) => (
-        <group key={`lily-${idx}`}>
-          <GlbPropInstance
-            url="/models/props/lotus_lilypad.glb"
-            position={[lx, ly, lz]}
-            rotation={[0, lrot, 0]}
-            scale={lscale}
-          />
-          <SacredLotusBloom position={[lx + 0.35, ly, lz + 0.25]} scale={lscale * 0.88} />
-        </group>
-      ))}
+      {/* Floating Sacred Lotus Blooms & Lilypads with gentle undulating bobbing */}
+      <group ref={lotusGroupRef}>
+        {[
+          [-7.2, 0.13, -3.5, 0.9, 0.4],
+          [-9.1, 0.13, 0.8, 1.1, 1.8],
+          [-7.6, 0.13, 5.2, 0.95, 2.7],
+          [-8.8, 0.13, 11.4, 1.05, 0.9],
+          [-7.4, 0.13, 17.5, 0.9, 2.1],
+          [7.2, 0.13, -2.8, 1.0, 1.2],
+          [9.0, 0.13, 1.6, 0.95, 2.9],
+          [7.5, 0.13, 6.4, 1.1, 0.5],
+          [8.7, 0.13, 12.2, 0.9, 1.7],
+          [7.4, 0.13, 18.0, 1.05, 2.4],
+        ].map(([lx, ly, lz, lscale, lrot], idx) => (
+          <group key={`lily-${idx}`}>
+            <GlbPropInstance
+              url="/models/props/lotus_lilypad.glb"
+              position={[lx, ly, lz]}
+              rotation={[0, lrot, 0]}
+              scale={lscale}
+            />
+            <SacredLotusBloom position={[lx + 0.35, ly, lz + 0.25]} scale={lscale * 0.9} />
+          </group>
+        ))}
+      </group>
 
       {/* ===== 5. GOLDEN SANDSTONE CAUSEWAY & WEATHERED FLAGSTONES ===== */}
       <mesh position={[0, 0.02, 9]} receiveShadow>
         <boxGeometry args={[7.2, 0.08, 39]} />
         <meshStandardMaterial color="#C8A26A" roughness={0.86} />
       </mesh>
-      {/* Carved Laterite Causeway Curbs */}
-      <mesh position={[-3.85, 0.12, 9]} receiveShadow castShadow>
-        <boxGeometry args={[0.52, 0.24, 39]} />
-        <meshStandardMaterial color="#9C7A4C" roughness={0.88} />
+
+      {/* Carved Sandstone Balustrade Handrail Beams along Causeway */}
+      <mesh position={[-3.85, 0.32, 9]} receiveShadow castShadow>
+        <boxGeometry args={[0.38, 0.22, 39]} />
+        <meshStandardMaterial color="#B08D5E" roughness={0.82} />
       </mesh>
-      <mesh position={[3.85, 0.12, 9]} receiveShadow castShadow>
-        <boxGeometry args={[0.52, 0.24, 39]} />
-        <meshStandardMaterial color="#9C7A4C" roughness={0.88} />
+      <mesh position={[3.85, 0.32, 9]} receiveShadow castShadow>
+        <boxGeometry args={[0.38, 0.22, 39]} />
+        <meshStandardMaterial color="#B08D5E" roughness={0.82} />
+      </mesh>
+      {/* Lower Curb Base */}
+      <mesh position={[-3.85, 0.10, 9]} receiveShadow castShadow>
+        <boxGeometry args={[0.54, 0.20, 39]} />
+        <meshStandardMaterial color="#8F6E45" roughness={0.9} />
+      </mesh>
+      <mesh position={[3.85, 0.10, 9]} receiveShadow castShadow>
+        <boxGeometry args={[0.54, 0.20, 39]} />
+        <meshStandardMaterial color="#8F6E45" roughness={0.9} />
       </mesh>
 
-      {/* Individual Golden-Ochre Flagstone Slabs with Emerald Grass Joints */}
+      {/* Individual Weathered Sandstone Flagstone Slabs */}
       {flagstones.map((stone) => (
-        <mesh key={stone.key} position={[stone.x, 0.075, stone.z]} receiveShadow>
-          <boxGeometry args={[1.76, 0.05, 1.76]} />
-          <meshStandardMaterial color={stone.tint} roughness={0.84} />
-        </mesh>
+        <group key={stone.key} position={[stone.x, 0.075, stone.z]}>
+          <mesh receiveShadow>
+            <boxGeometry args={[1.78, 0.05, 1.78]} />
+            <meshStandardMaterial color={stone.tint} roughness={0.82} />
+          </mesh>
+        </group>
       ))}
 
-      {/* Carved Sandstone Naga Balustrade Posts along Causeway */}
-      {[-7, -2, 3, 10, 20].map((zPos) =>
-        [-4.5, 4.5].map((xPos) => (
-          <group key={`post-${xPos}-${zPos}`} position={[xPos, 0, zPos]}>
-            <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
-              <boxGeometry args={[0.62, 0.7, 0.62]} />
-              <meshStandardMaterial color="#A8895C" roughness={0.88} />
+      {/* Carved Angkor Naga Balustrade Posts with Tiered Lotus Bud Finials */}
+      {[-8.5, -4, 1, 6, 12, 19, 26].map((zPos) =>
+        [-3.85, 3.85].map((xPos) => (
+          <group key={`balustrade-post-${xPos}-${zPos}`} position={[xPos, 0, zPos]}>
+            {/* Post Base Plinth */}
+            <mesh position={[0, 0.24, 0]} castShadow receiveShadow>
+              <boxGeometry args={[0.56, 0.48, 0.56]} />
+              <meshStandardMaterial color="#9C7B4F" roughness={0.88} />
             </mesh>
-            <mesh position={[0, 0.82, 0]} castShadow>
-              <coneGeometry args={[0.38, 0.36, 4]} />
-              <meshStandardMaterial color="#D97706" roughness={0.5} metalness={0.3} />
+            {/* Pillar Shaft */}
+            <mesh position={[0, 0.52, 0]} castShadow>
+              <boxGeometry args={[0.42, 0.32, 0.42]} />
+              <meshStandardMaterial color="#BFA06C" roughness={0.84} />
+            </mesh>
+            {/* Carved Tiered Lotus Bud Finial (ក្បាលនាគ / ក្បាច់ឈូក) */}
+            <mesh position={[0, 0.76, 0]} castShadow>
+              <cylinderGeometry args={[0.18, 0.26, 0.18, 8]} />
+              <meshStandardMaterial color="#D6B57E" roughness={0.78} />
+            </mesh>
+            <mesh position={[0, 0.94, 0]} castShadow>
+              <coneGeometry args={[0.22, 0.32, 8]} />
+              <meshStandardMaterial color="#D97706" roughness={0.52} metalness={0.35} />
             </mesh>
           </group>
         ))
       )}
 
-      {/* ===== 6. CC0 PALM TREES, MOSSY ROCKS, TROPICAL BUSHES & FLOWERS ===== */}
-      {/* Tall CC0 Quaternius Palm Trees framing the temple causeway */}
+      {/* ===== 6. TALL PALM TREES, MOSSY ROCKS & TROPICAL VEGETATION ===== */}
+      {/* Tall Quaternius Palm Trees framing the causeway */}
       {[
         [-11.8, 0, -4.5, 1.05, 0.4],
         [11.8, 0, -4.5, 1.05, -0.5],
@@ -384,15 +476,15 @@ export default function Environment() {
         />
       ))}
 
-      {/* Complementary Sugar Palms for deep jungle silhouette */}
-      <SugarPalmTree position={[-14.5, 0, 0]} scale={1.15} lean={0.07} />
-      <SugarPalmTree position={[14.5, 0, 0]} scale={1.15} lean={-0.07} />
-      <SugarPalmTree position={[-15.0, 0, 10]} scale={1.22} lean={0.05} />
-      <SugarPalmTree position={[15.0, 0, 10]} scale={1.22} lean={-0.05} />
-      <SugarPalmTree position={[-14.2, 0, 20]} scale={1.18} lean={0.06} />
-      <SugarPalmTree position={[14.2, 0, 20]} scale={1.18} lean={-0.06} />
+      {/* Iconic Cambodian Sugar Palms (ដើមត្នោត) */}
+      <SugarPalmTree position={[-14.5, 0, 0]} scale={1.2} lean={0.07} />
+      <SugarPalmTree position={[14.5, 0, 0]} scale={1.2} lean={-0.07} />
+      <SugarPalmTree position={[-15.0, 0, 10]} scale={1.26} lean={0.05} />
+      <SugarPalmTree position={[15.0, 0, 10]} scale={1.26} lean={-0.05} />
+      <SugarPalmTree position={[-14.2, 0, 20]} scale={1.22} lean={0.06} />
+      <SugarPalmTree position={[14.2, 0, 20]} scale={1.22} lean={-0.06} />
 
-      {/* CC0 Quaternius Mossy Rocks along causeway & pool banks */}
+      {/* Mossy Riverbank Rocks */}
       {[
         [-5.1, 0, -5.2, 0.85, 0.3],
         [5.1, 0, -5.2, 0.85, 1.9],
@@ -412,7 +504,7 @@ export default function Environment() {
         />
       ))}
 
-      {/* CC0 Quaternius Tropical Bushes & Flowers bordering the pathway */}
+      {/* Tropical Flowering Bushes along Pathway Perimeter */}
       {[
         [-4.6, 0, -8.2, 0.9, 0.2],
         [4.6, 0, -8.2, 0.9, 1.4],
@@ -444,14 +536,14 @@ export default function Environment() {
       {/* ===== 7. DISTANT ANGKOR PRASAT SANCTUARY COMPLEX (Z = 36) ===== */}
       <group position={[0, 0, 36]}>
         <mesh position={[0, 0.8, 0]} receiveShadow>
-          <boxGeometry args={[28, 1.6, 6]} />
-          <meshStandardMaterial color="#8A7050" roughness={0.92} />
+          <boxGeometry args={[30, 1.6, 6]} />
+          <meshStandardMaterial color="#8A6E4E" roughness={0.92} />
         </mesh>
-        <AngkorLotusTower position={[0, 1.4, 0]} scale={1.35} />
-        <AngkorLotusTower position={[-6.8, 1.2, 0.5]} scale={0.95} />
-        <AngkorLotusTower position={[6.8, 1.2, 0.5]} scale={0.95} />
-        <AngkorLotusTower position={[-12.2, 1.0, 1.0]} scale={0.72} />
-        <AngkorLotusTower position={[12.2, 1.0, 1.0]} scale={0.72} />
+        <AngkorLotusTower position={[0, 1.4, 0]} scale={1.4} />
+        <AngkorLotusTower position={[-7.0, 1.2, 0.5]} scale={1.0} />
+        <AngkorLotusTower position={[7.0, 1.2, 0.5]} scale={1.0} />
+        <AngkorLotusTower position={[-12.6, 1.0, 1.0]} scale={0.76} />
+        <AngkorLotusTower position={[12.6, 1.0, 1.0]} scale={0.76} />
       </group>
     </group>
   );
