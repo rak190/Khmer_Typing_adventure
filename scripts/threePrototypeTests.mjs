@@ -1081,6 +1081,28 @@ try {
   assert.ok(hudOpenMarkup.includes('data-testid="three-gate-open-banner"'), 'Must render gate open celebration banner');
   assert.ok(hudOpenMarkup.includes('ដើរឆ្លងកាត់ទ្វារបុរាណ'), 'Must instruct player to walk through the ancient gate');
 
+  // 17. Verify 3D Character Rigged Assets & Relative Kinematic Math
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const modelPath = path.resolve('public/models/characters/Khmer_Student_Hero_Rigged.glb');
+  assert.ok(fs.existsSync(modelPath), 'Khmer_Student_Hero_Rigged.glb must exist in public/models/characters');
+  const runtimeModelPath = path.resolve('public/models/characters/khmer_student_hero.glb');
+  assert.ok(fs.existsSync(runtimeModelPath), 'khmer_student_hero.glb must exist in public/models/characters');
+
+  // Verify relative delta rotation logic preserves rest orientation when delta is 0
+  const restQuat = new THREE.Quaternion(1, 0, 0, 0); // Inverted leg pitch (PI radians)
+  const deltaEuler = new THREE.Euler(0, 0, 0, 'XYZ');
+  const deltaQuat = new THREE.Quaternion().setFromEuler(deltaEuler);
+  const resultQuat = restQuat.clone().multiply(deltaQuat);
+  assert.equal(resultQuat.x, 1, 'Zero delta rotation must leave rest quaternion unchanged');
+  assert.equal(resultQuat.w, 0, 'Zero delta rotation must leave rest quaternion unchanged');
+
+  // Verify forward leg swing applies delta without collapsing 180-degree rest pitch
+  const swingEuler = new THREE.Euler(0.5, 0, 0, 'XYZ');
+  const swingDelta = new THREE.Quaternion().setFromEuler(swingEuler);
+  const swungQuat = restQuat.clone().multiply(swingDelta);
+  assert.ok(Math.abs(swungQuat.x) > 0.9, 'Forward swing must modulate rest pitch naturally');
+
 } finally {
   await server.close();
 }

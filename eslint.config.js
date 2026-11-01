@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 
 export default [
   {
-    ignores: ['dist', '.local', 'node_modules', 'functions/lib'],
+    ignores: ['dist', '.local', 'node_modules', 'functions/lib', 'scratch/**'],
   },
   js.configs.recommended,
   {

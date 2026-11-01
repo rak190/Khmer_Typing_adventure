@@ -60,6 +60,29 @@ interface HeroBones {
   cape02: THREE.Object3D;
 }
 
+interface HeroRigModel {
+  rig: THREE.Object3D;
+  bones: HeroBones;
+  restQuats: Map<string, THREE.Quaternion>;
+}
+
+const _deltaEuler = new THREE.Euler();
+const _deltaQuat = new THREE.Quaternion();
+
+function applyRelativeBoneRotation(
+  bone: THREE.Object3D,
+  restQuat: THREE.Quaternion | undefined,
+  deltaX: number,
+  deltaY = 0,
+  deltaZ = 0,
+  order: THREE.EulerOrder = 'XYZ',
+) {
+  if (!restQuat) return;
+  _deltaEuler.set(deltaX, deltaY, deltaZ, order);
+  _deltaQuat.setFromEuler(_deltaEuler);
+  bone.quaternion.copy(restQuat).multiply(_deltaQuat);
+}
+
 export default function Character({
   positionRef,
   movement,
@@ -95,12 +118,14 @@ export default function Character({
   const successPulseRef = useRef<number>(0);
   const mistakeShakeRef = useRef<number>(0);
 
-  const glbScene = useGltfClone('/models/characters/Khmer_Student_Hero_Rigged.glb');
+  const riggedScene = useGltfClone('/models/characters/Khmer_Student_Hero_Rigged.glb');
+  const fallbackScene = useGltfClone('/models/characters/khmer_student_hero.glb');
+  const glbScene = riggedScene ?? fallbackScene;
 
   // 1. Skinned Mesh Armature with smooth bending joints
-  const riggedModelRef = useRef<{ rig: THREE.Object3D; bones: HeroBones } | null>(null);
+  const riggedModelRef = useRef<HeroRigModel | null>(null);
 
-  const riggedModel = useMemo<{ rig: THREE.Object3D; bones: HeroBones } | null>(() => {
+  const riggedModel = useMemo<HeroRigModel | null>(() => {
     if (!glbScene) return null;
     const rig = glbScene.getObjectByName('KhmerHeroRig');
     if (!rig) return null;
@@ -131,6 +156,34 @@ export default function Character({
       return null;
     }
 
+    const restQuats = new Map<string, THREE.Quaternion>();
+    const bonesList = [
+      ['Root', root],
+      ['Hips', hips],
+      ['Spine', spine],
+      ['Chest', chest],
+      ['Neck', neck || chest],
+      ['Head', head],
+      ['UpperArm_L', upperArmL],
+      ['Forearm_L', forearmL || upperArmL],
+      ['Hand_L', handL || forearmL || upperArmL],
+      ['UpperArm_R', upperArmR],
+      ['Forearm_R', forearmR || upperArmR],
+      ['Hand_R', handR || forearmR || upperArmR],
+      ['UpperLeg_L', upperLegL],
+      ['LowerLeg_L', lowerLegL || upperLegL],
+      ['Foot_L', footL || lowerLegL || upperLegL],
+      ['UpperLeg_R', upperLegR],
+      ['LowerLeg_R', lowerLegR || upperLegR],
+      ['Foot_R', footR || lowerLegR || upperLegR],
+      ['Cape_01', cape01 || chest],
+      ['Cape_02', cape02 || cape01 || chest],
+    ] as const;
+
+    for (const [name, b] of bonesList) {
+      restQuats.set(name, b.quaternion.clone());
+    }
+
     return {
       rig,
       bones: {
@@ -155,6 +208,7 @@ export default function Character({
         cape01: cape01 || chest,
         cape02: cape02 || cape01 || chest,
       },
+      restQuats,
     };
   }, [glbScene]);
 
@@ -275,7 +329,7 @@ export default function Character({
     // SKINNED ARMATURE ANIMATION (smooth bending joints, elbows, knees, spine, cape)
     const activeRig = riggedModelRef.current;
     if (activeRig) {
-      const { bones } = activeRig;
+      const { bones, restQuats } = activeRig;
       const idleTime = time * 2.3;
       const mb = moveBlendRef.current;
 
@@ -284,26 +338,42 @@ export default function Character({
         const cheerWave = Math.sin(time * 9.0);
 
         bones.hips.position.y = 0.78 + cheerBounce;
-        bones.spine.rotation.y = Math.sin(time * 4.5) * 0.08;
-        bones.chest.rotation.x = -0.04;
-        bones.head.rotation.x = -0.12 + Math.sin(time * 6.5) * 0.05;
-        bones.head.rotation.y = Math.sin(time * 3.2) * 0.10;
+        applyRelativeBoneRotation(bones.spine, restQuats.get('Spine'), 0, Math.sin(time * 4.5) * 0.08, 0);
+        applyRelativeBoneRotation(bones.chest, restQuats.get('Chest'), -0.04, 0, 0);
+        applyRelativeBoneRotation(
+          bones.head,
+          restQuats.get('Head'),
+          -0.12 + Math.sin(time * 6.5) * 0.05,
+          Math.sin(time * 3.2) * 0.10,
+          0
+        );
 
-        bones.upperArmL.rotation.x = -2.35 + cheerWave * 0.15;
-        bones.upperArmL.rotation.z = 0.35;
-        bones.forearmL.rotation.x = -0.35;
+        // Arms raised joyfully high in victory cheer
+        applyRelativeBoneRotation(
+          bones.upperArmL,
+          restQuats.get('UpperArm_L'),
+          -2.20 + cheerWave * 0.15,
+          0,
+          0.35
+        );
+        applyRelativeBoneRotation(bones.forearmL, restQuats.get('Forearm_L'), -0.30, 0, 0);
 
-        bones.upperArmR.rotation.x = -2.35 - cheerWave * 0.15;
-        bones.upperArmR.rotation.z = -0.35;
-        bones.forearmR.rotation.x = -0.35;
+        applyRelativeBoneRotation(
+          bones.upperArmR,
+          restQuats.get('UpperArm_R'),
+          -2.20 - cheerWave * 0.15,
+          0,
+          -0.35
+        );
+        applyRelativeBoneRotation(bones.forearmR, restQuats.get('Forearm_R'), -0.30, 0, 0);
 
-        bones.upperLegL.rotation.x = -cheerBounce * 0.8;
-        bones.lowerLegL.rotation.x = cheerBounce * 0.6;
-        bones.upperLegR.rotation.x = cheerBounce * 0.5;
-        bones.lowerLegR.rotation.x = cheerBounce * 0.4;
+        applyRelativeBoneRotation(bones.upperLegL, restQuats.get('UpperLeg_L'), -cheerBounce * 0.8, 0, 0);
+        applyRelativeBoneRotation(bones.lowerLegL, restQuats.get('LowerLeg_L'), cheerBounce * 0.6, 0, 0);
+        applyRelativeBoneRotation(bones.upperLegR, restQuats.get('UpperLeg_R'), cheerBounce * 0.5, 0, 0);
+        applyRelativeBoneRotation(bones.lowerLegR, restQuats.get('LowerLeg_R'), cheerBounce * 0.4, 0, 0);
 
-        bones.cape01.rotation.x = 0.25 + cheerBounce * 1.4;
-        bones.cape02.rotation.x = 0.45 + cheerBounce * 2.0;
+        applyRelativeBoneRotation(bones.cape01, restQuats.get('Cape_01'), 0.25 + cheerBounce * 1.4, 0, 0);
+        applyRelativeBoneRotation(bones.cape02, restQuats.get('Cape_02'), 0.45 + cheerBounce * 2.0, 0, 0);
         return;
       }
 
@@ -313,28 +383,38 @@ export default function Character({
         const shake = mistakeShakeRef.current * Math.sin(time * 36) * 0.22;
 
         bones.hips.position.y = 0.78 + focusBreath + successPulseRef.current * 0.03;
-        bones.spine.rotation.x = 0.06;
-        bones.spine.rotation.z = shake * 0.15;
-        bones.chest.rotation.y = shake * 0.25;
+        applyRelativeBoneRotation(bones.spine, restQuats.get('Spine'), 0.06, 0, shake * 0.15);
+        applyRelativeBoneRotation(bones.chest, restQuats.get('Chest'), 0, shake * 0.25, 0);
 
-        bones.head.rotation.x = 0.08 + nod;
-        bones.head.rotation.y = shake;
+        applyRelativeBoneRotation(bones.head, restQuats.get('Head'), 0.08 + nod, shake, 0);
 
-        bones.upperArmL.rotation.x = -0.65 - nod * 0.4 + Math.sin(time * 5) * 0.03;
-        bones.upperArmL.rotation.z = -0.15;
-        bones.forearmL.rotation.x = -0.55 + nod * 0.2;
+        // Arms brought comfortably forward to typing altar / keyboard
+        applyRelativeBoneRotation(
+          bones.upperArmL,
+          restQuats.get('UpperArm_L'),
+          -0.65 - nod * 0.4 + Math.sin(time * 5) * 0.03,
+          0,
+          -0.20
+        );
+        applyRelativeBoneRotation(bones.forearmL, restQuats.get('Forearm_L'), -0.70 + nod * 0.2, 0, 0);
 
-        bones.upperArmR.rotation.x = -0.65 - nod * 0.4 + Math.cos(time * 5) * 0.03;
-        bones.upperArmR.rotation.z = 0.15;
-        bones.forearmR.rotation.x = -0.55 + nod * 0.2;
+        applyRelativeBoneRotation(
+          bones.upperArmR,
+          restQuats.get('UpperArm_R'),
+          -0.65 - nod * 0.4 + Math.cos(time * 5) * 0.03,
+          0,
+          0.20
+        );
+        applyRelativeBoneRotation(bones.forearmR, restQuats.get('Forearm_R'), -0.70 + nod * 0.2, 0, 0);
 
-        bones.upperLegL.rotation.x = 0;
-        bones.lowerLegL.rotation.x = 0;
-        bones.upperLegR.rotation.x = 0;
-        bones.lowerLegR.rotation.x = 0;
+        // Legs stay firmly grounded on the courtyard floor
+        applyRelativeBoneRotation(bones.upperLegL, restQuats.get('UpperLeg_L'), 0, 0, 0);
+        applyRelativeBoneRotation(bones.lowerLegL, restQuats.get('LowerLeg_L'), 0, 0, 0);
+        applyRelativeBoneRotation(bones.upperLegR, restQuats.get('UpperLeg_R'), 0, 0, 0);
+        applyRelativeBoneRotation(bones.lowerLegR, restQuats.get('LowerLeg_R'), 0, 0, 0);
 
-        bones.cape01.rotation.x = 0.08 + Math.sin(time * 2.4) * 0.04;
-        bones.cape02.rotation.x = 0.12 + Math.sin(time * 2.4) * 0.05;
+        applyRelativeBoneRotation(bones.cape01, restQuats.get('Cape_01'), 0.08 + Math.sin(time * 2.4) * 0.04, 0, 0);
+        applyRelativeBoneRotation(bones.cape02, restQuats.get('Cape_02'), 0.12 + Math.sin(time * 2.4) * 0.05, 0, 0);
         return;
       }
 
@@ -354,39 +434,63 @@ export default function Character({
       const torsoLean = 0.085 * mb;
 
       bones.hips.position.y = 0.78 + bodyVertical;
-      bones.hips.rotation.x = torsoLean;
-      bones.hips.rotation.z = THREE.MathUtils.lerp(
-        bones.hips.rotation.z,
-        turnBank + walkSwing * 0.025 * mb,
-        dt * 10
+      applyRelativeBoneRotation(
+        bones.hips,
+        restQuats.get('Hips'),
+        torsoLean,
+        0,
+        turnBank + walkSwing * 0.025 * mb
       );
 
-      bones.spine.rotation.y = -walkSwing * 0.07 * mb + Math.sin(time * 1.1) * 0.025 * (1 - mb);
-      bones.chest.rotation.x = idleBreath * (1 - mb);
+      applyRelativeBoneRotation(
+        bones.spine,
+        restQuats.get('Spine'),
+        0,
+        -walkSwing * 0.07 * mb + Math.sin(time * 1.1) * 0.025 * (1 - mb),
+        0
+      );
+      applyRelativeBoneRotation(bones.chest, restQuats.get('Chest'), idleBreath * (1 - mb), 0, 0);
 
-      bones.head.rotation.y = idleHead * (1 - mb) + walkSwing * 0.035 * mb;
-      bones.head.rotation.x = -torsoLean * 0.4;
+      applyRelativeBoneRotation(
+        bones.head,
+        restQuats.get('Head'),
+        -torsoLean * 0.4,
+        idleHead * (1 - mb) + walkSwing * 0.035 * mb,
+        0
+      );
 
-      // Legs with natural knee bending on lift
-      bones.upperLegL.rotation.x = legSwing;
-      bones.lowerLegL.rotation.x = Math.max(0, -legSwing * 0.7);
-      bones.upperLegR.rotation.x = -legSwing;
-      bones.lowerLegR.rotation.x = Math.max(0, legSwing * 0.7);
+      // Legs with natural knee bending on lift (boots stay firmly grounded on the floor at idle)
+      applyRelativeBoneRotation(bones.upperLegL, restQuats.get('UpperLeg_L'), legSwing, 0, 0);
+      applyRelativeBoneRotation(bones.lowerLegL, restQuats.get('LowerLeg_L'), Math.max(0, -legSwing * 0.7), 0, 0);
+      applyRelativeBoneRotation(bones.upperLegR, restQuats.get('UpperLeg_R'), -legSwing, 0, 0);
+      applyRelativeBoneRotation(bones.lowerLegR, restQuats.get('LowerLeg_R'), Math.max(0, legSwing * 0.7), 0, 0);
 
-      // Arms with natural elbow bending on forward swing
-      bones.upperArmL.rotation.x = armSwingLeft;
-      bones.upperArmL.rotation.z = 0.08;
-      bones.forearmL.rotation.x = -0.2 - Math.max(0, -armSwingLeft) * 0.35;
+      // Arms swing naturally forward and backward along the torso (hang relaxed beside hips at idle)
+      applyRelativeBoneRotation(bones.upperArmL, restQuats.get('UpperArm_L'), armSwingLeft, 0, 0);
+      applyRelativeBoneRotation(
+        bones.forearmL,
+        restQuats.get('Forearm_L'),
+        -Math.max(0, -armSwingLeft) * 0.35,
+        0,
+        0
+      );
 
-      bones.upperArmR.rotation.x = armSwingRight;
-      bones.upperArmR.rotation.z = -0.08;
-      bones.forearmR.rotation.x = -0.2 - Math.max(0, -armSwingRight) * 0.35;
+      applyRelativeBoneRotation(bones.upperArmR, restQuats.get('UpperArm_R'), armSwingRight, 0, 0);
+      applyRelativeBoneRotation(
+        bones.forearmR,
+        restQuats.get('Forearm_R'),
+        -Math.max(0, -armSwingRight) * 0.35,
+        0,
+        0
+      );
 
       // Secondary cape cloth flow
-      bones.cape01.rotation.x =
+      const cape1X =
         (0.20 + Math.abs(walkSwing) * 0.20) * mb + (0.06 + Math.sin(time * 1.8) * 0.04) * (1 - mb);
-      bones.cape02.rotation.x =
+      const cape2X =
         (0.35 + Math.abs(walkSwing) * 0.30) * mb + (0.10 + Math.sin(time * 1.8) * 0.06) * (1 - mb);
+      applyRelativeBoneRotation(bones.cape01, restQuats.get('Cape_01'), cape1X, 0, 0);
+      applyRelativeBoneRotation(bones.cape02, restQuats.get('Cape_02'), cape2X, 0, 0);
       return;
     }
 
