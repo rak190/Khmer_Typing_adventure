@@ -72,9 +72,7 @@ export default function Character({
   const successPulseRef = useRef<number>(0);
   const mistakeShakeRef = useRef<number>(0);
 
-  const candidateScene = useGltfClone('/models/characters/khmer_student_hero_v4.glb');
-  const legacyScene = useGltfClone('/models/characters/khmer_student_hero.glb');
-  const glbScene = candidateScene ?? legacyScene;
+  const glbScene = useGltfClone('/models/characters/khmer_student_hero.glb');
 
   const glbParts = useMemo<HeroGlbParts | null>(() => {
     if (!glbScene) return null;

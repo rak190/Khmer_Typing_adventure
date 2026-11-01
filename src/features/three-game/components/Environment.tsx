@@ -244,11 +244,12 @@ export default function Environment() {
       </group>
 
       {/* ===== 2. WARM TROPICAL SUNLIGHT & BOUNCE LIGHTING ===== */}
-      <hemisphereLight args={['#E0F2FE', '#9A6B3B', 0.88]} />
+      <ambientLight intensity={0.42} color="#FFF7ED" />
+      <hemisphereLight args={['#E0F2FE', '#9A6B3B', 0.92]} />
       <directionalLight
         castShadow
         position={[14, 24, -12]}
-        intensity={1.55}
+        intensity={1.65}
         color="#FFFBEB"
         shadow-mapSize={[1024, 1024]}
         shadow-camera-near={1}
@@ -258,8 +259,9 @@ export default function Environment() {
         shadow-camera-top={36}
         shadow-camera-bottom={-16}
       />
-      <directionalLight position={[-12, 12, 16]} intensity={0.48} color="#BAE6FD" />
-      <pointLight position={[0, 4.2, 4.8]} intensity={1.15} distance={14} color="#F59E0B" />
+      {/* Front Dawn Key Light — illuminates character face & diadem when turning */}
+      <directionalLight position={[-8, 14, 18]} intensity={0.82} color="#FEF3C7" />
+      <pointLight position={[0, 4.2, 4.8]} intensity={1.25} distance={14} color="#F59E0B" />
       <pointLight position={[0, 5.5, 28]} intensity={1.35} distance={22} color="#FBBF24" />
 
       {/* ===== 3. LUSH TROPICAL JUNGLE TERRAIN & COURTYARD BASE ===== */}
