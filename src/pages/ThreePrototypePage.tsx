@@ -209,6 +209,8 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     if (!import.meta.env.DEV) return;
     const win = window as unknown as {
       __threeGetPlayerPos?: () => Position3D;
+      __threeSetPlayerPos?: (x: number, y: number, z: number) => void;
+      __threeUnlockAllStages?: () => void;
       __threeGetLessonDebug?: () => {
         activeStageIndex: number;
         stageStates: StageProgressState[];
@@ -217,6 +219,8 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       };
     };
     win.__threeGetPlayerPos = () => playerPositionRef.current;
+    win.__threeSetPlayerPos = (x: number, y: number, z: number) => { playerPositionRef.current = [x, y, z]; };
+    win.__threeUnlockAllStages = () => { setStageStates((prev) => prev.map((s) => ({ ...s, status: 'open', passed: true }))); setGateState({ status: 'open', openProgress: 1.0 }); };
     win.__threeGetLessonDebug = () => ({
       activeStageIndex,
       stageStates,

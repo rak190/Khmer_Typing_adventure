@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useRef, type MutableRefObject } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import type { GameMode, Position3D } from '../types';
 
@@ -15,6 +15,21 @@ export default function ThirdPersonCamera({ targetPositionRef, mode }: ThirdPers
   const currentLookAt = useRef(new THREE.Vector3(0, 1.4, -6));
   const desiredCamPos = useRef(new THREE.Vector3());
   const desiredLookAt = useRef(new THREE.Vector3());
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const win = window as unknown as { __threeSnapCamera?: () => void };
+    win.__threeSnapCamera = () => {
+      const [tx, ty, tz] = targetPositionRef.current;
+      currentCamPos.current.set(tx * 0.75, ty + 2.25, tz - 6.2);
+      currentLookAt.current.set(tx * 0.4, ty + 2.05, tz + 2.2);
+      camera.position.copy(currentCamPos.current);
+      camera.lookAt(currentLookAt.current);
+    };
+    return () => {
+      delete win.__threeSnapCamera;
+    };
+  }, [camera, targetPositionRef]);
 
   useFrame((_, delta) => {
     // Clamp delta to prevent huge jumps when switching tabs

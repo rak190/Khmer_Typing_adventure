@@ -554,6 +554,217 @@ function StoneLanternPillar({ position }: { position: [number, number, number] }
   );
 }
 
+/**
+ * Monumental Courtyard Enclosure Gallery (កំពែងថែវប្រាសាទខាងក្នុង)
+ * Continuous 22m covered sandstone gallery enclosing the inner courtyard,
+ * featuring 4-tier ashlar courses, deeply detailed bas-relief registers (ចម្លាក់លើផ្ទៃជញ្ជាំង),
+ * fluted colonnades, turned window balusters, celestial Devata niches, and corbelled roofs.
+ */
+function CourtyardEnclosureGallery({ isLeft }: { isLeft: boolean }) {
+  const wallX = isLeft ? -13.8 : 13.8;
+  const innerDir = isLeft ? 1 : -1;
+  const centerZ = 17;
+  const lengthZ = 22;
+
+  const pillarOffsetsZ = [-9.5, -6.8, -4.1, -1.4, 1.4, 4.1, 6.8, 9.5];
+  const windowBayOffsetsZ = [-7.5, -3.7, 0, 3.7, 7.5];
+  const devataOffsetsZ = [-5.6, -1.8, 1.8, 5.6];
+  const balusterOffsets = [-0.32, -0.16, 0, 0.16, 0.32];
+  const ashlarSeamsZ = [-8.8, -6.6, -4.4, -2.2, 0, 2.2, 4.4, 6.6, 8.8];
+
+  return (
+    <group position={[wallX, 0, centerZ]}>
+      {/* 1. Stepped Cyma Lotus Plinth along 22m length */}
+      <mesh position={[0, 0.16, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.8, 0.32, lengthZ]} />
+        <meshStandardMaterial color="#7D6345" roughness={0.92} />
+      </mesh>
+      <mesh position={[0, 0.42, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.95, 0.20, lengthZ + 0.3]} />
+        <meshStandardMaterial color="#947754" roughness={0.88} />
+      </mesh>
+      <mesh position={[0, 0.60, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.7, 0.16, lengthZ + 0.1]} />
+        <meshStandardMaterial color="#B08D5B" roughness={0.86} />
+      </mesh>
+      <mesh position={[0, 0.79, 0]} castShadow receiveShadow>
+        <boxGeometry args={[3.0, 0.22, lengthZ + 0.4]} />
+        <meshStandardMaterial color="#CDB082" roughness={0.82} />
+      </mesh>
+
+      {/* 2. Main Outer Ashlar Sandstone Wall */}
+      <mesh position={[-innerDir * 1.05, 2.7, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.42, 3.6, lengthZ]} />
+        <meshStandardMaterial color="#8F714A" roughness={0.88} />
+      </mesh>
+
+      {/* Continuous Horizontal Masonry Joint Shadow Seams */}
+      <mesh position={[-innerDir * 1.05, 1.8, 0]}>
+        <boxGeometry args={[0.46, 0.04, lengthZ]} />
+        <meshStandardMaterial color="#5C452D" roughness={0.95} />
+      </mesh>
+      <mesh position={[-innerDir * 1.05, 2.9, 0]}>
+        <boxGeometry args={[0.46, 0.04, lengthZ]} />
+        <meshStandardMaterial color="#5C452D" roughness={0.95} />
+      </mesh>
+      <mesh position={[-innerDir * 1.05, 3.9, 0]}>
+        <boxGeometry args={[0.46, 0.04, lengthZ]} />
+        <meshStandardMaterial color="#5C452D" roughness={0.95} />
+      </mesh>
+
+      {/* Vertical Interlocking Ashlar Seams */}
+      {ashlarSeamsZ.map((sz, sIdx) => (
+        <mesh key={`ashlar-${sIdx}`} position={[-innerDir * 1.05, 2.7, sz]}>
+          <boxGeometry args={[0.47, 3.55, 0.04]} />
+          <meshStandardMaterial color="#5C452D" roughness={0.95} />
+        </mesh>
+      ))}
+
+      {/* 3. Deeply Detailed Bas-Relief Wall Surface (ចម្លាក់រាក់លើផ្ទៃជញ្ជាំងប្រាសាទ) */}
+      {/* Continuous Bas-Relief Register Facing Inner Courtyard */}
+      <mesh position={[-innerDir * 0.82, 2.35, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.06, 0.48, lengthZ]} />
+        <meshStandardMaterial color="#D6B57E" roughness={0.76} />
+      </mesh>
+      {/* Decorative Diamond Lozenge Chains (Kbach Changva Por) and Rosette Bosses */}
+      {pillarOffsetsZ.map((pz, idx) => (
+        <group key={`relief-panel-${idx}`} position={[-innerDir * 0.77, 2.35, pz]}>
+          <mesh rotation={[0, innerDir > 0 ? -Math.PI / 2 : Math.PI / 2, 0]}>
+            <cylinderGeometry args={[0.16, 0.16, 0.04, 10]} />
+            <meshStandardMaterial color="#D97706" metalness={0.5} roughness={0.35} />
+          </mesh>
+          <mesh position={[0, 0, 0.65]} rotation={[0, 0, Math.PI / 4]}>
+            <boxGeometry args={[0.14, 0.14, 0.03]} />
+            <meshStandardMaterial color="#DFC090" roughness={0.74} />
+          </mesh>
+          <mesh position={[0, 0, -0.65]} rotation={[0, 0, Math.PI / 4]}>
+            <boxGeometry args={[0.14, 0.14, 0.03]} />
+            <meshStandardMaterial color="#DFC090" roughness={0.74} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* 4. Colonnade of Fluted Sandstone Columns Facing Courtyard */}
+      {pillarOffsetsZ.map((pz, idx) => (
+        <group key={`col-p-${idx}`} position={[innerDir * 1.05, 0, pz]}>
+          <mesh position={[0, 0.98, 0]} castShadow receiveShadow>
+            <boxGeometry args={[0.48, 0.22, 0.48]} />
+            <meshStandardMaterial color="#B08D5B" roughness={0.85} />
+          </mesh>
+          <mesh position={[0, 2.65, 0]} castShadow receiveShadow>
+            <boxGeometry args={[0.38, 3.15, 0.38]} />
+            <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+          </mesh>
+          {/* Fluted Molding Trims */}
+          <mesh position={[innerDir * 0.2, 2.65, 0]}>
+            <boxGeometry args={[0.04, 2.95, 0.24]} />
+            <meshStandardMaterial color="#D6B57E" roughness={0.76} />
+          </mesh>
+          <mesh position={[0, 4.35, 0]} castShadow>
+            <boxGeometry args={[0.52, 0.2, 0.52]} />
+            <meshStandardMaterial color="#DFC090" roughness={0.75} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* 5. Turned Sandstone Baluster Window Bays */}
+      {windowBayOffsetsZ.map((wz, bIdx) => (
+        <group key={`win-bay-${bIdx}`} position={[-innerDir * 1.05, 0, wz]}>
+          <mesh position={[0, 1.25, 0]} castShadow>
+            <boxGeometry args={[0.55, 0.22, 1.4]} />
+            <meshStandardMaterial color="#A4855E" roughness={0.84} />
+          </mesh>
+          <mesh position={[0, 3.85, 0]} castShadow>
+            <boxGeometry args={[0.55, 0.24, 1.4]} />
+            <meshStandardMaterial color="#BFA06C" roughness={0.8} />
+          </mesh>
+          {balusterOffsets.map((bz, balIdx) => (
+            <mesh key={`b-${balIdx}`} position={[0, 2.55, bz]} castShadow>
+              <cylinderGeometry args={[0.046, 0.046, 2.3, 8]} />
+              <meshStandardMaterial color="#CDB082" roughness={0.74} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+
+      {/* 6. Celestial Devata High-Relief Niches along Wall */}
+      {devataOffsetsZ.map((dz, dIdx) => (
+        <group
+          key={`enc-devata-${dIdx}`}
+          position={[-innerDir * 0.82, 2.35, dz]}
+          rotation={[0, innerDir > 0 ? Math.PI / 2 : -Math.PI / 2, 0]}
+        >
+          {/* Niche Cavity */}
+          <mesh position={[0, 0, -0.04]} castShadow receiveShadow>
+            <boxGeometry args={[0.68, 1.8, 0.1]} />
+            <meshStandardMaterial color="#6B5237" roughness={0.92} />
+          </mesh>
+          {/* Pointed Gable Frame */}
+          <mesh position={[0, 1.02, 0.02]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.48, 0.58, 4]} />
+            <meshStandardMaterial color="#CDB082" roughness={0.78} />
+          </mesh>
+          {/* Lotus Pedestal */}
+          <mesh position={[0, -0.8, 0.03]} castShadow>
+            <cylinderGeometry args={[0.26, 0.22, 0.12, 8]} />
+            <meshStandardMaterial color="#DFC090" roughness={0.76} />
+          </mesh>
+          {/* Celestial Maiden High-Relief Figure */}
+          <mesh position={[0, 0.65, 0.05]} castShadow>
+            <coneGeometry args={[0.09, 0.28, 6]} />
+            <meshStandardMaterial color="#F59E0B" roughness={0.4} metalness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.48, 0.04]} castShadow>
+            <sphereGeometry args={[0.11, 8, 8]} />
+            <meshStandardMaterial color="#D6B785" roughness={0.8} />
+          </mesh>
+          <mesh position={[0, 0.22, 0.04]} castShadow>
+            <cylinderGeometry args={[0.09, 0.12, 0.34, 8]} />
+            <meshStandardMaterial color="#BFA06C" roughness={0.82} />
+          </mesh>
+          <mesh position={[0, -0.25, 0.04]} castShadow>
+            <cylinderGeometry args={[0.13, 0.2, 0.68, 8]} />
+            <meshStandardMaterial color="#BA9966" roughness={0.82} />
+          </mesh>
+          {/* Pink Lotus Flower in hand */}
+          <mesh position={[0, 0.35, 0.1]} castShadow>
+            <coneGeometry args={[0.05, 0.1, 6]} />
+            <meshStandardMaterial color="#F472B6" roughness={0.45} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* 7. Gallery Roof Architrave, Cornice Dentils & Corbelled Barrel-Vault */}
+      <mesh position={[0, 4.6, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.8, 0.45, lengthZ + 0.4]} />
+        <meshStandardMaterial color="#9C7E54" roughness={0.86} />
+      </mesh>
+      {/* Stepped Barrel-Vault Roof Tiers */}
+      <mesh position={[0, 5.0, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.3, 0.4, lengthZ + 0.3]} />
+        <meshStandardMaterial color="#B08D5B" roughness={0.84} />
+      </mesh>
+      <mesh position={[0, 5.35, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.7, 0.35, lengthZ + 0.2]} />
+        <meshStandardMaterial color="#C2A272" roughness={0.8} />
+      </mesh>
+      {/* Barrel-Vault Ridge Cylinder */}
+      <mesh position={[0, 5.65, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.55, 0.85, lengthZ, 10]} />
+        <meshStandardMaterial color="#DFC090" roughness={0.74} />
+      </mesh>
+
+      {/* Ridge Flame Finials along length */}
+      {pillarOffsetsZ.map((rz, rIdx) => (
+        <mesh key={`rf-enc-${rIdx}`} position={[0, 6.15, rz]} castShadow>
+          <coneGeometry args={[0.11, 0.38, 6]} />
+          <meshStandardMaterial color="#F59E0B" roughness={0.35} metalness={0.5} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 export default function Environment() {
   const waterLeftRef = useRef<THREE.MeshStandardMaterial>(null);
   const waterRightRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -812,6 +1023,12 @@ export default function Environment() {
       <AngkorLibrary position={[-11.2, 0, 15.0]} rotation={[0, Math.PI / 2, 0]} scale={0.94} />
       {/* South Library (Right of inner causeway, facing north toward walkway) */}
       <AngkorLibrary position={[11.2, 0, 15.0]} rotation={[0, -Math.PI / 2, 0]} scale={0.94} />
+
+      {/* ===== 5D. MONUMENTAL INNER COURTYARD ENCLOSURE GALLERIES (កំពែងថែវប្រាសាទខាងក្នុង) ===== */}
+      {/* Left (North) Covered Gallery with Deep Bas-Reliefs (ចម្លាក់លើផ្ទៃជញ្ជាំង) & Devata Niches */}
+      <CourtyardEnclosureGallery isLeft={true} />
+      {/* Right (South) Covered Gallery with Deep Bas-Reliefs (ចម្លាក់លើផ្ទៃជញ្ជាំង) & Devata Niches */}
+      <CourtyardEnclosureGallery isLeft={false} />
 
       {/* ===== 6. TALL PALM TREES, MOSSY ROCKS & TROPICAL VEGETATION ===== */}
       {/* Tall Quaternius Palm Trees framing the causeway */}

@@ -904,6 +904,46 @@ function AngkorDoorPilastersAndLintel() {
 }
 
 /**
+ * Inner Courtyard Facade of the West Gopura (មុខគោបុរៈខាងក្នុងបែរទៅទិសខាងកើត)
+ * Beautifully details the inside face of the gate with fluted pilasters,
+ * sculpted Kala lintel, celestial Devatas, guardian sentinels, and pediment facing +Z.
+ */
+function AngkorInnerGopuraFacade() {
+  return (
+    <group position={[0, 0, 0.65]} rotation={[0, Math.PI, 0]}>
+      {/* Inner Portal Frame, Pilasters & Sculpted Lintel */}
+      <AngkorDoorPilastersAndLintel />
+      {/* Inner Celestial Devata Niches */}
+      <AngkorDevataNiche position={[-2.45, 2.45, 0.05]} />
+      <AngkorDevataNiche position={[2.45, 2.45, 0.05]} />
+      {/* Flanking Inner Sandstone Gopura Columns */}
+      <GopuraColumn x={-3.2} />
+      <GopuraColumn x={3.2} />
+
+      {/* Triangular Rear Pediment facing inner courtyard with Makara Horn Crests */}
+      <group position={[0, 6.35, 0.15]}>
+        <mesh rotation={[0, Math.PI / 4, 0]} castShadow>
+          <coneGeometry args={[2.35, 1.9, 4]} />
+          <meshStandardMaterial color="#CDB082" roughness={0.76} />
+        </mesh>
+        <mesh position={[0, -0.15, 0.14]} rotation={[0, Math.PI / 4, 0]}>
+          <coneGeometry args={[1.85, 1.45, 4]} />
+          <meshStandardMaterial color="#DFBE8D" roughness={0.72} />
+        </mesh>
+        <mesh position={[-2.2, -0.65, 0.05]} rotation={[0, 0, 0.45]} castShadow>
+          <coneGeometry args={[0.22, 0.8, 6]} />
+          <meshStandardMaterial color="#D99B38" metalness={0.4} roughness={0.4} />
+        </mesh>
+        <mesh position={[2.2, -0.65, 0.05]} rotation={[0, 0, -0.45]} castShadow>
+          <coneGeometry args={[0.22, 0.8, 6]} />
+          <meshStandardMaterial color="#D97706" metalness={0.4} roughness={0.4} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+/**
  * Symmetrical Colonnaded Temple Gallery Wing (ថែវប្រាសាទសងខាង)
  * Features stepped cyma lotus plinths, 4-tier ashlar sandstone walls with carved
  * narrative bas-relief friezes, celestial Devata shrines, fluted columns,
@@ -1308,6 +1348,9 @@ export default function AncientStoneGate({
 
       {/* ===== 3. CARVED DOOR PILASTERS & SCULPTED LINTEL (សសរផ្អោប និងផ្តែរទ្វារ) ===== */}
       <AngkorDoorPilastersAndLintel />
+
+      {/* ===== 3B. INNER COURTYARD GOPURA FACADE (មុខគោបុរៈខាងក្នុងបែរទៅទិសខាងកើត) ===== */}
+      <AngkorInnerGopuraFacade />
 
       {/* ===== 4. OUTER KHMER SANDSTONE GOPURA COLUMNS ===== */}
       <GopuraColumn x={-3.2} />
