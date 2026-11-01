@@ -443,12 +443,12 @@ try {
     worldId: 1, lessonId: 1, score: 100, accuracy: 100, wpm: 10,
     stars: 3, xpEarned: 80, coinsEarned: 10, bestStreak: 10, passed: true,
   }]);
-  assert.equal(access('world=1&level=2', completedFirstLesson).status, 'unsupported');
+  assert.equal(access('world=1&level=2', completedFirstLesson).status, 'ready');
   assert.equal(access('world=1&level=1', completedFirstLesson).status, 'ready');
   assert.equal(access('world=1&level=3', completedFirstLesson).status, 'locked');
   for (const world of curriculum.lessonCurriculum) {
     for (const lesson of world.levels) {
-      assert.equal(availability.isThreeLessonSupported(world.id, lesson.id), world.id === 1 && lesson.id === 1);
+      assert.equal(availability.isThreeLessonSupported(world.id, lesson.id), world.id === 1 && (lesson.id === 1 || lesson.id === 2));
     }
   }
   assert.equal(availability.isThreeLessonSupported(99, 1), false);
@@ -1102,6 +1102,103 @@ try {
   const swingDelta = new THREE.Quaternion().setFromEuler(swingEuler);
   const swungQuat = restQuat.clone().multiply(swingDelta);
   assert.ok(Math.abs(swungQuat.x) > 0.9, 'Forward swing must modulate rest pitch naturally');
+
+  // 18. MASTER TASK 7A: Comprehensive World 1 Lesson 2 (ជួរព្យញ្ជនៈ) Verification
+  const l2Config = gameplayState.resolveThreeLessonConfig(1, 2);
+  assert.equal(l2Config.worldId, 1);
+  assert.equal(l2Config.lesson.id, 2);
+  assert.equal(l2Config.lesson.labelKh, 'ជួរព្យញ្ជនៈ');
+  assert.equal(l2Config.lesson.labelEn, 'Consonant Rows');
+  assert.equal(l2Config.stages.length, 3);
+  assert.equal(l2Config.isFoundationLesson, false);
+
+  const [l2s1, l2s2, l2s3] = l2Config.stages;
+  // Stage 1: ស្ពានដំបូង (First Bridge)
+  assert.equal(l2s1.id, 'w1-l2-s1');
+  assert.equal(l2s1.titleKh, 'ស្ពានដំបូង');
+  assert.equal(l2s1.titleEn, 'First Bridge');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l2s1, l2Config.lesson, l2Config.worldId), 90);
+  const l2s1Val = typingPlanMod.validateStageTypingPlan(l2s1);
+  assert.equal(l2s1Val.valid, true, 'Stage 1 must have valid typing plan');
+  assert.equal(l2s1Val.unsupportedInputs.length, 0, 'Stage 1 must have 0 unsupported inputs');
+  const l2s1Plan = gameplayState.createStageTypingPlan(l2s1);
+  assert.equal(l2s1Plan.units.length, 15);
+
+  // Stage 2: គូប្រយ័ត្ន (Careful Pairs)
+  assert.equal(l2s2.id, 'w1-l2-s2');
+  assert.equal(l2s2.titleKh, 'គូប្រយ័ត្ន');
+  assert.equal(l2s2.titleEn, 'Careful Pairs');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l2s2, l2Config.lesson, l2Config.worldId), 92);
+  const l2s2Val = typingPlanMod.validateStageTypingPlan(l2s2);
+  assert.equal(l2s2Val.valid, true, 'Stage 2 must have valid typing plan');
+  assert.equal(l2s2Val.unsupportedInputs.length, 0, 'Stage 2 must have 0 unsupported inputs');
+  const l2s2Plan = gameplayState.createStageTypingPlan(l2s2);
+  assert.equal(l2s2Plan.units.length, 16);
+
+  // Stage 3: ជើងភ្នំ (Hill Steps)
+  assert.equal(l2s3.id, 'w1-l2-s3');
+  assert.equal(l2s3.titleKh, 'ជើងភ្នំ');
+  assert.equal(l2s3.titleEn, 'Hill Steps');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l2s3, l2Config.lesson, l2Config.worldId), 92);
+  const l2s3Val = typingPlanMod.validateStageTypingPlan(l2s3);
+  assert.equal(l2s3Val.valid, true, 'Stage 3 must have valid typing plan');
+  assert.equal(l2s3Val.unsupportedInputs.length, 0, 'Stage 3 must have 0 unsupported inputs');
+  const l2s3Plan = gameplayState.createStageTypingPlan(l2s3);
+  assert.equal(l2s3Plan.units.length, 19);
+
+  // Verify passing and failing accuracy per stage requirements
+  // Stage 1 (90% threshold)
+  const l2s1Pass = gameplayState.computeStageMetrics(l2s1Plan.units, 15, 1, 0, 10, 20000, l2s1, l2Config.lesson, l2Config.worldId);
+  assert.ok(l2s1Pass.accuracy >= 90);
+  assert.equal(gameplayState.shouldUnlockStage(l2s1Pass), true);
+  const l2s1Fail = gameplayState.computeStageMetrics(l2s1Plan.units, 15, 4, 0, 5, 20000, l2s1, l2Config.lesson, l2Config.worldId);
+  assert.ok(l2s1Fail.accuracy < 90);
+  assert.equal(gameplayState.shouldUnlockStage(l2s1Fail), false);
+
+  // Stage 2 (92% threshold)
+  const l2s2Pass = gameplayState.computeStageMetrics(l2s2Plan.units, 16, 1, 0, 10, 20000, l2s2, l2Config.lesson, l2Config.worldId);
+  assert.ok(l2s2Pass.accuracy >= 92);
+  assert.equal(gameplayState.shouldUnlockStage(l2s2Pass), true);
+  const l2s2Fail = gameplayState.computeStageMetrics(l2s2Plan.units, 16, 2, 0, 5, 20000, l2s2, l2Config.lesson, l2Config.worldId);
+  assert.ok(l2s2Fail.accuracy < 92);
+  assert.equal(gameplayState.shouldUnlockStage(l2s2Fail), false);
+
+  // Stage 3 (92% threshold)
+  const l2s3Pass = gameplayState.computeStageMetrics(l2s3Plan.units, 19, 1, 0, 10, 20000, l2s3, l2Config.lesson, l2Config.worldId);
+  assert.ok(l2s3Pass.accuracy >= 92);
+  assert.equal(gameplayState.shouldUnlockStage(l2s3Pass), true);
+  const l2s3Fail = gameplayState.computeStageMetrics(l2s3Plan.units, 19, 3, 0, 5, 20000, l2s3, l2Config.lesson, l2Config.worldId);
+  assert.ok(l2s3Fail.accuracy < 92);
+  assert.equal(gameplayState.shouldUnlockStage(l2s3Fail), false);
+
+  // Traversal boundary clamping for Lesson 2 (3 stages at Z = 6, 16, 26)
+  const initialL2States = gameplayState.createInitialStageProgressStates(l2Config.stages);
+  assert.equal(initialL2States.length, 3);
+  assert.equal(gameplayState.canAccessStage(0, 0, initialL2States), true);
+  assert.equal(gameplayState.canAccessStage(1, 1, initialL2States), false);
+  assert.equal(gameplayState.canAccessStage(2, 2, initialL2States), false);
+
+  // Barrier 0 (Gate 1 at Z=6, collision at Z=5.6)
+  const clampedBeforeGate1 = gameplayState.clampMultiStageCharacterPosition(0, 7.0, initialL2States.map((s) => s.status));
+  assert.ok(clampedBeforeGate1[1] <= 5.6, 'Cannot cross Gate 1 when closed');
+
+  // After Stage 1 cleared
+  const afterS1States = initialL2States.map((s, idx) => idx === 0 ? { ...s, status: 'open', passed: true } : s);
+  assert.equal(gameplayState.canAccessStage(1, 1, afterS1States), true);
+  const clampedBeforeGate2 = gameplayState.clampMultiStageCharacterPosition(0, 17.0, afterS1States.map((s) => s.status));
+  assert.ok(clampedBeforeGate2[1] <= 15.6, 'Cannot cross Gate 2 when closed');
+
+  // After Stage 2 cleared
+  const afterS2States = afterS1States.map((s, idx) => idx === 1 ? { ...s, status: 'open', passed: true } : s);
+  assert.equal(gameplayState.canAccessStage(2, 2, afterS2States), true);
+  const clampedBeforeGate3 = gameplayState.clampMultiStageCharacterPosition(0, 27.0, afterS2States.map((s) => s.status));
+  assert.ok(clampedBeforeGate3[1] <= 25.6, 'Cannot cross Gate 3 when closed');
+
+  // After all 3 stages cleared
+  const afterAllCleared = afterS2States.map((s, idx) => idx === 2 ? { ...s, status: 'open', passed: true } : s);
+  assert.equal(gameplayState.areAllStagesCompleted(afterAllCleared), true);
+  const clampedFinal = gameplayState.clampMultiStageCharacterPosition(0, 29.5, afterAllCleared.map((s) => s.status));
+  assert.equal(clampedFinal[1], 29.5, 'Can reach inner forecourt once all stages are open');
 
 } finally {
   await server.close();
