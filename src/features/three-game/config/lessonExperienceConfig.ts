@@ -336,6 +336,162 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
       },
     ],
   },
+
+  // -------------------------------------------------------------------------
+  // LEVEL 6: Sky Platforms
+  // -------------------------------------------------------------------------
+  '1:6': {
+    lessonId: 6,
+    experienceType: 'sky-platforms',
+    titleKh: 'វេទិកាវេហាស៍ (Sky Platforms)',
+    titleEn: 'Sky Platforms',
+    themeDescriptionKh: 'ដាស់ថ្មអណ្តែតវេហាស៍ដោយប្រើគ្រាប់ចុចជួរលើដៃស្តាំ (Y U I O P)',
+    themeDescriptionEn: 'Activate suspended floating platforms with right upper row keys',
+    initialPlayerPosition: [0, 0, -5.0],
+    courtyardBounds: [-8.0, 8.0, -8.0, 26.0],
+    stations: [
+      {
+        stageIndex: 0,
+        stageId: 'w1-l6-s1',
+        position: [0, 0, -1.0],
+        stationTitleKh: 'ទ្វារវេទិកាវេហាស៍ (Sky Causeway Gate)',
+        stationTitleEn: 'Sky Causeway Gate — Right Upper Reaches',
+        missionPromptKh: 'ឈានទៅកាន់ទ្វារវេទិកាវេហាស៍ ដើម្បីដាស់ថ្មអណ្តែតទី ១',
+        missionPromptEn: 'Advance to the sky causeway portal to align the first floating platform',
+        interactionRadius: 3.5,
+        guideBeaconColor: '#38BDF8',
+        transformationType: 'align-platforms',
+      },
+      {
+        stageIndex: 1,
+        stageId: 'w1-l6-s2',
+        position: [0, 0, 10.0],
+        stationTitleKh: 'វេទិកាកណ្តាលវេហាស៍ (Floating Terrace Station)',
+        stationTitleEn: 'Floating Terrace Station — Syllables',
+        missionPromptKh: 'ដើរតាមថ្មអណ្តែតទៅកាន់វេទិកាកណ្តាលវេហាស៍',
+        missionPromptEn: 'Walk across floating platforms to the mid-air celestial terrace',
+        interactionRadius: 3.5,
+        guideBeaconColor: '#F59E0B',
+        transformationType: 'align-platforms',
+      },
+      {
+        stageIndex: 2,
+        stageId: 'w1-l6-s3',
+        position: [0, 0, 20.0],
+        stationTitleKh: 'វិមានមេឃ (Celestial Overlook Sanctuary)',
+        stationTitleEn: 'Celestial Overlook Sanctuary — Vocabulary',
+        missionPromptKh: 'ឈានទៅវេទិកាខ្ពស់បំផុត ដើម្បីបើកទ្វារមេឃ',
+        missionPromptEn: 'Step to the highest overlook to open the celestial portal',
+        interactionRadius: 3.6,
+        guideBeaconColor: '#10B981',
+        transformationType: 'reveal-sanctuary',
+      },
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // LEVEL 7: Crystal Cave
+  // -------------------------------------------------------------------------
+  '1:7': {
+    lessonId: 7,
+    experienceType: 'crystal-cave',
+    titleKh: 'រូងថ្មគ្រីស្តាល់ (Crystal Cave)',
+    titleEn: 'Crystal Cave',
+    themeDescriptionKh: 'រុករករូងថ្មបុរាណ និងបំភ្លឺគ្រីស្តាល់ទិព្វដោយប្រើជួរក្រោមដៃឆ្វេង (Z X C V)',
+    themeDescriptionEn: 'Explore the ancient shaded shrine and ignite glowing crystal clusters',
+    initialPlayerPosition: [0, 0, -5.0],
+    courtyardBounds: [-8.0, 8.0, -8.0, 26.0],
+    stations: [
+      {
+        stageIndex: 0,
+        stageId: 'w1-l7-s1',
+        position: [0, 0, -1.0],
+        stationTitleKh: 'មាត់រូងថ្ម (Cavern Entrance Portal)',
+        stationTitleEn: 'Cavern Entrance Portal — Lower Left Reaches',
+        missionPromptKh: 'ដើរចូលមាត់រូងថ្ម ដើម្បីបំភ្លឺគ្រីស្តាល់ Z (ឋ) និង X (ខ)',
+        missionPromptEn: 'Enter the cavern threshold to ignite the Z and X crystals',
+        interactionRadius: 3.5,
+        guideBeaconColor: '#6366F1',
+        transformationType: 'ignite-crystal',
+      },
+      {
+        stageIndex: 1,
+        stageId: 'w1-l7-s2',
+        position: [0, 0, 9.5],
+        stationTitleKh: 'បន្ទប់កណ្តាលរូង (Inner Gem Chamber)',
+        stationTitleEn: 'Inner Gem Chamber — C & V Practice',
+        missionPromptKh: 'ដើរតាមពន្លឺត្បូងទៅកាន់បន្ទប់កណ្តាលរូង ដើម្បីដុតបំភ្លឺគ្រីស្តាល់ C (ច) និង V (វ)',
+        missionPromptEn: 'Follow the jewel light to ignite the C and V crystal clusters',
+        interactionRadius: 3.5,
+        guideBeaconColor: '#EC4899',
+        transformationType: 'ignite-crystal',
+      },
+      {
+        stageIndex: 2,
+        stageId: 'w1-l7-s3',
+        position: [0, 0, 19.5],
+        stationTitleKh: 'បេះដូងរូងគ្រីស្តាល់ (Luminescent Sanctuary Core)',
+        stationTitleEn: 'Luminescent Sanctuary Core — Lower Row Words',
+        missionPromptKh: 'ឈានទៅបេះដូងរូងគ្រីស្តាល់ ដើម្បីបើកផ្លូវថ្មអាថ៌កំបាំង',
+        missionPromptEn: 'Reach the cavern heart to open the ancient underground passage',
+        interactionRadius: 3.6,
+        guideBeaconColor: '#10B981',
+        transformationType: 'reveal-sanctuary',
+      },
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // LEVEL 8: Sacred River Crossing
+  // -------------------------------------------------------------------------
+  '1:8': {
+    lessonId: 8,
+    experienceType: 'river-crossing',
+    titleKh: 'ការឆ្លងកាត់ស្ទឹងស័ក្តិសិទ្ធិ (Sacred River Crossing)',
+    titleEn: 'Sacred River Crossing',
+    themeDescriptionKh: 'ជិះទូកនាគទិព្វឆ្លងកាត់បារាយណ៍ស័ក្តិសិទ្ធិឆ្ពោះទៅប្រាសាទម្ចាស់ការពារ',
+    themeDescriptionEn: 'Advance a ceremonial dragon boat across the sacred baray waters',
+    initialPlayerPosition: [0, 0, -5.5],
+    courtyardBounds: [-8.0, 8.0, -8.0, 26.0],
+    stations: [
+      {
+        stageIndex: 0,
+        stageId: 'w1-l8-s1',
+        position: [0, 0, -1.0],
+        stationTitleKh: 'កំពង់ទឹក (Water Pier Altar)',
+        stationTitleEn: 'Water Pier Altar — Right Lower Keys',
+        missionPromptKh: 'ឈានទៅកាន់កំពង់ទឹក ដើម្បីដាស់ទូកនាគទិព្វ',
+        missionPromptEn: 'Step to the waterside pier to awaken the ceremonial dragon barge',
+        interactionRadius: 3.5,
+        guideBeaconColor: '#F59E0B',
+        transformationType: 'advance-boat',
+      },
+      {
+        stageIndex: 1,
+        stageId: 'w1-l8-s2',
+        position: [0, 0, 9.5],
+        stationTitleKh: 'កោះកណ្តាលបារាយណ៍ (Mid-Baray Island Pier)',
+        stationTitleEn: 'Mid-Baray Island Pier — Punctuation Khan',
+        missionPromptKh: 'ដើរឆ្លងលើវេទិកាកោះកណ្តាលបារាយណ៍ ដើម្បីបន្តដំណើរកាត់ទឹក',
+        missionPromptEn: 'Cross to the mid-lake island to navigate deeper across the baray',
+        interactionRadius: 3.5,
+        guideBeaconColor: '#38BDF8',
+        transformationType: 'advance-boat',
+      },
+      {
+        stageIndex: 2,
+        stageId: 'w1-l8-s3',
+        position: [0, 0, 19.5],
+        stationTitleKh: 'ត្រើយម្ខាងទៀត (Guardian Shore Entrance)',
+        stationTitleEn: 'Guardian Shore Entrance — Complete Keyboard',
+        missionPromptKh: 'ឈានដល់ត្រើយម្ខាងទៀត ដើម្បីបើកទ្វារធំចូលជួបម្ចាស់ប្រាសាទព្រៃ',
+        missionPromptEn: 'Reach the far shore to unlock the gate before the Temple Guardian',
+        interactionRadius: 3.6,
+        guideBeaconColor: '#10B981',
+        transformationType: 'reveal-sanctuary',
+      },
+    ],
+  },
 };
 
 /**
@@ -343,14 +499,11 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
  * causeway layout for lessons not yet given a unique spatial theme.
  */
 export function getLessonExperienceConfig(lessonId: number | 'boss' | string): LessonExperienceConfig {
-  if (isPilotExperience(lessonId)) {
-    const key = `1:${lessonId}`;
-    if (WORLD1_LESSON_EXPERIENCES[key]) {
-      return WORLD1_LESSON_EXPERIENCES[key];
-    }
+  const key = `1:${lessonId}`;
+  if (WORLD1_LESSON_EXPERIENCES[key]) {
+    return WORLD1_LESSON_EXPERIENCES[key];
   }
 
-  // Standard Causeway Fallback (retains compatibility for L6, L7, L8, Boss)
   const isBoss = lessonId === 'boss';
   return {
     lessonId,
@@ -405,6 +558,9 @@ export function isPilotExperience(lessonId: number | 'boss' | string | undefined
   return num === 1 || num === 3 || num === 5;
 }
 
-export function isCustomExperienceSupported(lessonId: number | 'boss' | string): boolean {
-  return isPilotExperience(lessonId);
+export function isCustomExperienceSupported(lessonId: number | 'boss' | string | undefined): boolean {
+  if (!lessonId) return false;
+  if (lessonId === 'boss') return true;
+  const num = Number(lessonId);
+  return num >= 1 && num <= 8;
 }

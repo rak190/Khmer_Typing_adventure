@@ -1686,14 +1686,17 @@ try {
   const hudMod = await server.ssrLoadModule('/src/features/three-game/components/ExplorationHud.tsx');
   const ExplorationHud = hudMod.default;
 
-  // 1. Pilot lesson detection
-  assert.equal(expConfigMod.isPilotExperience(1), true, 'Level 1 must be a pilot experience');
-  assert.equal(expConfigMod.isPilotExperience(3), true, 'Level 3 must be a pilot experience');
-  assert.equal(expConfigMod.isPilotExperience(5), true, 'Level 5 must be a pilot experience');
-  assert.equal(expConfigMod.isPilotExperience(2), false, 'Level 2 is not yet a pilot experience');
-  assert.equal(expConfigMod.isPilotExperience(4), false, 'Level 4 is not yet a pilot experience');
-  assert.equal(expConfigMod.isPilotExperience(6), false, 'Level 6 is not yet a pilot experience');
-  assert.equal(expConfigMod.isPilotExperience('boss'), false, 'Boss uses dedicated encounter');
+  // 1. Experience support detection across all World 1 lessons
+  for (let i = 1; i <= 8; i++) {
+    assert.equal(expConfigMod.isCustomExperienceSupported(i), true, `Level ${i} must have custom experience support`);
+  }
+  assert.equal(expConfigMod.isCustomExperienceSupported('boss'), true, 'Boss must have custom experience support');
+  assert.equal(expConfigMod.isCustomExperienceSupported(99), false, 'Non-existent level 99 must not have custom experience');
+
+  // Pilot experiences subset check
+  assert.equal(expConfigMod.isPilotExperience(1), true);
+  assert.equal(expConfigMod.isPilotExperience(3), true);
+  assert.equal(expConfigMod.isPilotExperience(5), true);
 
   // 2. Level 1: Ancient Finger Sanctuary configuration
   const expL1 = expConfigMod.getLessonExperienceConfig(1);
@@ -1728,7 +1731,15 @@ try {
   assert.equal(expL5.stations[0].transformationType, 'raise-stairs');
   assert.equal(expL5.stations[2].transformationType, 'reveal-sanctuary');
 
-  // 5. Exploration HUD SSR Integration for Pilot Lessons
+  // 5. Verify remaining experience identities (Level 2, 4, 6, 7, 8, Boss)
+  assert.equal(expConfigMod.getLessonExperienceConfig(2).experienceType, 'lotus-garden');
+  assert.equal(expConfigMod.getLessonExperienceConfig(4).experienceType, 'crossroads');
+  assert.equal(expConfigMod.getLessonExperienceConfig(6).experienceType, 'sky-platforms');
+  assert.equal(expConfigMod.getLessonExperienceConfig(7).experienceType, 'crystal-cave');
+  assert.equal(expConfigMod.getLessonExperienceConfig(8).experienceType, 'river-crossing');
+  assert.equal(expConfigMod.getLessonExperienceConfig('boss').experienceType, 'boss-encounter');
+
+  // 6. Exploration HUD SSR Integration for Lessons
   const l1Curriculum = gameplayState.resolveThreeLessonConfig(1, 1);
   const hudL1ExploringHtml = ReactDOMServer.renderToString(
     React.createElement(
@@ -1768,6 +1779,46 @@ try {
     ),
   );
   assert.ok(hudL1NearHtml.includes('អាសនៈខាងកើត'), 'HUD near station must display station title');
+
+  const l2Curriculum = gameplayState.resolveThreeLessonConfig(1, 2);
+  const hudL2ExploringHtml = ReactDOMServer.renderToString(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ExplorationHud, {
+        isNearGate: false,
+        gateStatus: 'closed',
+        lessonTitleKh: l2Curriculum.lesson.labelKh,
+        lessonTitleEn: l2Curriculum.lesson.labelEn,
+        stages: l2Curriculum.stages,
+        stageStates: gameplayState.createInitialStageProgressStates(l2Curriculum.stages),
+        activeStageIndex: 0,
+        lessonId: 2,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudL2ExploringHtml.includes('ដើរទៅមាត់ស្រះ'), 'HUD L2 must show Lotus Pond mission prompt');
+
+  const l4Curriculum = gameplayState.resolveThreeLessonConfig(1, 4);
+  const hudL4ExploringHtml = ReactDOMServer.renderToString(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ExplorationHud, {
+        isNearGate: false,
+        gateStatus: 'closed',
+        lessonTitleKh: l4Curriculum.lesson.labelKh,
+        lessonTitleEn: l4Curriculum.lesson.labelEn,
+        stages: l4Curriculum.stages,
+        stageStates: gameplayState.createInitialStageProgressStates(l4Curriculum.stages),
+        activeStageIndex: 0,
+        lessonId: 4,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudL4ExploringHtml.includes('ប្រសព្វផ្លូវព្រៃ'), 'HUD L4 must show Crossroads junction mission prompt');
 
   const l5Curriculum = gameplayState.resolveThreeLessonConfig(1, 5);
   const hudL5ExploringHtml = ReactDOMServer.renderToString(

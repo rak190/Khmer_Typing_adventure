@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CurriculumStage } from '../../../data/lessonCurriculum';
 import type { AdventureNodeId } from '../../../data/adventureWorlds';
-import { getLessonExperienceConfig, isPilotExperience } from '../config/lessonExperienceConfig';
+import { getLessonExperienceConfig, isCustomExperienceSupported } from '../config/lessonExperienceConfig';
 import type { GateStatus, StageProgressState } from '../types';
 
 type ExplorationHudProps = {
@@ -48,8 +48,8 @@ export default function ExplorationHud({
 }: ExplorationHudProps) {
   const navigate = useNavigate();
 
-  const isPilot = isPilotExperience(lessonId);
-  const expConfig = isPilot && lessonId ? getLessonExperienceConfig(lessonId) : null;
+  const isCustomExp = isCustomExperienceSupported(lessonId);
+  const expConfig = isCustomExp && lessonId ? getLessonExperienceConfig(lessonId) : null;
   const currentStation = expConfig?.stations?.[activeStageIndex];
   const [muted, setMuted] = useState(false);
 

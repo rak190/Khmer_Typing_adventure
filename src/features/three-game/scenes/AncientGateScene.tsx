@@ -8,9 +8,14 @@ import StageChallenges from '../components/StageChallenges';
 import TempleGuardianBoss from '../components/TempleGuardianBoss';
 import ThirdPersonCamera from '../components/ThirdPersonCamera';
 import FingerSanctuaryExperience from '../components/experiences/FingerSanctuaryExperience';
+import LotusGardenExperience from '../components/experiences/LotusGardenExperience';
 import TwinBridgesExperience from '../components/experiences/TwinBridgesExperience';
+import JungleCrossroadsExperience from '../components/experiences/JungleCrossroadsExperience';
 import TempleTowerClimbExperience from '../components/experiences/TempleTowerClimbExperience';
-import { isPilotExperience } from '../config/lessonExperienceConfig';
+import SkyPlatformsExperience from '../components/experiences/SkyPlatformsExperience';
+import CrystalCaveExperience from '../components/experiences/CrystalCaveExperience';
+import SacredRiverExperience from '../components/experiences/SacredRiverExperience';
+import { isCustomExperienceSupported } from '../config/lessonExperienceConfig';
 import type { MovementInput } from '../hooks/usePlayerControls';
 import { getStageBarrierIndex } from '../systems/gameplayState';
 import type { GameMode, GateState, GateStatus, Position3D } from '../types';
@@ -81,7 +86,7 @@ export default function AncientGateScene({
         lessonId={lessonId}
       />
 
-      {/* Pilot Custom Experiences */}
+      {/* World 1 Dedicated Variety Experiences (Lessons 1 to 8) */}
       {lessonId === 1 && (
         <FingerSanctuaryExperience
           activeStageIndex={activeStageIndex}
@@ -91,12 +96,27 @@ export default function AncientGateScene({
         />
       )}
 
+      {lessonId === 2 && (
+        <LotusGardenExperience
+          activeStageIndex={activeStageIndex}
+          stageStatuses={stageStatuses}
+          streak={streak}
+        />
+      )}
+
       {lessonId === 3 && (
         <TwinBridgesExperience
           activeStageIndex={activeStageIndex}
           stageStatuses={stageStatuses}
           streak={streak}
-          completedCount={completedCount}
+        />
+      )}
+
+      {lessonId === 4 && (
+        <JungleCrossroadsExperience
+          activeStageIndex={activeStageIndex}
+          stageStatuses={stageStatuses}
+          streak={streak}
         />
       )}
 
@@ -104,15 +124,51 @@ export default function AncientGateScene({
         <TempleTowerClimbExperience
           activeStageIndex={activeStageIndex}
           stageStatuses={stageStatuses}
-          streak={streak}
-          completedCount={completedCount}
         />
       )}
 
-      {/* Standard Causeway Barriers & Boss for Non-Pilot Lessons */}
-      {!isPilotExperience(lessonId) && (
+      {lessonId === 6 && (
+        <SkyPlatformsExperience
+          activeStageIndex={activeStageIndex}
+          stageStatuses={stageStatuses}
+          streak={streak}
+        />
+      )}
+
+      {lessonId === 7 && (
+        <CrystalCaveExperience
+          activeStageIndex={activeStageIndex}
+          stageStatuses={stageStatuses}
+          streak={streak}
+        />
+      )}
+
+      {lessonId === 8 && (
+        <SacredRiverExperience
+          activeStageIndex={activeStageIndex}
+          stageStatuses={stageStatuses}
+          streak={streak}
+        />
+      )}
+
+      {/* World 1 Boss: Temple Guardian */}
+      {lessonId === 'boss' && (
+        <TempleGuardianBoss
+          activeWaveIndex={activeStageIndex}
+          waveStatus={gateState.status}
+          isTypingMode={mode === 'typing'}
+          completedCount={completedCount}
+          streak={streak}
+          incorrectCount={incorrectCount}
+          isDefeated={mode === 'completed'}
+          onNearBossChange={onNearGateChange}
+          playerPositionRef={playerPositionRef}
+        />
+      )}
+
+      {/* Legacy Fallback if ever needed */}
+      {!isCustomExperienceSupported(lessonId) && lessonId !== 'boss' && (
         <>
-          {/* Barrier 1: Ancient Angkor Stone Gate (ទ្វារអក្សរ / Glyph Gate at Z = 6) */}
           <AncientStoneGate
             gateState={gateState}
             playerPositionRef={playerPositionRef}
@@ -127,8 +183,6 @@ export default function AncientGateScene({
             stageId={stageId}
             totalStageUnits={totalStageUnits}
           />
-
-          {/* Barrier 2 (ថ្មភ្លោះ / Twin Stones at Z = 16) & Barrier 3 (ផ្លូវព្រៃ / Jungle Path at Z = 26) */}
           <StageChallenges
             stageStatuses={stageStatuses}
             activeStageIndex={activeStageIndex}
@@ -139,21 +193,6 @@ export default function AncientGateScene({
             lessonId={lessonId}
             stageId={stageId}
           />
-
-          {/* World 1 Boss: Temple Guardian (ម្ចាស់ប្រាសាទព្រៃ at Z = 32.5) */}
-          {lessonId === 'boss' && (
-            <TempleGuardianBoss
-              activeWaveIndex={activeStageIndex}
-              waveStatus={gateState.status}
-              isTypingMode={mode === 'typing'}
-              completedCount={completedCount}
-              streak={streak}
-              incorrectCount={incorrectCount}
-              isDefeated={mode === 'completed'}
-              onNearBossChange={onNearGateChange}
-              playerPositionRef={playerPositionRef}
-            />
-          )}
         </>
       )}
     </>

@@ -9,7 +9,7 @@ import {
   computeMovementDelta,
   isPositionNearStage,
 } from '../systems/gameplayState';
-import { getLessonExperienceConfig, isPilotExperience } from '../config/lessonExperienceConfig';
+import { getLessonExperienceConfig, isCustomExperienceSupported } from '../config/lessonExperienceConfig';
 import type { AdventureNodeId } from '../../../data/adventureWorlds';
 import type { GameMode, GateStatus, Position3D } from '../types';
 
@@ -207,30 +207,32 @@ export default function Character({
     let clampedX = curX;
     let clampedZ = curZ;
 
-    const isPilot = isPilotExperience(lessonId);
-    const expConfig = isPilot && lessonId ? getLessonExperienceConfig(lessonId) : null;
+    const isCustomExp = isCustomExperienceSupported(lessonId);
+    const expConfig = isCustomExp && lessonId ? getLessonExperienceConfig(lessonId) : null;
 
-    if (isPilot && expConfig) {
+    if (isCustomExp && expConfig && lessonId !== 'boss') {
       if (lessonId === 1) {
         clampedX = Math.max(-9.0, Math.min(9.0, curX));
         const maxZ = stageStatuses?.[2] === 'open' ? 10.0 : 6.5;
         clampedZ = Math.max(-7.0, Math.min(maxZ, curZ));
-      } else if (lessonId === 3) {
-        clampedX = Math.max(-3.5, Math.min(3.5, curX));
+      } else if (lessonId === 2) {
+        clampedX = Math.max(-4.5, Math.min(4.5, curX));
+        let maxZ = 2.5;
+        if (stageStatuses?.[0] === 'open') maxZ = 9.0;
+        if (stageStatuses?.[1] === 'open') maxZ = 16.0;
+        clampedZ = Math.max(-6.5, Math.min(maxZ, curZ));
+      } else if (lessonId === 4) {
+        clampedX = Math.max(-6.5, Math.min(6.5, curX));
+        let maxZ = 3.0;
+        if (stageStatuses?.[0] === 'open') maxZ = 14.0;
+        if (stageStatuses?.[1] === 'open') maxZ = 24.0;
+        clampedZ = Math.max(-6.5, Math.min(maxZ, curZ));
+      } else {
+        clampedX = Math.max(-4.0, Math.min(4.0, curX));
         let maxZ = 3.0;
         if (stageStatuses?.[0] === 'open') maxZ = 13.5;
         if (stageStatuses?.[1] === 'open') maxZ = 24.0;
         clampedZ = Math.max(-6.5, Math.min(maxZ, curZ));
-      } else if (lessonId === 5) {
-        clampedX = Math.max(-3.5, Math.min(3.5, curX));
-        let maxZ = 2.5;
-        if (stageStatuses?.[0] === 'open') maxZ = 13.5;
-        if (stageStatuses?.[1] === 'open') maxZ = 24.0;
-        clampedZ = Math.max(-6.5, Math.min(maxZ, curZ));
-      } else {
-        const [minX, maxX, minZ, maxZ] = expConfig.courtyardBounds;
-        clampedX = Math.max(minX, Math.min(maxX, curX));
-        clampedZ = Math.max(minZ, Math.min(maxZ, curZ));
       }
     } else {
       [clampedX, clampedZ] =
@@ -286,7 +288,7 @@ export default function Character({
     }
 
     let nearGate = false;
-    if (isPilot && expConfig) {
+    if (isCustomExp && expConfig && lessonId !== 'boss') {
       const station = expConfig.stations[activeStageIndex];
       if (station) {
         const dist = Math.hypot(clampedX - station.position[0], clampedZ - station.position[2]);
