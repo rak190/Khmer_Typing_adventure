@@ -76,7 +76,16 @@ const validStagesL4 = resolveLessonIdentity('1:4').lesson.stages.map(s => ({ id:
 assert.equal(validateLessonAttempt({ ...validAttempt, lessonId: '1:4', mode: '3d', stages: validStagesL4 }).id, '1:4');
 const validStagesL5 = resolveLessonIdentity('1:5').lesson.stages.map(s => ({ id: s.id, accuracy: s.accuracyGoal, completed: true }));
 assert.equal(validateLessonAttempt({ ...validAttempt, lessonId: '1:5', mode: '3d', stages: validStagesL5 }).id, '1:5');
-assert.throws(() => validateLessonAttempt({ ...validAttempt, lessonId: '1:6', mode: '3d' }));
+const validStagesL6 = resolveLessonIdentity('1:6').lesson.stages.map(s => ({ id: s.id, accuracy: s.accuracyGoal, completed: true }));
+assert.equal(validateLessonAttempt({ ...validAttempt, lessonId: '1:6', mode: '3d', stages: validStagesL6 }).id, '1:6');
+const validStagesL7 = resolveLessonIdentity('1:7').lesson.stages.map(s => ({ id: s.id, accuracy: s.accuracyGoal, completed: true }));
+assert.equal(validateLessonAttempt({ ...validAttempt, lessonId: '1:7', mode: '3d', stages: validStagesL7 }).id, '1:7');
+const validStagesL8 = resolveLessonIdentity('1:8').lesson.stages.map(s => ({ id: s.id, accuracy: s.accuracyGoal, completed: true }));
+assert.equal(validateLessonAttempt({ ...validAttempt, lessonId: '1:8', mode: '3d', stages: validStagesL8 }).id, '1:8');
+const validStagesBoss = resolveLessonIdentity('1:boss').lesson.stages.map(s => ({ id: s.id, accuracy: s.accuracyGoal, completed: true }));
+assert.equal(validateLessonAttempt({ ...validAttempt, lessonId: '1:boss', mode: '3d', stages: validStagesBoss }).id, '1:boss');
+const validStagesW2L1 = resolveLessonIdentity('2:1').lesson.stages.map(s => ({ id: s.id, accuracy: s.accuracyGoal, completed: true }));
+assert.throws(() => validateLessonAttempt({ ...validAttempt, lessonId: '2:1', mode: '3d', stages: validStagesW2L1 }), /Unsupported 3D lesson/);
 assert.throws(() => validateLessonAttempt({ ...validAttempt, metrics: { ...validAttempt.metrics, cpm: NaN } }));
 assert.throws(() => validateLessonAttempt({ ...validAttempt, lessonId: 'foundation-home-row' }));
 assert.throws(() => validateLessonAttempt({ ...validAttempt, attemptId: '../bad' }));

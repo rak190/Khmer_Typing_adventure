@@ -186,7 +186,7 @@ try {
   controlStore.setCanMove(false);
   assert.deepEqual(
     controlStore.getSnapshot(),
-    { forward: false, backward: false, left: false, right: false },
+    { forward: false, backward: false, left: false, right: false, sprint: false },
     'Entering typing mode must immediately clear held movement keys',
   );
 
@@ -195,7 +195,7 @@ try {
   assert.equal(controlStore.handleKeyDown('ArrowUp'), false);
   assert.deepEqual(
     controlStore.getSnapshot(),
-    { forward: false, backward: false, left: false, right: false },
+    { forward: false, backward: false, left: false, right: false, sprint: false },
     'Movement keys pressed during typing must be ignored',
   );
 
@@ -203,9 +203,15 @@ try {
   controlStore.setCanMove(true);
   assert.deepEqual(
     controlStore.getSnapshot(),
-    { forward: false, backward: false, left: false, right: false },
+    { forward: false, backward: false, left: false, right: false, sprint: false },
     'Previously held keys must remain cleared after returning to exploration',
   );
+
+  // Sprint key (Shift) handling
+  controlStore.handleKeyDown('ShiftLeft');
+  assert.equal(controlStore.getSnapshot().sprint, true, 'Holding ShiftLeft activates sprint');
+  controlStore.handleKeyUp('ShiftLeft');
+  assert.equal(controlStore.getSnapshot().sprint, false, 'Releasing ShiftLeft deactivates sprint');
 
   // 4.1 Movement direction mapping, camera projection, diagonal normalization, and rotation
   // Camera stands at negative Z looking along +Z toward the gate.
@@ -478,14 +484,38 @@ try {
     { worldId: 1, lessonId: 4, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 95, coinsEarned: 10, bestStreak: 10, passed: true },
     { worldId: 1, lessonId: 5, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 100, coinsEarned: 10, bestStreak: 10, passed: true },
   ]);
-  // Lesson 6 is unsupported in 3D even when unlocked on map
-  assert.equal(access('world=1&level=6', completedThroughL5).status, 'unsupported');
+  assert.equal(access('world=1&level=6', completedThroughL5).status, 'ready');
+  assert.equal(access('world=1&level=7', completedThroughL5).status, 'locked');
+
+  const completedThroughL6 = adventure.buildAdventureWorlds([
+    ...[1, 2, 3, 4, 5, 6].map(id => ({ worldId: 1, lessonId: id, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 100, coinsEarned: 10, bestStreak: 10, passed: true })),
+  ]);
+  assert.equal(access('world=1&level=7', completedThroughL6).status, 'ready');
+  assert.equal(access('world=1&level=8', completedThroughL6).status, 'locked');
+
+  const completedThroughL7 = adventure.buildAdventureWorlds([
+    ...[1, 2, 3, 4, 5, 6, 7].map(id => ({ worldId: 1, lessonId: id, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 100, coinsEarned: 10, bestStreak: 10, passed: true })),
+  ]);
+  assert.equal(access('world=1&level=8', completedThroughL7).status, 'ready');
+  assert.equal(access('world=1&level=boss', completedThroughL7).status, 'locked');
+
+  const completedThroughL8 = adventure.buildAdventureWorlds([
+    ...[1, 2, 3, 4, 5, 6, 7, 8].map(id => ({ worldId: 1, lessonId: id, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 100, coinsEarned: 10, bestStreak: 10, passed: true })),
+  ]);
+  assert.equal(access('world=1&level=boss', completedThroughL8).status, 'ready');
+
+  const completedWorld1 = adventure.buildAdventureWorlds([
+    ...[1, 2, 3, 4, 5, 6, 7, 8].map(id => ({ worldId: 1, lessonId: id, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 100, coinsEarned: 10, bestStreak: 10, passed: true })),
+    { worldId: 1, lessonId: 'boss', score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 200, coinsEarned: 30, bestStreak: 10, passed: true },
+  ]);
+  // World 2 Lesson 1 is unlocked in 2D, but unsupported in 3D
+  assert.equal(access('world=2&level=1', completedWorld1).status, 'unsupported');
 
   for (const world of curriculum.lessonCurriculum) {
     for (const lesson of world.levels) {
       assert.equal(
         availability.isThreeLessonSupported(world.id, lesson.id),
-        world.id === 1 && [1, 2, 3, 4, 5].includes(lesson.id)
+        world.id === 1 && [1, 2, 3, 4, 5, 6, 7, 8, 'boss'].includes(lesson.id)
       );
     }
   }
@@ -1325,7 +1355,7 @@ try {
   assert.equal(l4s3.id, 'w1-l4-s3');
   assert.equal(gameplayState.getStageMinimumAccuracy(l4s3, l4Config.lesson, l4Config.worldId), 92);
   const l4s3Plan = gameplayState.createStageTypingPlan(l4s3);
-  assert.equal(l4s3Plan.units.length, 43);
+  assert.equal(l4s3Plan.units.length, 22);
   const l4s3Val = typingPlanMod.validateStageTypingPlan(l4s3);
   assert.equal(l4s3Val.valid, true);
   assert.equal(l4s3Val.unsupportedInputs.length, 0);
@@ -1347,14 +1377,14 @@ try {
   const l4Sess2 = { ...gameplayState.createTypingSessionState(2), completedCount: 26, incorrectCount: 1, bestStreak: 22, finished: true };
   l4States = gameplayState.recordStageAttemptResult(l4States, 1, l4s2Pass, l4Sess2, l4s2Plan.units, 21000, 'open');
 
-  const l4s3Pass = gameplayState.computeStageMetrics(l4s3Plan.units, 43, 2, 0, 41, 25000, l4s3, l4Config.lesson, 1);
-  const l4Sess3 = { ...gameplayState.createTypingSessionState(3), completedCount: 43, incorrectCount: 2, bestStreak: 35, finished: true };
+  const l4s3Pass = gameplayState.computeStageMetrics(l4s3Plan.units, 22, 1, 0, 21, 25000, l4s3, l4Config.lesson, 1);
+  const l4Sess3 = { ...gameplayState.createTypingSessionState(3), completedCount: 22, incorrectCount: 1, bestStreak: 20, finished: true };
   l4States = gameplayState.recordStageAttemptResult(l4States, 2, l4s3Pass, l4Sess3, l4s3Plan.units, 25000, 'open');
 
   assert.equal(gameplayState.areAllStagesCompleted(l4States), true);
   const l4FinalMetrics = gameplayState.computeFinalLessonMetrics(l4States, l4Config.lesson, 1);
   assert.equal(l4FinalMetrics.passed, true);
-  assert.equal(l4FinalMetrics.totalRequiredInputs, 34 + 26 + 43);
+  assert.equal(l4FinalMetrics.totalRequiredInputs, 34 + 26 + 22);
   assert.ok(l4FinalMetrics.accuracy >= 92);
 
   // 21. MASTER TASK 7B: Comprehensive World 1 Lesson 5 (ជួរលើដៃឆ្វេង Q W E R T) Verification
@@ -1387,7 +1417,7 @@ try {
   assert.equal(l5s3.id, 'w1-l5-s3');
   assert.equal(gameplayState.getStageMinimumAccuracy(l5s3, l5Config.lesson, l5Config.worldId), 92);
   const l5s3Plan = gameplayState.createStageTypingPlan(l5s3);
-  assert.equal(l5s3Plan.units.length, 39);
+  assert.equal(l5s3Plan.units.length, 26);
   const l5s3Val = typingPlanMod.validateStageTypingPlan(l5s3);
   assert.equal(l5s3Val.valid, true);
   assert.equal(l5s3Val.unsupportedInputs.length, 0);
@@ -1409,15 +1439,413 @@ try {
   const l5Sess2 = { ...gameplayState.createTypingSessionState(2), completedCount: 26, incorrectCount: 1, bestStreak: 24, finished: true };
   l5States = gameplayState.recordStageAttemptResult(l5States, 1, l5s2Pass, l5Sess2, l5s2Plan.units, 21000, 'open');
 
-  const l5s3Pass = gameplayState.computeStageMetrics(l5s3Plan.units, 39, 2, 0, 37, 24000, l5s3, l5Config.lesson, 1);
-  const l5Sess3 = { ...gameplayState.createTypingSessionState(3), completedCount: 39, incorrectCount: 2, bestStreak: 32, finished: true };
+  const l5s3Pass = gameplayState.computeStageMetrics(l5s3Plan.units, 26, 1, 0, 25, 24000, l5s3, l5Config.lesson, 1);
+  const l5Sess3 = { ...gameplayState.createTypingSessionState(3), completedCount: 26, incorrectCount: 1, bestStreak: 24, finished: true };
   l5States = gameplayState.recordStageAttemptResult(l5States, 2, l5s3Pass, l5Sess3, l5s3Plan.units, 24000, 'open');
 
   assert.equal(gameplayState.areAllStagesCompleted(l5States), true);
   const l5FinalMetrics = gameplayState.computeFinalLessonMetrics(l5States, l5Config.lesson, 1);
   assert.equal(l5FinalMetrics.passed, true);
-  assert.equal(l5FinalMetrics.totalRequiredInputs, 33 + 26 + 39);
+  assert.equal(l5FinalMetrics.totalRequiredInputs, 33 + 26 + 26);
   assert.ok(l5FinalMetrics.accuracy >= 92);
+
+  // =========================================================================
+  // 22. Lesson 6: Right-Hand Upper Row (w1-l6) 3D Stages & Challenge Verification
+  // =========================================================================
+  const l6Config = gameplayState.resolveThreeLessonConfig(1, 6);
+  assert.equal(l6Config.worldId, 1);
+  assert.equal(l6Config.lesson.id, 6);
+  assert.equal(l6Config.stages.length, 3);
+  const [l6s1, l6s2, l6s3] = l6Config.stages;
+
+  // Stage 1: w1-l6-s1
+  assert.equal(l6s1.id, 'w1-l6-s1');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l6s1, l6Config.lesson, l6Config.worldId), 90);
+  const l6s1Plan = gameplayState.createStageTypingPlan(l6s1);
+  assert.equal(l6s1Plan.units.length, 32);
+  const l6s1Val = typingPlanMod.validateStageTypingPlan(l6s1);
+  assert.equal(l6s1Val.valid, true);
+
+  // Stage 2: w1-l6-s2
+  assert.equal(l6s2.id, 'w1-l6-s2');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l6s2, l6Config.lesson, l6Config.worldId), 92);
+  const l6s2Plan = gameplayState.createStageTypingPlan(l6s2);
+  assert.equal(l6s2Plan.units.length, 25);
+  const l6s2Val = typingPlanMod.validateStageTypingPlan(l6s2);
+  assert.equal(l6s2Val.valid, true);
+
+  // Stage 3: w1-l6-s3
+  assert.equal(l6s3.id, 'w1-l6-s3');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l6s3, l6Config.lesson, l6Config.worldId), 92);
+  const l6s3Plan = gameplayState.createStageTypingPlan(l6s3);
+  assert.equal(l6s3Plan.units.length, 28);
+  const l6s3Val = typingPlanMod.validateStageTypingPlan(l6s3);
+  assert.equal(l6s3Val.valid, true);
+
+  // L6 Stage metrics & Progression
+  const l6s1Pass = gameplayState.computeStageMetrics(l6s1Plan.units, 32, 2, 0, 30, 20000, l6s1, l6Config.lesson, 1);
+  assert.ok(l6s1Pass.accuracy >= 90);
+  assert.equal(gameplayState.shouldUnlockStage(l6s1Pass), true);
+  const l6s1Fail = gameplayState.computeStageMetrics(l6s1Plan.units, 32, 6, 0, 26, 20000, l6s1, l6Config.lesson, 1);
+  assert.ok(l6s1Fail.accuracy < 90);
+  assert.equal(gameplayState.shouldUnlockStage(l6s1Fail), false);
+
+  let l6States = gameplayState.createInitialStageProgressStates(l6Config.stages);
+  const l6Sess1 = { ...gameplayState.createTypingSessionState(1), completedCount: 32, incorrectCount: 1, bestStreak: 30, finished: true };
+  l6States = gameplayState.recordStageAttemptResult(l6States, 0, l6s1Pass, l6Sess1, l6s1Plan.units, 20000, 'open');
+
+  const l6s2Pass = gameplayState.computeStageMetrics(l6s2Plan.units, 25, 1, 0, 24, 21000, l6s2, l6Config.lesson, 1);
+  const l6Sess2 = { ...gameplayState.createTypingSessionState(2), completedCount: 25, incorrectCount: 1, bestStreak: 24, finished: true };
+  l6States = gameplayState.recordStageAttemptResult(l6States, 1, l6s2Pass, l6Sess2, l6s2Plan.units, 21000, 'open');
+
+  const l6s3Pass = gameplayState.computeStageMetrics(l6s3Plan.units, 28, 1, 0, 27, 24000, l6s3, l6Config.lesson, 1);
+  const l6Sess3 = { ...gameplayState.createTypingSessionState(3), completedCount: 28, incorrectCount: 1, bestStreak: 27, finished: true };
+  l6States = gameplayState.recordStageAttemptResult(l6States, 2, l6s3Pass, l6Sess3, l6s3Plan.units, 24000, 'open');
+
+  assert.equal(gameplayState.areAllStagesCompleted(l6States), true);
+  const l6FinalMetrics = gameplayState.computeFinalLessonMetrics(l6States, l6Config.lesson, 1);
+  assert.equal(l6FinalMetrics.passed, true);
+  assert.equal(l6FinalMetrics.totalRequiredInputs, 32 + 25 + 28);
+  assert.ok(l6FinalMetrics.accuracy >= 92);
+
+  // =========================================================================
+  // 23. Lesson 7: Left-Hand Lower Row (w1-l7) 3D Stages & Challenge Verification
+  // =========================================================================
+  const l7Config = gameplayState.resolveThreeLessonConfig(1, 7);
+  assert.equal(l7Config.worldId, 1);
+  assert.equal(l7Config.lesson.id, 7);
+  assert.equal(l7Config.stages.length, 3);
+  const [l7s1, l7s2, l7s3] = l7Config.stages;
+
+  // Stage 1: w1-l7-s1
+  assert.equal(l7s1.id, 'w1-l7-s1');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l7s1, l7Config.lesson, l7Config.worldId), 90);
+  const l7s1Plan = gameplayState.createStageTypingPlan(l7s1);
+  assert.equal(l7s1Plan.units.length, 33);
+  const l7s1Val = typingPlanMod.validateStageTypingPlan(l7s1);
+  assert.equal(l7s1Val.valid, true);
+
+  // Stage 2: w1-l7-s2
+  assert.equal(l7s2.id, 'w1-l7-s2');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l7s2, l7Config.lesson, l7Config.worldId), 92);
+  const l7s2Plan = gameplayState.createStageTypingPlan(l7s2);
+  assert.equal(l7s2Plan.units.length, 25);
+  const l7s2Val = typingPlanMod.validateStageTypingPlan(l7s2);
+  assert.equal(l7s2Val.valid, true);
+
+  // Stage 3: w1-l7-s3
+  assert.equal(l7s3.id, 'w1-l7-s3');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l7s3, l7Config.lesson, l7Config.worldId), 92);
+  const l7s3Plan = gameplayState.createStageTypingPlan(l7s3);
+  assert.equal(l7s3Plan.units.length, 25);
+  const l7s3Val = typingPlanMod.validateStageTypingPlan(l7s3);
+  assert.equal(l7s3Val.valid, true);
+
+  // L7 Stage metrics & Progression
+  const l7s1Pass = gameplayState.computeStageMetrics(l7s1Plan.units, 33, 2, 0, 31, 20000, l7s1, l7Config.lesson, 1);
+  assert.ok(l7s1Pass.accuracy >= 90);
+  assert.equal(gameplayState.shouldUnlockStage(l7s1Pass), true);
+  const l7s1Fail = gameplayState.computeStageMetrics(l7s1Plan.units, 33, 6, 0, 27, 20000, l7s1, l7Config.lesson, 1);
+  assert.ok(l7s1Fail.accuracy < 90);
+  assert.equal(gameplayState.shouldUnlockStage(l7s1Fail), false);
+
+  let l7States = gameplayState.createInitialStageProgressStates(l7Config.stages);
+  const l7Sess1 = { ...gameplayState.createTypingSessionState(1), completedCount: 33, incorrectCount: 1, bestStreak: 31, finished: true };
+  l7States = gameplayState.recordStageAttemptResult(l7States, 0, l7s1Pass, l7Sess1, l7s1Plan.units, 20000, 'open');
+
+  const l7s2Pass = gameplayState.computeStageMetrics(l7s2Plan.units, 25, 1, 0, 24, 21000, l7s2, l7Config.lesson, 1);
+  const l7Sess2 = { ...gameplayState.createTypingSessionState(2), completedCount: 25, incorrectCount: 1, bestStreak: 24, finished: true };
+  l7States = gameplayState.recordStageAttemptResult(l7States, 1, l7s2Pass, l7Sess2, l7s2Plan.units, 21000, 'open');
+
+  const l7s3Pass = gameplayState.computeStageMetrics(l7s3Plan.units, 25, 1, 0, 24, 24000, l7s3, l7Config.lesson, 1);
+  const l7Sess3 = { ...gameplayState.createTypingSessionState(3), completedCount: 25, incorrectCount: 1, bestStreak: 24, finished: true };
+  l7States = gameplayState.recordStageAttemptResult(l7States, 2, l7s3Pass, l7Sess3, l7s3Plan.units, 24000, 'open');
+
+  assert.equal(gameplayState.areAllStagesCompleted(l7States), true);
+  const l7FinalMetrics = gameplayState.computeFinalLessonMetrics(l7States, l7Config.lesson, 1);
+  assert.equal(l7FinalMetrics.passed, true);
+  assert.equal(l7FinalMetrics.totalRequiredInputs, 33 + 25 + 25);
+  assert.ok(l7FinalMetrics.accuracy >= 92);
+
+  // =========================================================================
+  // 24. Lesson 8: Right-Hand Lower Row (w1-l8) 3D Stages & Challenge Verification
+  // =========================================================================
+  const l8Config = gameplayState.resolveThreeLessonConfig(1, 8);
+  assert.equal(l8Config.worldId, 1);
+  assert.equal(l8Config.lesson.id, 8);
+  assert.equal(l8Config.stages.length, 3);
+  const [l8s1, l8s2, l8s3] = l8Config.stages;
+
+  // Stage 1: w1-l8-s1
+  assert.equal(l8s1.id, 'w1-l8-s1');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l8s1, l8Config.lesson, l8Config.worldId), 90);
+  const l8s1Plan = gameplayState.createStageTypingPlan(l8s1);
+  assert.equal(l8s1Plan.units.length, 31);
+  const l8s1Val = typingPlanMod.validateStageTypingPlan(l8s1);
+  assert.equal(l8s1Val.valid, true);
+
+  // Stage 2: w1-l8-s2
+  assert.equal(l8s2.id, 'w1-l8-s2');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l8s2, l8Config.lesson, l8Config.worldId), 92);
+  const l8s2Plan = gameplayState.createStageTypingPlan(l8s2);
+  assert.equal(l8s2Plan.units.length, 27);
+  const l8s2Val = typingPlanMod.validateStageTypingPlan(l8s2);
+  assert.equal(l8s2Val.valid, true);
+
+  // Stage 3: w1-l8-s3
+  assert.equal(l8s3.id, 'w1-l8-s3');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l8s3, l8Config.lesson, l8Config.worldId), 92);
+  const l8s3Plan = gameplayState.createStageTypingPlan(l8s3);
+  assert.equal(l8s3Plan.units.length, 85);
+  const l8s3Val = typingPlanMod.validateStageTypingPlan(l8s3);
+  assert.equal(l8s3Val.valid, true);
+
+  // L8 Stage metrics & Progression
+  const l8s1Pass = gameplayState.computeStageMetrics(l8s1Plan.units, 31, 2, 0, 29, 20000, l8s1, l8Config.lesson, 1);
+  assert.ok(l8s1Pass.accuracy >= 90);
+  assert.equal(gameplayState.shouldUnlockStage(l8s1Pass), true);
+
+  let l8States = gameplayState.createInitialStageProgressStates(l8Config.stages);
+  const l8Sess1 = { ...gameplayState.createTypingSessionState(1), completedCount: 31, incorrectCount: 1, bestStreak: 29, finished: true };
+  l8States = gameplayState.recordStageAttemptResult(l8States, 0, l8s1Pass, l8Sess1, l8s1Plan.units, 20000, 'open');
+
+  const l8s2Pass = gameplayState.computeStageMetrics(l8s2Plan.units, 27, 1, 0, 26, 21000, l8s2, l8Config.lesson, 1);
+  const l8Sess2 = { ...gameplayState.createTypingSessionState(2), completedCount: 27, incorrectCount: 1, bestStreak: 26, finished: true };
+  l8States = gameplayState.recordStageAttemptResult(l8States, 1, l8s2Pass, l8Sess2, l8s2Plan.units, 21000, 'open');
+
+  const l8s3Pass = gameplayState.computeStageMetrics(l8s3Plan.units, 85, 2, 0, 80, 50000, l8s3, l8Config.lesson, 1);
+  const l8Sess3 = { ...gameplayState.createTypingSessionState(3), completedCount: 85, incorrectCount: 2, bestStreak: 80, finished: true };
+  l8States = gameplayState.recordStageAttemptResult(l8States, 2, l8s3Pass, l8Sess3, l8s3Plan.units, 50000, 'open');
+
+  assert.equal(gameplayState.areAllStagesCompleted(l8States), true);
+  const l8FinalMetrics = gameplayState.computeFinalLessonMetrics(l8States, l8Config.lesson, 1);
+  assert.equal(l8FinalMetrics.passed, true);
+  assert.equal(l8FinalMetrics.totalRequiredInputs, 31 + 27 + 85);
+  assert.ok(l8FinalMetrics.accuracy >= 92);
+
+  // =========================================================================
+  // 25. World 1 Boss: Temple Guardian (w1-boss) 3D Waves & Battle Verification
+  // =========================================================================
+  const bossConfig = gameplayState.resolveThreeLessonConfig(1, 'boss');
+  assert.equal(bossConfig.worldId, 1);
+  assert.equal(bossConfig.lesson.id, 'boss');
+  assert.equal(bossConfig.stages.length, 3);
+  const [bossWave1, bossWave2, bossWave3] = bossConfig.stages;
+
+  // Wave 1: w1-boss-s1 (kind: boss)
+  assert.equal(bossWave1.id, 'w1-boss-s1');
+  assert.equal(bossWave1.kind, 'boss');
+  assert.equal(gameplayState.getStageMinimumAccuracy(bossWave1, bossConfig.lesson, bossConfig.worldId), 90);
+  const bossW1Plan = gameplayState.createStageTypingPlan(bossWave1);
+  assert.equal(bossW1Plan.units.length, 33);
+  const bossW1Val = typingPlanMod.validateStageTypingPlan(bossWave1);
+  assert.equal(bossW1Val.valid, true);
+
+  // Wave 2: w1-boss-s2 (kind: boss)
+  assert.equal(bossWave2.id, 'w1-boss-s2');
+  assert.equal(bossWave2.kind, 'boss');
+  assert.equal(gameplayState.getStageMinimumAccuracy(bossWave2, bossConfig.lesson, bossConfig.worldId), 92);
+  const bossW2Plan = gameplayState.createStageTypingPlan(bossWave2);
+  assert.equal(bossW2Plan.units.length, 36);
+  const bossW2Val = typingPlanMod.validateStageTypingPlan(bossWave2);
+  assert.equal(bossW2Val.valid, true);
+
+  // Wave 3: w1-boss-s3 (kind: boss)
+  assert.equal(bossWave3.id, 'w1-boss-s3');
+  assert.equal(bossWave3.kind, 'boss');
+  assert.equal(gameplayState.getStageMinimumAccuracy(bossWave3, bossConfig.lesson, bossConfig.worldId), 92);
+  const bossW3Plan = gameplayState.createStageTypingPlan(bossWave3);
+  assert.equal(bossW3Plan.units.length, 82);
+  const bossW3Val = typingPlanMod.validateStageTypingPlan(bossWave3);
+  assert.equal(bossW3Val.valid, true);
+
+  // Boss 3-Wave Battle Progression & Shattering Shield Mechanics
+  const bossW1Pass = gameplayState.computeStageMetrics(bossW1Plan.units, 33, 2, 0, 31, 22000, bossWave1, bossConfig.lesson, 1);
+  assert.ok(bossW1Pass.accuracy >= 90);
+  assert.equal(gameplayState.shouldUnlockStage(bossW1Pass), true);
+  const bossW1Fail = gameplayState.computeStageMetrics(bossW1Plan.units, 33, 6, 0, 26, 22000, bossWave1, bossConfig.lesson, 1);
+  assert.ok(bossW1Fail.accuracy < 90);
+  assert.equal(gameplayState.shouldUnlockStage(bossW1Fail), false);
+
+  let bossStates = gameplayState.createInitialStageProgressStates(bossConfig.stages);
+  const bossSess1 = { ...gameplayState.createTypingSessionState(1), completedCount: 33, incorrectCount: 1, bestStreak: 31, finished: true };
+  bossStates = gameplayState.recordStageAttemptResult(bossStates, 0, bossW1Pass, bossSess1, bossW1Plan.units, 22000, 'open');
+
+  const bossW2Pass = gameplayState.computeStageMetrics(bossW2Plan.units, 36, 1, 0, 35, 25000, bossWave2, bossConfig.lesson, 1);
+  const bossSess2 = { ...gameplayState.createTypingSessionState(2), completedCount: 36, incorrectCount: 1, bestStreak: 35, finished: true };
+  bossStates = gameplayState.recordStageAttemptResult(bossStates, 1, bossW2Pass, bossSess2, bossW2Plan.units, 25000, 'open');
+
+  const bossW3Pass = gameplayState.computeStageMetrics(bossW3Plan.units, 82, 2, 0, 80, 55000, bossWave3, bossConfig.lesson, 1);
+  const bossSess3 = { ...gameplayState.createTypingSessionState(3), completedCount: 82, incorrectCount: 2, bestStreak: 80, finished: true };
+  bossStates = gameplayState.recordStageAttemptResult(bossStates, 2, bossW3Pass, bossSess3, bossW3Plan.units, 55000, 'open');
+
+  assert.equal(gameplayState.areAllStagesCompleted(bossStates), true);
+  const bossFinalMetrics = gameplayState.computeFinalLessonMetrics(bossStates, bossConfig.lesson, 1);
+  assert.equal(bossFinalMetrics.passed, true);
+  assert.equal(bossFinalMetrics.totalRequiredInputs, 33 + 36 + 82);
+  assert.ok(bossFinalMetrics.accuracy >= 92);
+
+  // =========================================================================
+  // TASK 7C.0: GAMEPLAY VARIETY & PILOT EXPERIENCES (LEVELS 1, 3, 5)
+  // =========================================================================
+  const expConfigMod = await server.ssrLoadModule('/src/features/three-game/config/lessonExperienceConfig.ts');
+  const hudMod = await server.ssrLoadModule('/src/features/three-game/components/ExplorationHud.tsx');
+  const ExplorationHud = hudMod.default;
+
+  // 1. Experience support detection across all World 1 lessons
+  for (let i = 1; i <= 8; i++) {
+    assert.equal(expConfigMod.isCustomExperienceSupported(i), true, `Level ${i} must have custom experience support`);
+  }
+  assert.equal(expConfigMod.isCustomExperienceSupported('boss'), true, 'Boss must have custom experience support');
+  assert.equal(expConfigMod.isCustomExperienceSupported(99), false, 'Non-existent level 99 must not have custom experience');
+
+  // Pilot experiences subset check
+  assert.equal(expConfigMod.isPilotExperience(1), true);
+  assert.equal(expConfigMod.isPilotExperience(3), true);
+  assert.equal(expConfigMod.isPilotExperience(5), true);
+
+  // 2. Level 1: Ancient Finger Sanctuary configuration
+  const expL1 = expConfigMod.getLessonExperienceConfig(1);
+  assert.equal(expL1.experienceType, 'finger-sanctuary');
+  assert.equal(expL1.stations.length, 3);
+  assert.deepEqual(expL1.initialPlayerPosition, [0, 0, -4.5]);
+  assert.deepEqual(expL1.stations[0].position, [3.2, 0, -1.0]);
+  assert.deepEqual(expL1.stations[1].position, [-3.2, 0, -1.0]);
+  assert.deepEqual(expL1.stations[2].position, [0, 0, 4.5]);
+  assert.equal(expL1.stations[0].transformationType, 'awaken-stela');
+  assert.equal(expL1.stations[2].transformationType, 'open-mechanism');
+
+  // 3. Level 3: Angkor Twin Bridges configuration
+  const expL3 = expConfigMod.getLessonExperienceConfig(3);
+  assert.equal(expL3.experienceType, 'twin-bridges');
+  assert.equal(expL3.stations.length, 3);
+  assert.deepEqual(expL3.initialPlayerPosition, [0, 0, -5.5]);
+  assert.deepEqual(expL3.stations[0].position, [0, 0, 0.0]);
+  assert.deepEqual(expL3.stations[1].position, [0, 0, 10.5]);
+  assert.deepEqual(expL3.stations[2].position, [0, 0, 20.0]);
+  assert.equal(expL3.stations[0].transformationType, 'extend-bridge');
+  assert.equal(expL3.stations[2].transformationType, 'reveal-sanctuary');
+
+  // 4. Level 5: Climbing Temple Tower configuration (Vertical elevation)
+  const expL5 = expConfigMod.getLessonExperienceConfig(5);
+  assert.equal(expL5.experienceType, 'tower-climb');
+  assert.equal(expL5.stations.length, 3);
+  assert.deepEqual(expL5.initialPlayerPosition, [0, 0, -5.0]);
+  assert.deepEqual(expL5.stations[0].position, [0, 0, -1.0]); // Ground (Y=0)
+  assert.deepEqual(expL5.stations[1].position, [0, 2.2, 9.5]); // Terrace 1 (Y=2.2)
+  assert.deepEqual(expL5.stations[2].position, [0, 4.4, 20.0]); // High Overlook (Y=4.4)
+  assert.equal(expL5.stations[0].transformationType, 'raise-stairs');
+  assert.equal(expL5.stations[2].transformationType, 'reveal-sanctuary');
+
+  // 5. Verify remaining experience identities (Level 2, 4, 6, 7, 8, Boss)
+  assert.equal(expConfigMod.getLessonExperienceConfig(2).experienceType, 'lotus-garden');
+  assert.equal(expConfigMod.getLessonExperienceConfig(4).experienceType, 'crossroads');
+  assert.equal(expConfigMod.getLessonExperienceConfig(6).experienceType, 'sky-platforms');
+  assert.equal(expConfigMod.getLessonExperienceConfig(7).experienceType, 'crystal-cave');
+  assert.equal(expConfigMod.getLessonExperienceConfig(8).experienceType, 'river-crossing');
+  assert.equal(expConfigMod.getLessonExperienceConfig('boss').experienceType, 'boss-encounter');
+
+  // 6. Exploration HUD SSR Integration for Lessons
+  const l1Curriculum = gameplayState.resolveThreeLessonConfig(1, 1);
+  const hudL1ExploringHtml = ReactDOMServer.renderToString(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ExplorationHud, {
+        isNearGate: false,
+        gateStatus: 'closed',
+        lessonTitleKh: l1Curriculum.lesson.labelKh,
+        lessonTitleEn: l1Curriculum.lesson.labelEn,
+        stages: l1Curriculum.stages,
+        stageStates: gameplayState.createInitialStageProgressStates(l1Curriculum.stages),
+        activeStageIndex: 0,
+        lessonId: 1,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudL1ExploringHtml.includes('ដើរទៅអាសនៈខាងកើត'), 'HUD must show East Altar mission prompt in Khmer');
+  assert.ok(hudL1ExploringHtml.includes('Walk to the East Altar'), 'HUD must show East Altar mission prompt in English');
+
+  const hudL1NearHtml = ReactDOMServer.renderToString(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ExplorationHud, {
+        isNearGate: true,
+        gateStatus: 'closed',
+        lessonTitleKh: l1Curriculum.lesson.labelKh,
+        lessonTitleEn: l1Curriculum.lesson.labelEn,
+        stages: l1Curriculum.stages,
+        stageStates: gameplayState.createInitialStageProgressStates(l1Curriculum.stages),
+        activeStageIndex: 0,
+        lessonId: 1,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudL1NearHtml.includes('អាសនៈខាងកើត'), 'HUD near station must display station title');
+
+  const l2Curriculum = gameplayState.resolveThreeLessonConfig(1, 2);
+  const hudL2ExploringHtml = ReactDOMServer.renderToString(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ExplorationHud, {
+        isNearGate: false,
+        gateStatus: 'closed',
+        lessonTitleKh: l2Curriculum.lesson.labelKh,
+        lessonTitleEn: l2Curriculum.lesson.labelEn,
+        stages: l2Curriculum.stages,
+        stageStates: gameplayState.createInitialStageProgressStates(l2Curriculum.stages),
+        activeStageIndex: 0,
+        lessonId: 2,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudL2ExploringHtml.includes('ដើរទៅមាត់ស្រះ'), 'HUD L2 must show Lotus Pond mission prompt');
+
+  const l4Curriculum = gameplayState.resolveThreeLessonConfig(1, 4);
+  const hudL4ExploringHtml = ReactDOMServer.renderToString(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ExplorationHud, {
+        isNearGate: false,
+        gateStatus: 'closed',
+        lessonTitleKh: l4Curriculum.lesson.labelKh,
+        lessonTitleEn: l4Curriculum.lesson.labelEn,
+        stages: l4Curriculum.stages,
+        stageStates: gameplayState.createInitialStageProgressStates(l4Curriculum.stages),
+        activeStageIndex: 0,
+        lessonId: 4,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudL4ExploringHtml.includes('ប្រសព្វផ្លូវព្រៃ'), 'HUD L4 must show Crossroads junction mission prompt');
+
+  const l5Curriculum = gameplayState.resolveThreeLessonConfig(1, 5);
+  const hudL5ExploringHtml = ReactDOMServer.renderToString(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ExplorationHud, {
+        isNearGate: false,
+        gateStatus: 'closed',
+        lessonTitleKh: l5Curriculum.lesson.labelKh,
+        lessonTitleEn: l5Curriculum.lesson.labelEn,
+        stages: l5Curriculum.stages,
+        stageStates: gameplayState.createInitialStageProgressStates(l5Curriculum.stages),
+        activeStageIndex: 0,
+        lessonId: 5,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudL5ExploringHtml.includes('ដើរទៅជើងជណ្តើរប្រាសាទ'), 'HUD L5 must show staircase mission prompt');
+  assert.ok(hudL5ExploringHtml.includes('raise the first flight of stone steps'), 'HUD L5 must show staircase mission in English');
 
 
 } finally {

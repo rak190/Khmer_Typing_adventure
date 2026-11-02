@@ -7,6 +7,7 @@ import type { FoundationPracticeSummary } from '../data/touchTypingFoundations';
 export const CURRICULUM_VERSION = 'khmer-touch-typing-v2';
 export const LEGACY_CURRICULUM_VERSION = 'khmer-first-5.5-v1';
 export const SUPPORTED_CURRICULUM_VERSIONS = [CURRICULUM_VERSION, LEGACY_CURRICULUM_VERSION] as const;
+export const ALLOWED_THREE_LESSONS = ['1:1', '1:2', '1:3', '1:4', '1:5', '1:6', '1:7', '1:8', '1:boss'] as const;
 export type AttemptMetrics = { accuracy: number; cpm: number; score: number; stars: number; mistakes: number; backspaces: number; elapsedSeconds: number; passed: boolean };
 export type LessonAttempt = {
   attemptId: string;
@@ -48,7 +49,7 @@ export function validateLessonAttempt(input: LessonAttempt) {
   const identity = resolveLessonIdentity(input.lessonId);
   if (!['2d','3d','foundation'].includes(input.mode) || !['physical-key','unicode-output','mixed'].includes(input.category)) throw new Error('Invalid mode');
   if ((identity.worldId === 0) !== (input.mode === 'foundation')) throw new Error('Foundation identity mismatch');
-  if (input.mode === '3d' && !['1:1', '1:2', '1:3', '1:4', '1:5'].includes(identity.id)) throw new Error('Unsupported 3D lesson');
+  if (input.mode === '3d' && !(ALLOWED_THREE_LESSONS as readonly string[]).includes(identity.id)) throw new Error('Unsupported 3D lesson');
   if (!Number.isFinite(Date.parse(input.completedAt))) throw new Error('Invalid completion time');
   const m = input.metrics;
   if (!m || Object.keys(m).sort().join() !== ['accuracy','cpm','score','stars','mistakes','backspaces','elapsedSeconds','passed'].sort().join()) throw new Error('Invalid metrics');

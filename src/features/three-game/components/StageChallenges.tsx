@@ -18,7 +18,7 @@ type StageBarrierProps = {
   completedCount?: number;
   incorrectCount?: number;
   onOpeningFinished?: () => void;
-  lessonId?: number;
+  lessonId?: number | 'boss';
   stageId?: string;
 };
 
@@ -834,6 +834,247 @@ function CarefulPairsTwinLanterns({
  * Barrier 2: Cruciform Inner Terrace Gopura (គោបុរៈថ្នាក់កណ្តាល រាងកាកបាទ) at Z = 16
  * Elevated terrace, guardian Singha lions, bas-relief gallery wings and sliding carved monoliths
  */
+
+/**
+ * Lesson 6 Stage 2: Upper Rune Wheel Chamber
+ */
+function UpperRuneWheelChamber({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const wheelRef = useRef<THREE.Group>(null);
+  useFrame((state, delta) => {
+    if (wheelRef.current) {
+      wheelRef.current.rotation.y += delta * (isUnlocked ? 0.8 : 0.25 + streak * 0.05);
+    }
+  });
+
+  return (
+    <group position={[0, 2.2, 14.5]}>
+      <group ref={wheelRef}>
+        <mesh>
+          <torusGeometry args={[1.5, 0.08, 12, 32]} />
+          <meshStandardMaterial
+            color="#FBBF24"
+            emissive="#D97706"
+            emissiveIntensity={isUnlocked ? 1.5 : 0.8 + Math.min(streak * 0.05, 0.5)}
+          />
+        </mesh>
+        {Array.from({ length: 6 }).map((_, i) => {
+          const ang = (i / 6) * Math.PI * 2;
+          const activeSpoke = isUnlocked || completedCount > i * 4;
+          return (
+            <mesh key={`spoke-${i}`} position={[Math.cos(ang) * 1.5, Math.sin(ang) * 1.5, 0]}>
+              <octahedronGeometry args={[0.16]} />
+              <meshBasicMaterial color={activeSpoke ? '#38BDF8' : '#64748B'} />
+            </mesh>
+          );
+        })}
+      </group>
+    </group>
+  );
+}
+
+/**
+ * Lesson 7 Stage 2: Lower Reach Braziers
+ */
+function LowerReachBraziers({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const braziers = [-1.8, -0.9, 0.9, 1.8];
+  return (
+    <group position={[0, 0, 14.5]}>
+      {braziers.map((x, i) => {
+        const passed = isUnlocked || completedCount > i * 6;
+        return (
+          <group key={`lower-brazier-${i}`} position={[x, 0.5, 0]}>
+            <mesh castShadow>
+              <cylinderGeometry args={[0.2, 0.3, 0.8, 8]} />
+              <meshStandardMaterial color="#334155" roughness={0.7} />
+            </mesh>
+            <mesh position={[0, 0.5, 0]}>
+              <sphereGeometry args={[0.15, 8, 8]} />
+              <meshStandardMaterial
+                color={passed ? '#10B981' : '#F59E0B'}
+                emissive={passed ? '#059669' : '#D97706'}
+                emissiveIntensity={passed ? 1.5 + Math.min(streak * 0.05, 0.6) : 0.6}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+/**
+ * Lesson 8 Stage 2: Khan Punctuation Lanterns
+ */
+function KhanPunctuationLanterns({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const lanterns = [-1.6, 1.6];
+  return (
+    <group position={[0, 0, 14.5]}>
+      {lanterns.map((x, i) => {
+        return (
+          <group key={`khan-lantern-${i}`} position={[x, 0.8, 0]}>
+            <mesh castShadow>
+              <cylinderGeometry args={[0.25, 0.35, 1.4, 8]} />
+              <meshStandardMaterial color="#1E293B" roughness={0.8} />
+            </mesh>
+            <mesh position={[0, 0.9, 0]}>
+              <octahedronGeometry args={[0.28]} />
+              <meshStandardMaterial
+                color={isUnlocked ? '#A855F7' : '#F59E0B'}
+                emissive={isUnlocked ? '#9333EA' : '#D97706'}
+                emissiveIntensity={isUnlocked ? 1.8 : 0.9 + (completedCount % 5) * 0.15 + Math.min(streak * 0.05, 0.6)}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+/**
+ * Lesson 6 Stage 3: Angkor Upper Lotus Sanctuary
+ */
+function AngkorUpperLotusSanctuary({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const count = 8;
+  return (
+    <group position={[0, 0, 0]}>
+      {Array.from({ length: count }).map((_, i) => {
+        const passed = isUnlocked || completedCount > i * 3;
+        const side = i % 2 === 0 ? -1.65 : 1.65;
+        const z = 22.0 + Math.floor(i / 2) * 1.0;
+        return (
+          <group key={`upper-lotus-${i}`} position={[side, 0.4, z]}>
+            <mesh>
+              <cylinderGeometry args={[0.25, 0.35, 0.4, 8]} />
+              <meshStandardMaterial color="#5C4033" roughness={0.8} />
+            </mesh>
+            <mesh position={[0, 0.35, 0]}>
+              <coneGeometry args={[0.2, 0.3, 5]} />
+              <meshStandardMaterial
+                color={passed ? '#38BDF8' : '#64748B'}
+                emissive={passed ? '#0284C7' : '#000000'}
+                emissiveIntensity={passed ? 1.2 + Math.min(streak * 0.05, 0.6) : 0}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+/**
+ * Lesson 7 Stage 3: Sacred Lower Shrines
+ */
+function SacredLowerShrines({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const count = 6;
+  return (
+    <group position={[0, 0, 0]}>
+      {Array.from({ length: count }).map((_, i) => {
+        const passed = isUnlocked || completedCount > i * 4;
+        const side = i % 2 === 0 ? -1.7 : 1.7;
+        const z = 22.5 + Math.floor(i / 2) * 1.2;
+        return (
+          <group key={`lower-shrine-${i}`} position={[side, 0.6, z]}>
+            <mesh>
+              <boxGeometry args={[0.4, 1.0, 0.4]} />
+              <meshStandardMaterial color="#475569" roughness={0.8} />
+            </mesh>
+            <mesh position={[0, 0.65, 0]}>
+              <coneGeometry args={[0.25, 0.4, 4]} />
+              <meshStandardMaterial
+                color={passed ? '#10B981' : '#FBBF24'}
+                emissive={passed ? '#059669' : '#B45309'}
+                emissiveIntensity={passed ? 1.4 + Math.min(streak * 0.05, 0.6) : 0.3}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+/**
+ * Lesson 8 Stage 3: Complete Keyboard Avenue
+ */
+function CompleteKeyboardAvenue({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const count = 8;
+  return (
+    <group position={[0, 0, 0]}>
+      {Array.from({ length: count }).map((_, i) => {
+        const passed = isUnlocked || completedCount > i * 10;
+        const side = i % 2 === 0 ? -1.8 : 1.8;
+        const z = 21.5 + Math.floor(i / 2) * 1.1;
+        return (
+          <group key={`complete-avenue-${i}`} position={[side, 0.5, z]}>
+            <mesh>
+              <cylinderGeometry args={[0.2, 0.3, 0.9, 8]} />
+              <meshStandardMaterial color="#334155" roughness={0.8} />
+            </mesh>
+            <mesh position={[0, 0.6, 0]}>
+              <sphereGeometry args={[0.2, 12, 12]} />
+              <meshStandardMaterial
+                color={passed ? '#A855F7' : '#38BDF8'}
+                emissive={passed ? '#9333EA' : '#0284C7'}
+                emissiveIntensity={passed ? 1.8 + Math.min(streak * 0.05, 0.6) : 0.5}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
 function TwinStonesChallenge({
   stageIndex,
   status,
@@ -1230,6 +1471,33 @@ function TwinStonesChallenge({
       {/* Stage 2 Lesson 5: Around Vowels Concentric Rune Rings (ស្រៈជុំវិញ) */}
       {(stageId === 'w1-l5-s2' || (lessonId === 5 && (!stageId || stageId === 'w1-l5-s2'))) && (
         <AroundVowelsRuneRings
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
+
+      {/* Stage 2 Lesson 6: Upper Rune Wheel Chamber */}
+      {(stageId === 'w1-l6-s2' || (lessonId === 6 && (!stageId || stageId === 'w1-l6-s2'))) && (
+        <UpperRuneWheelChamber
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
+
+      {/* Stage 2 Lesson 7: Lower Reach Braziers */}
+      {(stageId === 'w1-l7-s2' || (lessonId === 7 && (!stageId || stageId === 'w1-l7-s2'))) && (
+        <LowerReachBraziers
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
+
+      {/* Stage 2 Lesson 8: Khan Punctuation Lanterns */}
+      {(stageId === 'w1-l8-s2' || (lessonId === 8 && (!stageId || stageId === 'w1-l8-s2'))) && (
+        <KhanPunctuationLanterns
           completedCount={completedCount}
           streak={streak}
           isUnlocked={status === 'open' || status === 'opening'}
@@ -1668,6 +1936,33 @@ function JunglePathChallenge({
       {/* Stage 3 Lesson 5: Light Words Temple Lanterns (ពាក្យពន្លឺ) */}
       {(stageId === 'w1-l5-s3' || (lessonId === 5 && (!stageId || stageId === 'w1-l5-s3'))) && (
         <LightWordsTempleLanterns
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
+
+      {/* Stage 3 Lesson 6: Angkor Upper Lotus Sanctuary */}
+      {(stageId === 'w1-l6-s3' || (lessonId === 6 && (!stageId || stageId === 'w1-l6-s3'))) && (
+        <AngkorUpperLotusSanctuary
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
+
+      {/* Stage 3 Lesson 7: Sacred Lower Shrines */}
+      {(stageId === 'w1-l7-s3' || (lessonId === 7 && (!stageId || stageId === 'w1-l7-s3'))) && (
+        <SacredLowerShrines
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
+
+      {/* Stage 3 Lesson 8: Complete Keyboard Avenue */}
+      {(stageId === 'w1-l8-s3' || (lessonId === 8 && (!stageId || stageId === 'w1-l8-s3'))) && (
+        <CompleteKeyboardAvenue
           completedCount={completedCount}
           streak={streak}
           isUnlocked={status === 'open' || status === 'opening'}
@@ -2126,9 +2421,10 @@ type StageChallengesProps = {
   completedCount?: number;
   incorrectCount?: number;
   onStageOpeningFinished?: (stageIndex: number) => void;
-  lessonId?: number;
+  lessonId?: number | 'boss';
   stageId?: string;
 };
+
 
 export default function StageChallenges({
   stageStatuses,

@@ -9,7 +9,7 @@ import { lessonCurriculum, type CurriculumLevel } from './lessonCurriculum';
 import { foundationHomeRowLesson } from './touchTypingFoundations';
 
 // Curriculum data alone does not imply a finished 3D environment.
-const supportedThreeLessons = new Set(['1:1', '1:2', '1:3', '1:4', '1:5']);
+const supportedThreeLessons = new Set(['1:1', '1:2', '1:3', '1:4', '1:5', '1:6', '1:7', '1:8', '1:boss']);
 
 export function isThreeLessonSupported(worldId: number, lessonId: AdventureNodeId): boolean {
   const world = lessonCurriculum.find((item) => item.id === worldId);

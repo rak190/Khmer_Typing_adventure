@@ -9,7 +9,10 @@ import {
   computeMovementDelta,
   isPositionNearStage,
 } from '../systems/gameplayState';
+import { getLessonExperienceConfig, isCustomExperienceSupported } from '../config/lessonExperienceConfig';
+import type { AdventureNodeId } from '../../../data/adventureWorlds';
 import type { GameMode, GateStatus, Position3D } from '../types';
+import { gameAudio } from '../../../lib/audio/gameAudio';
 
 type CharacterProps = {
   positionRef: MutableRefObject<Position3D>;
@@ -22,6 +25,7 @@ type CharacterProps = {
   completedCount?: number;
   incorrectCount?: number;
   onNearGateChange: (isNear: boolean) => void;
+  lessonId?: AdventureNodeId;
 };
 
 const MOVE_SPEED = 5.8;
@@ -88,6 +92,7 @@ export default function Character({
   completedCount = 0,
   incorrectCount = 0,
   onNearGateChange,
+  lessonId,
 }: CharacterProps) {
   const groupRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Group>(null);
@@ -189,23 +194,83 @@ export default function Character({
     const targetBlend = isMoving ? 1.0 : 0.0;
     moveBlendRef.current = THREE.MathUtils.lerp(moveBlendRef.current, targetBlend, Math.min(1, dt * 12));
 
+    const isSprinting = Boolean(movement.sprint);
+    const speed = isSprinting ? 8.8 : MOVE_SPEED;
+
     if (isMoving) {
-      curX += dirX * MOVE_SPEED * dt;
-      curZ += dirZ * MOVE_SPEED * dt;
+      curX += dirX * speed * dt;
+      curZ += dirZ * speed * dt;
       targetRotationRef.current = targetRotation;
-      walkCycleRef.current += dt * 11.5;
+      walkCycleRef.current += dt * (isSprinting ? 16.5 : 11.5);
+      gameAudio.playFootstep(isSprinting);
     } else if (mode === 'typing' || mode === 'opening') {
       // Face toward the temple gate/altar (+Z) during typing or gate opening
       targetRotationRef.current = 0;
     }
 
-    // Always enforce courtyard & multi-stage barrier collision bounds
-    const [clampedX, clampedZ] =
-      stageStatuses && stageStatuses.length > 0
-        ? clampMultiStageCharacterPosition(curX, curZ, stageStatuses)
-        : clampCharacterPosition(curX, curZ, gateStatus);
+    // 1. Collision & exploration bounds
+    let clampedX = curX;
+    let clampedZ = curZ;
+
+    const isCustomExp = isCustomExperienceSupported(lessonId);
+    const expConfig = isCustomExp && lessonId ? getLessonExperienceConfig(lessonId) : null;
+
+    if (isCustomExp && expConfig && lessonId !== 'boss') {
+      if (lessonId === 1) {
+        clampedX = Math.max(-9.0, Math.min(9.0, curX));
+        const maxZ = stageStatuses?.[2] === 'open' ? 10.0 : 6.5;
+        clampedZ = Math.max(-7.0, Math.min(maxZ, curZ));
+      } else if (lessonId === 2) {
+        clampedX = Math.max(-4.5, Math.min(4.5, curX));
+        let maxZ = 2.5;
+        if (stageStatuses?.[0] === 'open') maxZ = 9.0;
+        if (stageStatuses?.[1] === 'open') maxZ = 16.0;
+        clampedZ = Math.max(-6.5, Math.min(maxZ, curZ));
+      } else if (lessonId === 4) {
+        clampedX = Math.max(-6.5, Math.min(6.5, curX));
+        let maxZ = 3.0;
+        if (stageStatuses?.[0] === 'open') maxZ = 14.0;
+        if (stageStatuses?.[1] === 'open') maxZ = 24.0;
+        clampedZ = Math.max(-6.5, Math.min(maxZ, curZ));
+      } else {
+        clampedX = Math.max(-4.0, Math.min(4.0, curX));
+        let maxZ = 3.0;
+        if (stageStatuses?.[0] === 'open') maxZ = 13.5;
+        if (stageStatuses?.[1] === 'open') maxZ = 24.0;
+        clampedZ = Math.max(-6.5, Math.min(maxZ, curZ));
+      }
+    } else {
+      [clampedX, clampedZ] =
+        lessonId === 'boss'
+          ? [Math.max(-8, Math.min(8, curX)), Math.max(18, Math.min(30.5, curZ))]
+          : stageStatuses && stageStatuses.length > 0
+          ? clampMultiStageCharacterPosition(curX, curZ, stageStatuses)
+          : clampCharacterPosition(curX, curZ, gateStatus);
+    }
+
+    // 2. Vertical elevation Y (smooth staircase climbing in Level 5)
+    let nextY = 0;
+    if (lessonId === 5) {
+      if (clampedZ <= 3.0) {
+        nextY = 0;
+      } else if (clampedZ < 7.0) {
+        // Flight 1 stairs: rise from 0 to 2.2
+        const progress = (clampedZ - 3.0) / 4.0;
+        nextY = THREE.MathUtils.lerp(0, 2.2, Math.max(0, Math.min(1, progress)));
+      } else if (clampedZ <= 14.0) {
+        nextY = 2.2;
+      } else if (clampedZ < 18.0) {
+        // Flight 2 stairs: rise from 2.2 to 4.4
+        const progress = (clampedZ - 14.0) / 4.0;
+        nextY = THREE.MathUtils.lerp(2.2, 4.4, Math.max(0, Math.min(1, progress)));
+      } else {
+        nextY = 4.4;
+      }
+    }
+    const targetY = THREE.MathUtils.lerp(curY, nextY, Math.min(1, dt * 10));
+
     positionRef.current[0] = clampedX;
-    positionRef.current[1] = curY;
+    positionRef.current[1] = targetY;
     positionRef.current[2] = clampedZ;
 
     // Smoothly rotate character toward movement heading
@@ -217,7 +282,7 @@ export default function Character({
     const turnBank = isMoving ? THREE.MathUtils.clamp(-angleDiff * 0.16, -0.14, 0.14) : 0;
 
     if (groupRef.current) {
-      groupRef.current.position.set(clampedX, curY, clampedZ);
+      groupRef.current.position.set(clampedX, targetY, clampedZ);
       groupRef.current.rotation.y = currentRotationRef.current;
     }
 
@@ -226,7 +291,21 @@ export default function Character({
       lastStageIndexRef.current = activeStageIndex;
       lastNearGateRef.current = null;
     }
-    const nearGate = isPositionNearStage(clampedX, clampedZ, activeStageIndex, stageStatuses?.length ?? 3);
+
+    let nearGate = false;
+    if (isCustomExp && expConfig && lessonId !== 'boss') {
+      const station = expConfig.stations[activeStageIndex];
+      if (station) {
+        const dist = Math.hypot(clampedX - station.position[0], clampedZ - station.position[2]);
+        nearGate = dist <= (station.interactionRadius ?? 3.5);
+      }
+    } else {
+      nearGate =
+        lessonId === 'boss'
+          ? Math.hypot(clampedX - 0, clampedZ - 32.5) <= 10.5
+          : isPositionNearStage(clampedX, clampedZ, activeStageIndex, stageStatuses?.length ?? 3);
+    }
+
     if (lastNearGateRef.current !== nearGate) {
       lastNearGateRef.current = nearGate;
       onNearGateChange(nearGate);
@@ -649,6 +728,19 @@ export default function Character({
           opacity={mode === 'typing' ? 0.65 : 0.32}
         />
       </mesh>
+      {mode === 'typing' && (
+        <group position={[0, 1.25, 0.4]}>
+          <mesh position={[-0.22, 0, 0]}>
+            <sphereGeometry args={[0.045, 8, 8]} />
+            <meshBasicMaterial color="#38BDF8" transparent opacity={0.85} />
+          </mesh>
+          <mesh position={[0.22, 0, 0]}>
+            <sphereGeometry args={[0.045, 8, 8]} />
+            <meshBasicMaterial color="#38BDF8" transparent opacity={0.85} />
+          </mesh>
+          <pointLight color="#38BDF8" intensity={1.5} distance={1.8} />
+        </group>
+      )}
 
       {/* Skinned Armature Mesh (smooth bending joints, elbows, knees, spine, cape) */}
       {rigObject ? (
