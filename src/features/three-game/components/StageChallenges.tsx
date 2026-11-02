@@ -1208,6 +1208,33 @@ function TwinStonesChallenge({
           isUnlocked={status === 'open' || status === 'opening'}
         />
       )}
+
+      {/* Stage 2 Lesson 3: Letter Rhythm Gems (ចង្វាក់អក្សរ) */}
+      {(stageId === 'w1-l3-s2' || (lessonId === 3 && (!stageId || stageId === 'w1-l3-s2'))) && (
+        <LetterRhythmGems
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
+
+      {/* Stage 2 Lesson 4: Vowel Switch Stone Wheel (ស្រៈប្តូរ) */}
+      {(stageId === 'w1-l4-s2' || (lessonId === 4 && (!stageId || stageId === 'w1-l4-s2'))) && (
+        <VowelSwitchStoneWheel
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
+
+      {/* Stage 2 Lesson 5: Around Vowels Concentric Rune Rings (ស្រៈជុំវិញ) */}
+      {(stageId === 'w1-l5-s2' || (lessonId === 5 && (!stageId || stageId === 'w1-l5-s2'))) && (
+        <AroundVowelsRuneRings
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
     </group>
   );
 }
@@ -1619,6 +1646,33 @@ function JunglePathChallenge({
           isUnlocked={status === 'open' || status === 'opening'}
         />
       )}
+
+      {/* Stage 3 Lesson 3: First Words Lotus Collectibles (ពាក្យដំបូង) */}
+      {(stageId === 'w1-l3-s3' || (lessonId === 3 && (!stageId || stageId === 'w1-l3-s3'))) && (
+        <FirstWordsLotusCollectibles
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
+
+      {/* Stage 3 Lesson 4: Tiny Words Lotus Accumulator (កូនពាក្យ) */}
+      {(stageId === 'w1-l4-s3' || (lessonId === 4 && (!stageId || stageId === 'w1-l4-s3'))) && (
+        <TinyWordsLotusAccumulator
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
+
+      {/* Stage 3 Lesson 5: Light Words Temple Lanterns (ពាក្យពន្លឺ) */}
+      {(stageId === 'w1-l5-s3' || (lessonId === 5 && (!stageId || stageId === 'w1-l5-s3'))) && (
+        <LightWordsTempleLanterns
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={status === 'open' || status === 'opening'}
+        />
+      )}
     </group>
   );
 }
@@ -1701,6 +1755,366 @@ function InnerBakanSanctuaryForecourt() {
           </mesh>
         </group>
       ))}
+    </group>
+  );
+}
+
+
+/**
+ * Stage 2 Lesson 3: Letter Rhythm Gems (ចង្វាក់អក្សរ)
+ * Array of 10 floating rhythm crystals along balustrades pulsing with cyan/gold as pairs are completed
+ */
+function LetterRhythmGems({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const gemPositions = useMemo(
+    () => [
+      [-2.6, 1.2, -3.2],
+      [-2.6, 1.2, -2.4],
+      [-2.6, 1.2, -1.6],
+      [-2.6, 1.2, -0.8],
+      [-2.6, 1.2, 0.0],
+      [2.6, 1.2, -3.2],
+      [2.6, 1.2, -2.4],
+      [2.6, 1.2, -1.6],
+      [2.6, 1.2, -0.8],
+      [2.6, 1.2, 0.0],
+    ],
+    [],
+  );
+
+  return (
+    <group>
+      {gemPositions.map((pos, idx) => {
+        const isLit = isUnlocked || completedCount > idx * 2.2;
+        const isCurrent = !isUnlocked && completedCount >= idx * 2.2 && completedCount < (idx + 1) * 2.2;
+        const color = isLit ? '#38BDF8' : isCurrent ? '#F59E0B' : '#475569';
+        const emissive = isLit ? '#0284C7' : isCurrent ? '#D97706' : '#0F172A';
+
+        return (
+          <group key={`rhythm-gem-${idx}`} position={pos as [number, number, number]}>
+            <mesh position={[0, -0.4, 0]} castShadow>
+              <cylinderGeometry args={[0.22, 0.28, 0.8, 8]} />
+              <meshStandardMaterial color="#684E34" roughness={0.9} />
+            </mesh>
+            <mesh position={[0, 0.15, 0]}>
+              <octahedronGeometry args={[0.22, 0]} />
+              <meshStandardMaterial
+                color={color}
+                emissive={emissive}
+                emissiveIntensity={isLit ? 1.8 + Math.min(streak * 0.1, 0.8) : isCurrent ? 1.0 : 0.1}
+                roughness={0.15}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+/**
+ * Stage 2 Lesson 4: Vowel Switch Stone Wheel (ស្រៈប្តូរ)
+ * An ancient rotating stone sun wheel with carved spoke apertures that align and glow as vowels switch
+ */
+function VowelSwitchStoneWheel({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const wheelRef = useRef<THREE.Group>(null);
+  const spokeGlowRef = useRef<THREE.MeshStandardMaterial>(null);
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (wheelRef.current) {
+      wheelRef.current.rotation.z = completedCount * 0.25 + Math.sin(t * 1.5) * 0.05;
+    }
+    if (spokeGlowRef.current) {
+      spokeGlowRef.current.emissiveIntensity =
+        (isUnlocked ? 1.9 : 0.9 + Math.min(completedCount * 0.04, 0.9)) +
+        Math.sin(t * 3.5) * 0.25;
+    }
+  });
+
+  return (
+    <group position={[0, 1.8, -1.2]}>
+      <mesh position={[0, -0.9, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.25, 0.38, 1.8, 12]} />
+        <meshStandardMaterial color="#684E34" roughness={0.9} />
+      </mesh>
+      <group ref={wheelRef}>
+        <mesh castShadow>
+          <torusGeometry args={[0.95, 0.14, 12, 24]} />
+          <meshStandardMaterial color="#7D6145" roughness={0.82} />
+        </mesh>
+        {[0, 1, 2].map((sIdx) => (
+          <mesh key={`spoke-${sIdx}`} rotation={[0, 0, (sIdx * Math.PI) / 3]}>
+            <boxGeometry args={[1.75, 0.1, 0.12]} />
+            <meshStandardMaterial color="#92400E" roughness={0.7} />
+          </mesh>
+        ))}
+        <mesh>
+          <cylinderGeometry args={[0.32, 0.32, 0.22, 16]} />
+          <meshStandardMaterial
+            ref={spokeGlowRef}
+            color={isUnlocked ? '#10B981' : '#F59E0B'}
+            emissive={isUnlocked ? '#059669' : '#D97706'}
+            emissiveIntensity={isUnlocked ? 1.8 : 1.1 + Math.min(streak * 0.1, 0.6)}
+            roughness={0.2}
+          />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+/**
+ * Stage 2 Lesson 5: Around Vowels Concentric Rune Rings (ស្រៈជុំវិញ)
+ * Triple concentric glowing celestial rune rings orbiting above the altar
+ */
+function AroundVowelsRuneRings({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const ring1Ref = useRef<THREE.Mesh>(null);
+  const ring2Ref = useRef<THREE.Mesh>(null);
+  const ring3Ref = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (ring1Ref.current) ring1Ref.current.rotation.z = t * 0.7;
+    if (ring2Ref.current) ring2Ref.current.rotation.z = -t * 0.9;
+    if (ring3Ref.current) ring3Ref.current.rotation.z = t * 1.2;
+  });
+
+  const glowColor = isUnlocked ? '#34D399' : '#FBBF24';
+  const emissiveColor = isUnlocked ? '#10B981' : '#D97706';
+  const intensity = isUnlocked ? 1.8 : 0.9 + Math.min(completedCount * 0.04, 0.9);
+
+  return (
+    <group position={[0, 1.85, -2.4]}>
+      <mesh ref={ring1Ref}>
+        <ringGeometry args={[0.62, 0.72, 24]} />
+        <meshStandardMaterial
+          color={glowColor}
+          emissive={emissiveColor}
+          emissiveIntensity={intensity + Math.min(streak * 0.08, 0.6)}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh ref={ring2Ref}>
+        <ringGeometry args={[0.82, 0.92, 24]} />
+        <meshStandardMaterial
+          color={glowColor}
+          emissive={emissiveColor}
+          emissiveIntensity={intensity * 0.9}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh ref={ring3Ref}>
+        <ringGeometry args={[1.02, 1.12, 24]} />
+        <meshStandardMaterial
+          color={glowColor}
+          emissive={emissiveColor}
+          emissiveIntensity={intensity * 0.8}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Stage 3 Lesson 3: First Words Lotus Collectibles (ពាក្យដំបូង)
+ * 8 blooming lotus collectibles floating along the sanctuary path approach
+ */
+function FirstWordsLotusCollectibles({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const lotusPositions = useMemo(
+    () => [
+      [-1.4, 0.25, -2.8],
+      [1.4, 0.25, -2.0],
+      [-1.4, 0.25, -1.2],
+      [1.4, 0.25, -0.4],
+      [-1.4, 0.25, 0.4],
+      [1.4, 0.25, 1.2],
+      [-1.4, 0.25, 2.0],
+      [1.4, 0.25, 2.8],
+    ],
+    [],
+  );
+
+  return (
+    <group>
+      {lotusPositions.map((pos, idx) => {
+        const isBloom = isUnlocked || completedCount > idx * 3;
+        const color = isBloom ? '#38BDF8' : '#684E34';
+        const emissive = isBloom ? '#0284C7' : '#000000';
+
+        return (
+          <group key={`lotus-c-${idx}`} position={pos as [number, number, number]}>
+            <mesh position={[0, -0.15, 0]} castShadow>
+              <cylinderGeometry args={[0.26, 0.32, 0.3, 12]} />
+              <meshStandardMaterial color="#684E34" roughness={0.9} />
+            </mesh>
+            <mesh position={[0, 0.12, 0]}>
+              <octahedronGeometry args={[0.22, 0]} />
+              <meshStandardMaterial
+                color={color}
+                emissive={emissive}
+                emissiveIntensity={isBloom ? 1.7 + Math.min(streak * 0.1, 0.8) : 0}
+                roughness={0.2}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+/**
+ * Stage 3 Lesson 4: Tiny Words Lotus Accumulator (កូនពាក្យ)
+ * Clusters of radiant lotus blossoms along causeway borders blooming in sequence
+ */
+function TinyWordsLotusAccumulator({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const blooms = useMemo(
+    () => [
+      [-1.6, 0.2, -2.5],
+      [1.6, 0.2, -2.5],
+      [-1.6, 0.2, -1.0],
+      [1.6, 0.2, -1.0],
+      [-1.6, 0.2, 0.5],
+      [1.6, 0.2, 0.5],
+      [-1.6, 0.2, 2.0],
+      [1.6, 0.2, 2.0],
+    ],
+    [],
+  );
+
+  return (
+    <group>
+      {blooms.map((pos, idx) => {
+        const isBloom = isUnlocked || completedCount > idx * 5.2;
+        const color = isBloom ? '#34D399' : '#57422E';
+        const emissive = isBloom ? '#10B981' : '#000000';
+
+        return (
+          <group key={`tw-bloom-${idx}`} position={pos as [number, number, number]}>
+            <mesh position={[0, -0.1, 0]} castShadow>
+              <cylinderGeometry args={[0.28, 0.35, 0.22, 10]} />
+              <meshStandardMaterial color="#684E34" roughness={0.88} />
+            </mesh>
+            <mesh position={[0, 0.14, 0]}>
+              <dodecahedronGeometry args={[0.2, 0]} />
+              <meshStandardMaterial
+                color={color}
+                emissive={emissive}
+                emissiveIntensity={isBloom ? 1.6 + Math.min(streak * 0.1, 0.7) : 0}
+                roughness={0.25}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+/**
+ * Stage 3 Lesson 5: Light Words Temple Lanterns (ពាក្យពន្លឺ)
+ * 8 carved stone lanterns flanking the avenue that ignite with warm golden flame
+ */
+function LightWordsTempleLanterns({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const lanternPositions = useMemo(
+    () => [
+      [-1.85, 0, -2.7],
+      [1.85, 0, -2.7],
+      [-1.85, 0, -1.1],
+      [1.85, 0, -1.1],
+      [-1.85, 0, 0.5],
+      [1.85, 0, 0.5],
+      [-1.85, 0, 2.1],
+      [1.85, 0, 2.1],
+    ],
+    [],
+  );
+
+  return (
+    <group>
+      {lanternPositions.map((pos, idx) => {
+        const isLit = isUnlocked || completedCount > idx * 4.8;
+        const color = isLit ? '#FBBF24' : '#684E34';
+        const emissive = isLit ? '#D97706' : '#000000';
+
+        return (
+          <group key={`light-lan-${idx}`} position={pos as [number, number, number]}>
+            <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
+              <cylinderGeometry args={[0.28, 0.36, 0.7, 8]} />
+              <meshStandardMaterial color="#684E34" roughness={0.9} />
+            </mesh>
+            <mesh position={[0, 0.85, 0]} castShadow>
+              <boxGeometry args={[0.42, 0.42, 0.42]} />
+              <meshStandardMaterial color="#57422E" roughness={0.85} />
+            </mesh>
+            <mesh position={[0, 0.85, 0]}>
+              <boxGeometry args={[0.3, 0.3, 0.3]} />
+              <meshStandardMaterial
+                color={color}
+                emissive={emissive}
+                emissiveIntensity={isLit ? 1.8 + Math.min(streak * 0.1, 0.8) : 0}
+                roughness={0.2}
+              />
+            </mesh>
+            <mesh position={[0, 1.2, 0]} castShadow>
+              <coneGeometry args={[0.38, 0.32, 6]} />
+              <meshStandardMaterial color="#7D6145" roughness={0.7} />
+            </mesh>
+            {isLit && (
+              <pointLight position={[0, 0.9, 0]} color="#F59E0B" distance={3.5} intensity={1.2} />
+            )}
+          </group>
+        );
+      })}
     </group>
   );
 }
