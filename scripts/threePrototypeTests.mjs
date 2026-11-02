@@ -1679,6 +1679,118 @@ try {
   assert.equal(bossFinalMetrics.totalRequiredInputs, 33 + 36 + 82);
   assert.ok(bossFinalMetrics.accuracy >= 92);
 
+  // =========================================================================
+  // TASK 7C.0: GAMEPLAY VARIETY & PILOT EXPERIENCES (LEVELS 1, 3, 5)
+  // =========================================================================
+  const expConfigMod = await server.ssrLoadModule('/src/features/three-game/config/lessonExperienceConfig.ts');
+  const hudMod = await server.ssrLoadModule('/src/features/three-game/components/ExplorationHud.tsx');
+  const ExplorationHud = hudMod.default;
+
+  // 1. Pilot lesson detection
+  assert.equal(expConfigMod.isPilotExperience(1), true, 'Level 1 must be a pilot experience');
+  assert.equal(expConfigMod.isPilotExperience(3), true, 'Level 3 must be a pilot experience');
+  assert.equal(expConfigMod.isPilotExperience(5), true, 'Level 5 must be a pilot experience');
+  assert.equal(expConfigMod.isPilotExperience(2), false, 'Level 2 is not yet a pilot experience');
+  assert.equal(expConfigMod.isPilotExperience(4), false, 'Level 4 is not yet a pilot experience');
+  assert.equal(expConfigMod.isPilotExperience(6), false, 'Level 6 is not yet a pilot experience');
+  assert.equal(expConfigMod.isPilotExperience('boss'), false, 'Boss uses dedicated encounter');
+
+  // 2. Level 1: Ancient Finger Sanctuary configuration
+  const expL1 = expConfigMod.getLessonExperienceConfig(1);
+  assert.equal(expL1.experienceType, 'finger-sanctuary');
+  assert.equal(expL1.stations.length, 3);
+  assert.deepEqual(expL1.initialPlayerPosition, [0, 0, -4.5]);
+  assert.deepEqual(expL1.stations[0].position, [3.2, 0, -1.0]);
+  assert.deepEqual(expL1.stations[1].position, [-3.2, 0, -1.0]);
+  assert.deepEqual(expL1.stations[2].position, [0, 0, 4.5]);
+  assert.equal(expL1.stations[0].transformationType, 'awaken-stela');
+  assert.equal(expL1.stations[2].transformationType, 'open-mechanism');
+
+  // 3. Level 3: Angkor Twin Bridges configuration
+  const expL3 = expConfigMod.getLessonExperienceConfig(3);
+  assert.equal(expL3.experienceType, 'twin-bridges');
+  assert.equal(expL3.stations.length, 3);
+  assert.deepEqual(expL3.initialPlayerPosition, [0, 0, -5.5]);
+  assert.deepEqual(expL3.stations[0].position, [0, 0, 0.0]);
+  assert.deepEqual(expL3.stations[1].position, [0, 0, 10.5]);
+  assert.deepEqual(expL3.stations[2].position, [0, 0, 20.0]);
+  assert.equal(expL3.stations[0].transformationType, 'extend-bridge');
+  assert.equal(expL3.stations[2].transformationType, 'reveal-sanctuary');
+
+  // 4. Level 5: Climbing Temple Tower configuration (Vertical elevation)
+  const expL5 = expConfigMod.getLessonExperienceConfig(5);
+  assert.equal(expL5.experienceType, 'tower-climb');
+  assert.equal(expL5.stations.length, 3);
+  assert.deepEqual(expL5.initialPlayerPosition, [0, 0, -5.0]);
+  assert.deepEqual(expL5.stations[0].position, [0, 0, -1.0]); // Ground (Y=0)
+  assert.deepEqual(expL5.stations[1].position, [0, 2.2, 9.5]); // Terrace 1 (Y=2.2)
+  assert.deepEqual(expL5.stations[2].position, [0, 4.4, 20.0]); // High Overlook (Y=4.4)
+  assert.equal(expL5.stations[0].transformationType, 'raise-stairs');
+  assert.equal(expL5.stations[2].transformationType, 'reveal-sanctuary');
+
+  // 5. Exploration HUD SSR Integration for Pilot Lessons
+  const l1Curriculum = gameplayState.resolveThreeLessonConfig(1, 1);
+  const hudL1ExploringHtml = ReactDOMServer.renderToString(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ExplorationHud, {
+        isNearGate: false,
+        gateStatus: 'closed',
+        lessonTitleKh: l1Curriculum.lesson.labelKh,
+        lessonTitleEn: l1Curriculum.lesson.labelEn,
+        stages: l1Curriculum.stages,
+        stageStates: gameplayState.createInitialStageProgressStates(l1Curriculum.stages),
+        activeStageIndex: 0,
+        lessonId: 1,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudL1ExploringHtml.includes('ដើរទៅអាសនៈខាងកើត'), 'HUD must show East Altar mission prompt in Khmer');
+  assert.ok(hudL1ExploringHtml.includes('Walk to the East Altar'), 'HUD must show East Altar mission prompt in English');
+
+  const hudL1NearHtml = ReactDOMServer.renderToString(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ExplorationHud, {
+        isNearGate: true,
+        gateStatus: 'closed',
+        lessonTitleKh: l1Curriculum.lesson.labelKh,
+        lessonTitleEn: l1Curriculum.lesson.labelEn,
+        stages: l1Curriculum.stages,
+        stageStates: gameplayState.createInitialStageProgressStates(l1Curriculum.stages),
+        activeStageIndex: 0,
+        lessonId: 1,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudL1NearHtml.includes('អាសនៈខាងកើត'), 'HUD near station must display station title');
+
+  const l5Curriculum = gameplayState.resolveThreeLessonConfig(1, 5);
+  const hudL5ExploringHtml = ReactDOMServer.renderToString(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ExplorationHud, {
+        isNearGate: false,
+        gateStatus: 'closed',
+        lessonTitleKh: l5Curriculum.lesson.labelKh,
+        lessonTitleEn: l5Curriculum.lesson.labelEn,
+        stages: l5Curriculum.stages,
+        stageStates: gameplayState.createInitialStageProgressStates(l5Curriculum.stages),
+        activeStageIndex: 0,
+        lessonId: 5,
+        onStartTyping: () => {},
+      }),
+    ),
+  );
+  assert.ok(hudL5ExploringHtml.includes('ដើរទៅជើងជណ្តើរប្រាសាទ'), 'HUD L5 must show staircase mission prompt');
+  assert.ok(hudL5ExploringHtml.includes('raise the first flight of stone steps'), 'HUD L5 must show staircase mission in English');
+
+
 } finally {
   await server.close();
 }

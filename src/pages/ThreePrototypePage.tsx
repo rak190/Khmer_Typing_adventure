@@ -17,6 +17,7 @@ import TypingOverlay from '../features/three-game/components/TypingOverlay';
 import VictoryModal from '../features/three-game/components/VictoryModal';
 import { usePlayerControls } from '../features/three-game/hooks/usePlayerControls';
 import AncientGateScene from '../features/three-game/scenes/AncientGateScene';
+import { getLessonExperienceConfig, isPilotExperience } from '../features/three-game/config/lessonExperienceConfig';
 import {
   applyBackspaceInput,
   applyTypedInput,
@@ -121,21 +122,36 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     'saving' | 'saved' | 'pending-offline' | 'backend-unavailable' | 'save-failed' | 'local-demo' | 'idle'
   >('idle');
   const [mode, setMode] = useState<GameMode>('exploration');
-  const initialPlayerZ = isBossEncounter ? 24 : INITIAL_PLAYER_POSITION[2];
-  const playerPositionRef = useRef<Position3D>([0, 0, initialPlayerZ]);
+  const isPilotLesson = isPilotExperience(lesson.id);
+  const expConfig = useMemo(() => getLessonExperienceConfig(lesson.id), [lesson.id]);
+  const initialPlayerPos = useMemo<Position3D>(() => {
+    if (isBossEncounter) return [0, 0, 24];
+    if (isPilotLesson && expConfig) return [...expConfig.initialPlayerPosition];
+    return [0, 0, INITIAL_PLAYER_POSITION[2]];
+  }, [expConfig, isBossEncounter, isPilotLesson]);
+  const playerPositionRef = useRef<Position3D>(initialPlayerPos);
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [stageStates, setStageStates] = useState<StageProgressState[]>(() =>
     createInitialStageProgressStates(stages),
   );
-  const [isNearGate, setIsNearGate] = useState<boolean>(() =>
-    isBossEncounter ||
-    isPositionNearStage(
-      INITIAL_PLAYER_POSITION[0],
-      initialPlayerZ,
+  const [isNearGate, setIsNearGate] = useState<boolean>(() => {
+    if (isBossEncounter) return true;
+    if (isPilotLesson && expConfig) {
+      const st0 = expConfig.stations[0];
+      if (st0) {
+        return (
+          Math.hypot(initialPlayerPos[0] - st0.position[0], initialPlayerPos[2] - st0.position[2]) <=
+          (st0.interactionRadius ?? 3.5)
+        );
+      }
+    }
+    return isPositionNearStage(
+      initialPlayerPos[0],
+      initialPlayerPos[2],
       0,
       stages.length,
-    ),
-  );
+    );
+  });
   const [gateState, setGateState] = useState<GateState>(() => ({
     status: isBossEncounter ? 'open' : 'closed',
     openProgress: isBossEncounter ? 1 : 0,
@@ -634,6 +650,16 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       if (isBossEncounter) {
         playerPositionRef.current = [0, 0, 24];
         setIsNearGate(true);
+      } else if (isPilotLesson && expConfig) {
+        const nextStation = expConfig.stations[nextIdx];
+        if (nextStation) {
+          playerPositionRef.current = [
+            nextStation.position[0],
+            nextStation.position[1],
+            nextStation.position[2] - 1.2,
+          ];
+          setIsNearGate(true);
+        }
       } else {
         // Advance player along the temple causeway to the next stage's altar
         const nextAltarZ = getStageAltarPositionZ(nextIdx, stages.length) - 0.5;
@@ -644,19 +670,38 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     } else {
       if (isBossEncounter) {
         playerPositionRef.current = [0, 0, 26];
+      } else if (isPilotLesson && expConfig) {
+        const lastStation = expConfig.stations[expConfig.stations.length - 1];
+        if (lastStation) {
+          playerPositionRef.current = [
+            lastStation.position[0],
+            lastStation.position[1],
+            lastStation.position[2] + 2.0,
+          ];
+        }
       } else {
         const finalSanctuaryZ = getStagePositionZ(stages.length - 1, stages.length) + 2.5;
         playerPositionRef.current = [0, 0, finalSanctuaryZ];
       }
       setMode('completed');
     }
-  }, [activeStageIndex, isBossEncounter, stages.length, startStageTypingSession]);
+  }, [activeStageIndex, expConfig, isBossEncounter, isPilotLesson, stages.length, startStageTypingSession]);
 
   const handleRetryChallenge = useCallback(() => {
     setStageStates((prev) => setStageGateStatus(prev, activeStageIndex, 'closed'));
     if (isBossEncounter) {
       playerPositionRef.current = [0, 0, 24];
       setIsNearGate(true);
+    } else if (isPilotLesson && expConfig) {
+      const curStation = expConfig.stations[activeStageIndex];
+      if (curStation) {
+        playerPositionRef.current = [
+          curStation.position[0],
+          curStation.position[1],
+          curStation.position[2] - 1.2,
+        ];
+        setIsNearGate(true);
+      }
     } else {
       const barrierIdx = getStageBarrierIndex(activeStageIndex, stages.length);
       if (barrierIdx === 0 && doesStageUnlockPhysicalBarrier(activeStageIndex, stages.length)) {
@@ -670,7 +715,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     }
     startStageTypingSession(activeStageIndex);
     setMode('typing');
-  }, [activeStageIndex, isBossEncounter, stages.length, startStageTypingSession]);
+  }, [activeStageIndex, expConfig, isBossEncounter, isPilotLesson, stages.length, startStageTypingSession]);
 
   const handleReplayLesson = useCallback(() => {
     keyPracticeTrackerRef.current.reset();
@@ -686,13 +731,15 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     setIsDuplicateReward(false);
     if (isBossEncounter) {
       playerPositionRef.current = [0, 0, 24];
+    } else if (isPilotLesson && expConfig) {
+      playerPositionRef.current = [...expConfig.initialPlayerPosition];
     } else {
       playerPositionRef.current = [0, 0, getStageAltarPositionZ(0, stages.length) - 0.6];
     }
     setIsNearGate(true);
     startStageTypingSession(0);
     setMode('exploration');
-  }, [isBossEncounter, stages, startStageTypingSession]);
+  }, [expConfig, isBossEncounter, isPilotLesson, stages, startStageTypingSession]);
 
   const activeStageStatus = stageStates[activeStageIndex]?.status ?? gateState.status;
 
@@ -743,6 +790,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           allStagesCompleted={allCompleted}
           onStartTyping={handleStartTyping}
           onReplayLesson={handleReplayLesson}
+          lessonId={lesson.id}
         />
       )}
 

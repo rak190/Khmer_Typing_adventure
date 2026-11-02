@@ -7,6 +7,10 @@ import type { AdventureNodeId } from '../../../data/adventureWorlds';
 import StageChallenges from '../components/StageChallenges';
 import TempleGuardianBoss from '../components/TempleGuardianBoss';
 import ThirdPersonCamera from '../components/ThirdPersonCamera';
+import FingerSanctuaryExperience from '../components/experiences/FingerSanctuaryExperience';
+import TwinBridgesExperience from '../components/experiences/TwinBridgesExperience';
+import TempleTowerClimbExperience from '../components/experiences/TempleTowerClimbExperience';
+import { isPilotExperience } from '../config/lessonExperienceConfig';
 import type { MovementInput } from '../hooks/usePlayerControls';
 import { getStageBarrierIndex } from '../systems/gameplayState';
 import type { GameMode, GateState, GateStatus, Position3D } from '../types';
@@ -74,49 +78,83 @@ export default function AncientGateScene({
         completedCount={completedCount}
         incorrectCount={incorrectCount}
         onNearGateChange={onNearGateChange}
-      />
-
-      {/* Barrier 1: Ancient Angkor Stone Gate (ទ្វារអក្សរ / Glyph Gate at Z = 6) */}
-      <AncientStoneGate
-        gateState={gateState}
-        playerPositionRef={playerPositionRef}
-        streak={activeBarrierIndex === 0 ? streak : 0}
-        completedCount={activeBarrierIndex === 0 ? completedCount : 0}
-        incorrectCount={activeBarrierIndex === 0 ? incorrectCount : 0}
-        onOpeningFinished={() => {
-          onGateOpeningFinished();
-          onStageOpeningFinished?.(firstBarrierUnlockStageIndex);
-        }}
         lessonId={lessonId}
-        stageId={stageId}
-        totalStageUnits={totalStageUnits}
       />
 
-      {/* Barrier 2 (ថ្មភ្លោះ / Twin Stones at Z = 16) & Barrier 3 (ផ្លូវព្រៃ / Jungle Path at Z = 26) */}
-      <StageChallenges
-        stageStatuses={stageStatuses}
-        activeStageIndex={activeStageIndex}
-        streak={streak}
-        completedCount={completedCount}
-        incorrectCount={incorrectCount}
-        onStageOpeningFinished={onStageOpeningFinished}
-        lessonId={lessonId}
-        stageId={stageId}
-      />
-
-      {/* World 1 Boss: Temple Guardian (ម្ចាស់ប្រាសាទព្រៃ at Z = 32.5) */}
-      {lessonId === 'boss' && (
-        <TempleGuardianBoss
-          activeWaveIndex={activeStageIndex}
-          waveStatus={gateState.status}
-          isTypingMode={mode === 'typing'}
-          completedCount={completedCount}
+      {/* Pilot Custom Experiences */}
+      {lessonId === 1 && (
+        <FingerSanctuaryExperience
+          activeStageIndex={activeStageIndex}
+          stageStatuses={stageStatuses}
           streak={streak}
-          incorrectCount={incorrectCount}
-          isDefeated={mode === 'completed'}
-          onNearBossChange={onNearGateChange}
-          playerPositionRef={playerPositionRef}
+          completedCount={completedCount}
         />
+      )}
+
+      {lessonId === 3 && (
+        <TwinBridgesExperience
+          activeStageIndex={activeStageIndex}
+          stageStatuses={stageStatuses}
+          streak={streak}
+          completedCount={completedCount}
+        />
+      )}
+
+      {lessonId === 5 && (
+        <TempleTowerClimbExperience
+          activeStageIndex={activeStageIndex}
+          stageStatuses={stageStatuses}
+          streak={streak}
+          completedCount={completedCount}
+        />
+      )}
+
+      {/* Standard Causeway Barriers & Boss for Non-Pilot Lessons */}
+      {!isPilotExperience(lessonId) && (
+        <>
+          {/* Barrier 1: Ancient Angkor Stone Gate (ទ្វារអក្សរ / Glyph Gate at Z = 6) */}
+          <AncientStoneGate
+            gateState={gateState}
+            playerPositionRef={playerPositionRef}
+            streak={activeBarrierIndex === 0 ? streak : 0}
+            completedCount={activeBarrierIndex === 0 ? completedCount : 0}
+            incorrectCount={activeBarrierIndex === 0 ? incorrectCount : 0}
+            onOpeningFinished={() => {
+              onGateOpeningFinished();
+              onStageOpeningFinished?.(firstBarrierUnlockStageIndex);
+            }}
+            lessonId={lessonId}
+            stageId={stageId}
+            totalStageUnits={totalStageUnits}
+          />
+
+          {/* Barrier 2 (ថ្មភ្លោះ / Twin Stones at Z = 16) & Barrier 3 (ផ្លូវព្រៃ / Jungle Path at Z = 26) */}
+          <StageChallenges
+            stageStatuses={stageStatuses}
+            activeStageIndex={activeStageIndex}
+            streak={streak}
+            completedCount={completedCount}
+            incorrectCount={incorrectCount}
+            onStageOpeningFinished={onStageOpeningFinished}
+            lessonId={lessonId}
+            stageId={stageId}
+          />
+
+          {/* World 1 Boss: Temple Guardian (ម្ចាស់ប្រាសាទព្រៃ at Z = 32.5) */}
+          {lessonId === 'boss' && (
+            <TempleGuardianBoss
+              activeWaveIndex={activeStageIndex}
+              waveStatus={gateState.status}
+              isTypingMode={mode === 'typing'}
+              completedCount={completedCount}
+              streak={streak}
+              incorrectCount={incorrectCount}
+              isDefeated={mode === 'completed'}
+              onNearBossChange={onNearGateChange}
+              playerPositionRef={playerPositionRef}
+            />
+          )}
+        </>
       )}
     </>
   );

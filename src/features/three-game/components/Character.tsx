@@ -9,6 +9,7 @@ import {
   computeMovementDelta,
   isPositionNearStage,
 } from '../systems/gameplayState';
+import { getLessonExperienceConfig, isPilotExperience } from '../config/lessonExperienceConfig';
 import type { AdventureNodeId } from '../../../data/adventureWorlds';
 import type { GameMode, GateStatus, Position3D } from '../types';
 
@@ -202,15 +203,67 @@ export default function Character({
       targetRotationRef.current = 0;
     }
 
-    // Always enforce courtyard & multi-stage barrier collision bounds
-    const [clampedX, clampedZ] =
-      lessonId === 'boss'
-        ? [Math.max(-8, Math.min(8, curX)), Math.max(18, Math.min(30.5, curZ))]
-        : stageStatuses && stageStatuses.length > 0
-        ? clampMultiStageCharacterPosition(curX, curZ, stageStatuses)
-        : clampCharacterPosition(curX, curZ, gateStatus);
+    // 1. Collision & exploration bounds
+    let clampedX = curX;
+    let clampedZ = curZ;
+
+    const isPilot = isPilotExperience(lessonId);
+    const expConfig = isPilot && lessonId ? getLessonExperienceConfig(lessonId) : null;
+
+    if (isPilot && expConfig) {
+      if (lessonId === 1) {
+        clampedX = Math.max(-9.0, Math.min(9.0, curX));
+        const maxZ = stageStatuses?.[2] === 'open' ? 10.0 : 6.5;
+        clampedZ = Math.max(-7.0, Math.min(maxZ, curZ));
+      } else if (lessonId === 3) {
+        clampedX = Math.max(-3.5, Math.min(3.5, curX));
+        let maxZ = 3.0;
+        if (stageStatuses?.[0] === 'open') maxZ = 13.5;
+        if (stageStatuses?.[1] === 'open') maxZ = 24.0;
+        clampedZ = Math.max(-6.5, Math.min(maxZ, curZ));
+      } else if (lessonId === 5) {
+        clampedX = Math.max(-3.5, Math.min(3.5, curX));
+        let maxZ = 2.5;
+        if (stageStatuses?.[0] === 'open') maxZ = 13.5;
+        if (stageStatuses?.[1] === 'open') maxZ = 24.0;
+        clampedZ = Math.max(-6.5, Math.min(maxZ, curZ));
+      } else {
+        const [minX, maxX, minZ, maxZ] = expConfig.courtyardBounds;
+        clampedX = Math.max(minX, Math.min(maxX, curX));
+        clampedZ = Math.max(minZ, Math.min(maxZ, curZ));
+      }
+    } else {
+      [clampedX, clampedZ] =
+        lessonId === 'boss'
+          ? [Math.max(-8, Math.min(8, curX)), Math.max(18, Math.min(30.5, curZ))]
+          : stageStatuses && stageStatuses.length > 0
+          ? clampMultiStageCharacterPosition(curX, curZ, stageStatuses)
+          : clampCharacterPosition(curX, curZ, gateStatus);
+    }
+
+    // 2. Vertical elevation Y (smooth staircase climbing in Level 5)
+    let nextY = 0;
+    if (lessonId === 5) {
+      if (clampedZ <= 3.0) {
+        nextY = 0;
+      } else if (clampedZ < 7.0) {
+        // Flight 1 stairs: rise from 0 to 2.2
+        const progress = (clampedZ - 3.0) / 4.0;
+        nextY = THREE.MathUtils.lerp(0, 2.2, Math.max(0, Math.min(1, progress)));
+      } else if (clampedZ <= 14.0) {
+        nextY = 2.2;
+      } else if (clampedZ < 18.0) {
+        // Flight 2 stairs: rise from 2.2 to 4.4
+        const progress = (clampedZ - 14.0) / 4.0;
+        nextY = THREE.MathUtils.lerp(2.2, 4.4, Math.max(0, Math.min(1, progress)));
+      } else {
+        nextY = 4.4;
+      }
+    }
+    const targetY = THREE.MathUtils.lerp(curY, nextY, Math.min(1, dt * 10));
+
     positionRef.current[0] = clampedX;
-    positionRef.current[1] = curY;
+    positionRef.current[1] = targetY;
     positionRef.current[2] = clampedZ;
 
     // Smoothly rotate character toward movement heading
@@ -222,7 +275,7 @@ export default function Character({
     const turnBank = isMoving ? THREE.MathUtils.clamp(-angleDiff * 0.16, -0.14, 0.14) : 0;
 
     if (groupRef.current) {
-      groupRef.current.position.set(clampedX, curY, clampedZ);
+      groupRef.current.position.set(clampedX, targetY, clampedZ);
       groupRef.current.rotation.y = currentRotationRef.current;
     }
 
@@ -231,10 +284,21 @@ export default function Character({
       lastStageIndexRef.current = activeStageIndex;
       lastNearGateRef.current = null;
     }
-    const nearGate =
-      lessonId === 'boss'
-        ? Math.hypot(clampedX - 0, clampedZ - 32.5) <= 10.5
-        : isPositionNearStage(clampedX, clampedZ, activeStageIndex, stageStatuses?.length ?? 3);
+
+    let nearGate = false;
+    if (isPilot && expConfig) {
+      const station = expConfig.stations[activeStageIndex];
+      if (station) {
+        const dist = Math.hypot(clampedX - station.position[0], clampedZ - station.position[2]);
+        nearGate = dist <= (station.interactionRadius ?? 3.5);
+      }
+    } else {
+      nearGate =
+        lessonId === 'boss'
+          ? Math.hypot(clampedX - 0, clampedZ - 32.5) <= 10.5
+          : isPositionNearStage(clampedX, clampedZ, activeStageIndex, stageStatuses?.length ?? 3);
+    }
+
     if (lastNearGateRef.current !== nearGate) {
       lastNearGateRef.current = nearGate;
       onNearGateChange(nearGate);

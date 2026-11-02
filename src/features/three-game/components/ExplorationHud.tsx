@@ -13,6 +13,8 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CurriculumStage } from '../../../data/lessonCurriculum';
+import type { AdventureNodeId } from '../../../data/adventureWorlds';
+import { getLessonExperienceConfig, isPilotExperience } from '../config/lessonExperienceConfig';
 import type { GateStatus, StageProgressState } from '../types';
 
 type ExplorationHudProps = {
@@ -27,6 +29,7 @@ type ExplorationHudProps = {
   allStagesCompleted?: boolean;
   onStartTyping: () => void;
   onReplayLesson?: () => void;
+  lessonId?: AdventureNodeId;
 };
 
 export default function ExplorationHud({
@@ -41,8 +44,13 @@ export default function ExplorationHud({
   allStagesCompleted = false,
   onStartTyping,
   onReplayLesson,
+  lessonId,
 }: ExplorationHudProps) {
   const navigate = useNavigate();
+
+  const isPilot = isPilotExperience(lessonId);
+  const expConfig = isPilot && lessonId ? getLessonExperienceConfig(lessonId) : null;
+  const currentStation = expConfig?.stations?.[activeStageIndex];
   const [muted, setMuted] = useState(false);
 
   const activeStage = stages[activeStageIndex];
@@ -234,7 +242,10 @@ export default function ExplorationHud({
                   {isNearGate ? (
                     <>
                       ចុច <span className="text-amber-400 font-mono font-black">[E]</span> ឬ ចុចប៊ូតុងនេះ ដើម្បីចាប់ផ្តើម
+                      {currentStation ? ` · ${currentStation.stationTitleKh}` : ''}
                     </>
+                  ) : currentStation ? (
+                    <span>{currentStation.missionPromptKh}</span>
                   ) : (
                     <>
                       ដើរទៅកាន់អាសនៈ <span className="text-amber-400 font-mono font-bold">[W / ↑]</span> ហើយចុច <span className="text-amber-400 font-mono font-bold">[E]</span>
@@ -242,9 +253,13 @@ export default function ExplorationHud({
                   )}
                 </div>
                 <div className="text-[10px] sm:text-xs text-amber-300/80 font-sans truncate">
-                  {activeStage
-                    ? `(${activeStage.titleKh} • ${activeStage.titleEn} • គោលដៅ ${activeStageMinimumAccuracy}%+)`
-                    : `(Stage ${activeStageIndex + 1} • Goal ${activeStageMinimumAccuracy}%+)`}
+                  {currentStation && !isNearGate ? (
+                    currentStation.missionPromptEn
+                  ) : activeStage ? (
+                    `(${activeStage.titleKh} • ${activeStage.titleEn} • គោលដៅ ${activeStageMinimumAccuracy}%+)`
+                  ) : (
+                    `(Stage ${activeStageIndex + 1} • Goal ${activeStageMinimumAccuracy}%+)`
+                  )}
                 </div>
               </div>
 
