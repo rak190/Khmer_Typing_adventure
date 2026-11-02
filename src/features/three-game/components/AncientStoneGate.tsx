@@ -1416,6 +1416,200 @@ function FirstBridgePlanks({
   );
 }
 
+
+/**
+ * Stage 1 Lesson 3: West Tower Rune Windows (ប៉មខាងលិច)
+ * Carved stela rune windows on both towers that illuminate as bilateral home keys are struck
+ */
+function WestTowerRuneWindows({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const windowPlacements = useMemo(
+    () => [
+      // Left tower apertures
+      { pos: [-3.85, 1.8, -1.0] },
+      { pos: [-3.85, 2.7, -1.0] },
+      { pos: [-3.85, 3.6, -1.0] },
+      { pos: [-3.85, 4.5, -1.0] },
+      // Right tower apertures
+      { pos: [3.85, 1.8, -1.0] },
+      { pos: [3.85, 2.7, -1.0] },
+      { pos: [3.85, 3.6, -1.0] },
+      { pos: [3.85, 4.5, -1.0] },
+    ],
+    [],
+  );
+
+  return (
+    <group>
+      {windowPlacements.map((win, idx) => {
+        const isLit = isUnlocked || completedCount > idx * 2.8;
+        const isCurrent = !isUnlocked && completedCount >= idx * 2.8 && completedCount < (idx + 1) * 2.8;
+        const color = isLit ? '#38BDF8' : isCurrent ? '#F59E0B' : '#57422E';
+        const emissive = isLit ? '#0284C7' : isCurrent ? '#D97706' : '#1C150E';
+
+        return (
+          <group key={`tower-win-${idx}`} position={win.pos as [number, number, number]}>
+            <mesh castShadow receiveShadow>
+              <boxGeometry args={[0.72, 0.72, 0.22]} />
+              <meshStandardMaterial color="#7D6145" roughness={0.88} />
+            </mesh>
+            <mesh position={[0, 0, 0.08]}>
+              <boxGeometry args={[0.52, 0.52, 0.1]} />
+              <meshStandardMaterial
+                color={color}
+                emissive={emissive}
+                emissiveIntensity={isLit ? 1.6 + Math.min(streak * 0.1, 0.8) : isCurrent ? 1.0 : 0.15}
+                roughness={0.2}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+/**
+ * Stage 1 Lesson 4: Vowel Well / Luminous Water Altar (អណ្តូងស្រៈ)
+ * An ancient circular stone well basin filled with celestial shimmering water
+ */
+function VowelWellAltar({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const waterRef = useRef<THREE.MeshStandardMaterial>(null);
+  const glowLightRef = useRef<THREE.PointLight>(null);
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (waterRef.current) {
+      waterRef.current.emissiveIntensity =
+        (isUnlocked ? 1.8 : 0.8 + Math.min(completedCount * 0.04, 0.8)) +
+        Math.sin(t * 3.2) * 0.25;
+    }
+    if (glowLightRef.current) {
+      glowLightRef.current.intensity = isUnlocked ? 2.5 : 1.0 + Math.sin(t * 2.5) * 0.3;
+    }
+  });
+
+  const waterLevel = isUnlocked ? 0.42 : Math.min(0.42, 0.12 + (completedCount / 34) * 0.3);
+
+  return (
+    <group position={[0, 0, -3.6]}>
+      <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[1.5, 1.68, 0.52, 24]} />
+        <meshStandardMaterial color="#684E34" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.52, 0]} castShadow receiveShadow>
+        <torusGeometry args={[1.35, 0.18, 12, 24]} />
+        <meshStandardMaterial color="#8C6F4F" roughness={0.82} />
+      </mesh>
+      <mesh position={[0, waterLevel, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[1.32, 24]} />
+        <meshStandardMaterial
+          ref={waterRef}
+          color="#06B6D4"
+          emissive="#0891B2"
+          emissiveIntensity={1.0 + Math.min(streak * 0.08, 0.6)}
+          roughness={0.1}
+          metalness={0.4}
+        />
+      </mesh>
+      <mesh position={[0, waterLevel + 0.18, 0]}>
+        <octahedronGeometry args={[0.26, 0]} />
+        <meshStandardMaterial
+          color={isUnlocked ? '#10B981' : '#F59E0B'}
+          emissive={isUnlocked ? '#059669' : '#D97706'}
+          emissiveIntensity={isUnlocked ? 1.6 : 1.1}
+          roughness={0.25}
+        />
+      </mesh>
+      <pointLight ref={glowLightRef} position={[0, waterLevel + 0.6, 0]} color="#22D3EE" distance={4.5} intensity={1.5} />
+    </group>
+  );
+}
+
+/**
+ * Stage 1 Lesson 5: Vowel Mirror Reflection Station (កញ្ចក់ស្រៈ)
+ * An ancient polished bronze & obsidian mirror reflecting logical Unicode typing order
+ */
+function VowelMirrorStation({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const mirrorSurfaceRef = useRef<THREE.MeshStandardMaterial>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (mirrorSurfaceRef.current) {
+      mirrorSurfaceRef.current.emissiveIntensity =
+        (isUnlocked ? 1.9 : 0.9 + Math.min(completedCount * 0.04, 0.9)) +
+        Math.sin(t * 3.8) * 0.22;
+    }
+    if (ringRef.current) {
+      ringRef.current.rotation.z = t * 0.8;
+    }
+  });
+
+  return (
+    <group position={[0, 0, -3.4]}>
+      <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.85, 1.05, 0.9, 16]} />
+        <meshStandardMaterial color="#684E34" roughness={0.88} />
+      </mesh>
+      {[-0.85, 0.85].map((cx, i) => (
+        <mesh key={`col-${i}`} position={[cx, 1.8, 0]} castShadow>
+          <cylinderGeometry args={[0.09, 0.12, 1.8, 12]} />
+          <meshStandardMaterial color="#B45309" roughness={0.4} metalness={0.65} />
+        </mesh>
+      ))}
+      <mesh position={[0, 2.75, 0]} castShadow>
+        <boxGeometry args={[1.9, 0.22, 0.32]} />
+        <meshStandardMaterial color="#92400E" roughness={0.5} metalness={0.55} />
+      </mesh>
+      <mesh ref={ringRef} position={[0, 1.75, 0]}>
+        <ringGeometry args={[0.78, 0.86, 24]} />
+        <meshStandardMaterial
+          color={isUnlocked ? '#34D399' : '#FBBF24'}
+          emissive={isUnlocked ? '#10B981' : '#F59E0B'}
+          emissiveIntensity={isUnlocked ? 1.5 : 0.9}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh position={[0, 1.75, 0.02]}>
+        <circleGeometry args={[0.74, 24]} />
+        <meshStandardMaterial
+          ref={mirrorSurfaceRef}
+          color="#FEF08A"
+          emissive="#EAB308"
+          emissiveIntensity={1.2 + Math.min(streak * 0.1, 0.7)}
+          roughness={0.12}
+          metalness={0.85}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 export default function AncientStoneGate({
   gateState,
   streak = 0,
@@ -1653,6 +1847,33 @@ export default function AncientStoneGate({
       {/* Stage 1 Lesson 2: The First Bridge (ស្ពានដំបូង) Rune Planks */}
       {(stageId === 'w1-l2-s1' || (lessonId === 2 && (!stageId || stageId === 'w1-l2-s1'))) && (
         <FirstBridgePlanks
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={isUnlocked}
+        />
+      )}
+
+      {/* Stage 1 Lesson 3: West Tower Rune Windows (ប៉មខាងលិច) */}
+      {(stageId === 'w1-l3-s1' || (lessonId === 3 && (!stageId || stageId === 'w1-l3-s1'))) && (
+        <WestTowerRuneWindows
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={isUnlocked}
+        />
+      )}
+
+      {/* Stage 1 Lesson 4: Vowel Well / Luminous Water Altar (អណ្តូងស្រៈ) */}
+      {(stageId === 'w1-l4-s1' || (lessonId === 4 && (!stageId || stageId === 'w1-l4-s1'))) && (
+        <VowelWellAltar
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={isUnlocked}
+        />
+      )}
+
+      {/* Stage 1 Lesson 5: Vowel Mirror Reflection Station (កញ្ចក់ស្រៈ) */}
+      {(stageId === 'w1-l5-s1' || (lessonId === 5 && (!stageId || stageId === 'w1-l5-s1'))) && (
+        <VowelMirrorStation
           completedCount={completedCount}
           streak={streak}
           isUnlocked={isUnlocked}

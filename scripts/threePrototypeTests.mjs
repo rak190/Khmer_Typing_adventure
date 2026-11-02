@@ -446,9 +446,47 @@ try {
   assert.equal(access('world=1&level=2', completedFirstLesson).status, 'ready');
   assert.equal(access('world=1&level=1', completedFirstLesson).status, 'ready');
   assert.equal(access('world=1&level=3', completedFirstLesson).status, 'locked');
+
+  // Progressive unlocking through lessons 3, 4, 5
+  const completedThroughL2 = adventure.buildAdventureWorlds([
+    { worldId: 1, lessonId: 1, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 80, coinsEarned: 10, bestStreak: 10, passed: true },
+    { worldId: 1, lessonId: 2, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 85, coinsEarned: 10, bestStreak: 10, passed: true },
+  ]);
+  assert.equal(access('world=1&level=3', completedThroughL2).status, 'ready');
+  assert.equal(access('world=1&level=4', completedThroughL2).status, 'locked');
+
+  const completedThroughL3 = adventure.buildAdventureWorlds([
+    { worldId: 1, lessonId: 1, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 80, coinsEarned: 10, bestStreak: 10, passed: true },
+    { worldId: 1, lessonId: 2, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 85, coinsEarned: 10, bestStreak: 10, passed: true },
+    { worldId: 1, lessonId: 3, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 90, coinsEarned: 10, bestStreak: 10, passed: true },
+  ]);
+  assert.equal(access('world=1&level=4', completedThroughL3).status, 'ready');
+  assert.equal(access('world=1&level=5', completedThroughL3).status, 'locked');
+
+  const completedThroughL4 = adventure.buildAdventureWorlds([
+    { worldId: 1, lessonId: 1, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 80, coinsEarned: 10, bestStreak: 10, passed: true },
+    { worldId: 1, lessonId: 2, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 85, coinsEarned: 10, bestStreak: 10, passed: true },
+    { worldId: 1, lessonId: 3, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 90, coinsEarned: 10, bestStreak: 10, passed: true },
+    { worldId: 1, lessonId: 4, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 95, coinsEarned: 10, bestStreak: 10, passed: true },
+  ]);
+  assert.equal(access('world=1&level=5', completedThroughL4).status, 'ready');
+
+  const completedThroughL5 = adventure.buildAdventureWorlds([
+    { worldId: 1, lessonId: 1, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 80, coinsEarned: 10, bestStreak: 10, passed: true },
+    { worldId: 1, lessonId: 2, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 85, coinsEarned: 10, bestStreak: 10, passed: true },
+    { worldId: 1, lessonId: 3, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 90, coinsEarned: 10, bestStreak: 10, passed: true },
+    { worldId: 1, lessonId: 4, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 95, coinsEarned: 10, bestStreak: 10, passed: true },
+    { worldId: 1, lessonId: 5, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 100, coinsEarned: 10, bestStreak: 10, passed: true },
+  ]);
+  // Lesson 6 is unsupported in 3D even when unlocked on map
+  assert.equal(access('world=1&level=6', completedThroughL5).status, 'unsupported');
+
   for (const world of curriculum.lessonCurriculum) {
     for (const lesson of world.levels) {
-      assert.equal(availability.isThreeLessonSupported(world.id, lesson.id), world.id === 1 && (lesson.id === 1 || lesson.id === 2));
+      assert.equal(
+        availability.isThreeLessonSupported(world.id, lesson.id),
+        world.id === 1 && [1, 2, 3, 4, 5].includes(lesson.id)
+      );
     }
   }
   assert.equal(availability.isThreeLessonSupported(99, 1), false);
@@ -1194,6 +1232,193 @@ try {
   assert.equal(gameplayState.areAllStagesCompleted(afterAllCleared), true);
   const clampedFinal = gameplayState.clampMultiStageCharacterPosition(0, 29.5, afterAllCleared.map((s) => s.status));
   assert.equal(clampedFinal[1], 29.5, 'Can reach inner forecourt once all stages are open');
+
+  // 19. MASTER TASK 7B: Comprehensive World 1 Lesson 3 (ការសម្របសម្រួលដៃទាំងពីរ) Verification
+  const l3Config = gameplayState.resolveThreeLessonConfig(1, 3);
+  assert.equal(l3Config.worldId, 1);
+  assert.equal(l3Config.lesson.id, 3);
+  assert.equal(l3Config.stages.length, 3);
+  assert.equal(l3Config.isFoundationLesson, false);
+
+  const [l3s1, l3s2, l3s3] = l3Config.stages;
+  // Stage 1: ឆ្លាស់ដៃជួរកណ្តាល (w1-l3-s1)
+  assert.equal(l3s1.id, 'w1-l3-s1');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l3s1, l3Config.lesson, l3Config.worldId), 90);
+  const l3s1Plan = gameplayState.createStageTypingPlan(l3s1);
+  assert.equal(l3s1Plan.units.length, 24);
+  const l3s1Val = typingPlanMod.validateStageTypingPlan(l3s1);
+  assert.equal(l3s1Val.valid, true);
+  assert.equal(l3s1Val.unsupportedInputs.length, 0);
+
+  // Stage 2: គូគ្រាប់ចុចជួរកណ្តាល (w1-l3-s2)
+  assert.equal(l3s2.id, 'w1-l3-s2');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l3s2, l3Config.lesson, l3Config.worldId), 92);
+  const l3s2Plan = gameplayState.createStageTypingPlan(l3s2);
+  assert.equal(l3s2Plan.units.length, 23);
+  const l3s2Val = typingPlanMod.validateStageTypingPlan(l3s2);
+  assert.equal(l3s2Val.valid, true);
+  assert.equal(l3s2Val.unsupportedInputs.length, 0);
+
+  // Stage 3: ពាក្យដំបូងជួរកណ្តាល (w1-l3-s3)
+  assert.equal(l3s3.id, 'w1-l3-s3');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l3s3, l3Config.lesson, l3Config.worldId), 92);
+  const l3s3Plan = gameplayState.createStageTypingPlan(l3s3);
+  assert.equal(l3s3Plan.units.length, 25);
+  const l3s3Val = typingPlanMod.validateStageTypingPlan(l3s3);
+  assert.equal(l3s3Val.valid, true);
+  assert.equal(l3s3Val.unsupportedInputs.length, 0);
+
+  // Pass & fail metrics for Lesson 3
+  const l3s1Pass = gameplayState.computeStageMetrics(l3s1Plan.units, 24, 2, 0, 22, 18000, l3s1, l3Config.lesson, 1);
+  assert.ok(l3s1Pass.accuracy >= 90);
+  assert.equal(gameplayState.shouldUnlockStage(l3s1Pass), true);
+  const l3s1Fail = gameplayState.computeStageMetrics(l3s1Plan.units, 24, 5, 0, 18, 18000, l3s1, l3Config.lesson, 1);
+  assert.ok(l3s1Fail.accuracy < 90);
+  assert.equal(gameplayState.shouldUnlockStage(l3s1Fail), false);
+
+  // Lesson 3 multi-stage progression and final metrics
+  let l3States = gameplayState.createInitialStageProgressStates(l3Config.stages);
+  const l3Sess1 = { ...gameplayState.createTypingSessionState(1), completedCount: 24, incorrectCount: 1, bestStreak: 20, finished: true };
+  l3States = gameplayState.recordStageAttemptResult(l3States, 0, l3s1Pass, l3Sess1, l3s1Plan.units, 18000, 'open');
+
+  const l3s2Pass = gameplayState.computeStageMetrics(l3s2Plan.units, 23, 1, 0, 22, 19000, l3s2, l3Config.lesson, 1);
+  const l3Sess2 = { ...gameplayState.createTypingSessionState(2), completedCount: 23, incorrectCount: 1, bestStreak: 20, finished: true };
+  l3States = gameplayState.recordStageAttemptResult(l3States, 1, l3s2Pass, l3Sess2, l3s2Plan.units, 19000, 'open');
+
+  const l3s3Pass = gameplayState.computeStageMetrics(l3s3Plan.units, 25, 1, 0, 24, 20000, l3s3, l3Config.lesson, 1);
+  const l3Sess3 = { ...gameplayState.createTypingSessionState(3), completedCount: 25, incorrectCount: 1, bestStreak: 22, finished: true };
+  l3States = gameplayState.recordStageAttemptResult(l3States, 2, l3s3Pass, l3Sess3, l3s3Plan.units, 20000, 'open');
+
+  assert.equal(gameplayState.areAllStagesCompleted(l3States), true);
+  const l3FinalMetrics = gameplayState.computeFinalLessonMetrics(l3States, l3Config.lesson, 1);
+  assert.equal(l3FinalMetrics.passed, true);
+  assert.equal(l3FinalMetrics.totalRequiredInputs, 24 + 23 + 25);
+  assert.ok(l3FinalMetrics.accuracy >= 92);
+
+  // 20. MASTER TASK 7B: Comprehensive World 1 Lesson 4 (ការឈោងម្រាមចង្អុល G និង H) Verification
+  const l4Config = gameplayState.resolveThreeLessonConfig(1, 4);
+  assert.equal(l4Config.worldId, 1);
+  assert.equal(l4Config.lesson.id, 4);
+  assert.equal(l4Config.stages.length, 3);
+  assert.equal(l4Config.isFoundationLesson, false);
+
+  const [l4s1, l4s2, l4s3] = l4Config.stages;
+  // Stage 1: ការឈោងម្រាមចង្អុល (w1-l4-s1)
+  assert.equal(l4s1.id, 'w1-l4-s1');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l4s1, l4Config.lesson, l4Config.worldId), 90);
+  const l4s1Plan = gameplayState.createStageTypingPlan(l4s1);
+  assert.equal(l4s1Plan.units.length, 34);
+  const l4s1Val = typingPlanMod.validateStageTypingPlan(l4s1);
+  assert.equal(l4s1Val.valid, true);
+  assert.equal(l4s1Val.unsupportedInputs.length, 0);
+
+  // Stage 2: ព្យាង្គផ្សំម្រាមចង្អុល (w1-l4-s2)
+  assert.equal(l4s2.id, 'w1-l4-s2');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l4s2, l4Config.lesson, l4Config.worldId), 92);
+  const l4s2Plan = gameplayState.createStageTypingPlan(l4s2);
+  assert.equal(l4s2Plan.units.length, 26);
+  const l4s2Val = typingPlanMod.validateStageTypingPlan(l4s2);
+  assert.equal(l4s2Val.valid, true);
+  assert.equal(l4s2Val.unsupportedInputs.length, 0);
+
+  // Stage 3: ចង្វាក់ម្រាមចង្អុលទាំងពីរ (w1-l4-s3)
+  assert.equal(l4s3.id, 'w1-l4-s3');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l4s3, l4Config.lesson, l4Config.worldId), 92);
+  const l4s3Plan = gameplayState.createStageTypingPlan(l4s3);
+  assert.equal(l4s3Plan.units.length, 43);
+  const l4s3Val = typingPlanMod.validateStageTypingPlan(l4s3);
+  assert.equal(l4s3Val.valid, true);
+  assert.equal(l4s3Val.unsupportedInputs.length, 0);
+
+  // Pass & fail metrics for Lesson 4
+  const l4s1Pass = gameplayState.computeStageMetrics(l4s1Plan.units, 34, 3, 0, 31, 20000, l4s1, l4Config.lesson, 1);
+  assert.ok(l4s1Pass.accuracy >= 90);
+  assert.equal(gameplayState.shouldUnlockStage(l4s1Pass), true);
+  const l4s1Fail = gameplayState.computeStageMetrics(l4s1Plan.units, 34, 6, 0, 27, 20000, l4s1, l4Config.lesson, 1);
+  assert.ok(l4s1Fail.accuracy < 90);
+  assert.equal(gameplayState.shouldUnlockStage(l4s1Fail), false);
+
+  // Lesson 4 multi-stage progression and final metrics
+  let l4States = gameplayState.createInitialStageProgressStates(l4Config.stages);
+  const l4Sess1 = { ...gameplayState.createTypingSessionState(1), completedCount: 34, incorrectCount: 1, bestStreak: 30, finished: true };
+  l4States = gameplayState.recordStageAttemptResult(l4States, 0, l4s1Pass, l4Sess1, l4s1Plan.units, 20000, 'open');
+
+  const l4s2Pass = gameplayState.computeStageMetrics(l4s2Plan.units, 26, 1, 0, 25, 21000, l4s2, l4Config.lesson, 1);
+  const l4Sess2 = { ...gameplayState.createTypingSessionState(2), completedCount: 26, incorrectCount: 1, bestStreak: 22, finished: true };
+  l4States = gameplayState.recordStageAttemptResult(l4States, 1, l4s2Pass, l4Sess2, l4s2Plan.units, 21000, 'open');
+
+  const l4s3Pass = gameplayState.computeStageMetrics(l4s3Plan.units, 43, 2, 0, 41, 25000, l4s3, l4Config.lesson, 1);
+  const l4Sess3 = { ...gameplayState.createTypingSessionState(3), completedCount: 43, incorrectCount: 2, bestStreak: 35, finished: true };
+  l4States = gameplayState.recordStageAttemptResult(l4States, 2, l4s3Pass, l4Sess3, l4s3Plan.units, 25000, 'open');
+
+  assert.equal(gameplayState.areAllStagesCompleted(l4States), true);
+  const l4FinalMetrics = gameplayState.computeFinalLessonMetrics(l4States, l4Config.lesson, 1);
+  assert.equal(l4FinalMetrics.passed, true);
+  assert.equal(l4FinalMetrics.totalRequiredInputs, 34 + 26 + 43);
+  assert.ok(l4FinalMetrics.accuracy >= 92);
+
+  // 21. MASTER TASK 7B: Comprehensive World 1 Lesson 5 (ជួរលើដៃឆ្វេង Q W E R T) Verification
+  const l5Config = gameplayState.resolveThreeLessonConfig(1, 5);
+  assert.equal(l5Config.worldId, 1);
+  assert.equal(l5Config.lesson.id, 5);
+  assert.equal(l5Config.stages.length, 3);
+  assert.equal(l5Config.isFoundationLesson, false);
+
+  const [l5s1, l5s2, l5s3] = l5Config.stages;
+  // Stage 1: ឈោងជួរលើដៃឆ្វេង (w1-l5-s1)
+  assert.equal(l5s1.id, 'w1-l5-s1');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l5s1, l5Config.lesson, l5Config.worldId), 90);
+  const l5s1Plan = gameplayState.createStageTypingPlan(l5s1);
+  assert.equal(l5s1Plan.units.length, 33);
+  const l5s1Val = typingPlanMod.validateStageTypingPlan(l5s1);
+  assert.equal(l5s1Val.valid, true);
+  assert.equal(l5s1Val.unsupportedInputs.length, 0);
+
+  // Stage 2: ព្យាង្គ និងស្រៈជួរលើ (w1-l5-s2)
+  assert.equal(l5s2.id, 'w1-l5-s2');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l5s2, l5Config.lesson, l5Config.worldId), 92);
+  const l5s2Plan = gameplayState.createStageTypingPlan(l5s2);
+  assert.equal(l5s2Plan.units.length, 26);
+  const l5s2Val = typingPlanMod.validateStageTypingPlan(l5s2);
+  assert.equal(l5s2Val.valid, true);
+  assert.equal(l5s2Val.unsupportedInputs.length, 0);
+
+  // Stage 3: ពាក្យជួរលើដៃឆ្វេង (w1-l5-s3)
+  assert.equal(l5s3.id, 'w1-l5-s3');
+  assert.equal(gameplayState.getStageMinimumAccuracy(l5s3, l5Config.lesson, l5Config.worldId), 92);
+  const l5s3Plan = gameplayState.createStageTypingPlan(l5s3);
+  assert.equal(l5s3Plan.units.length, 39);
+  const l5s3Val = typingPlanMod.validateStageTypingPlan(l5s3);
+  assert.equal(l5s3Val.valid, true);
+  assert.equal(l5s3Val.unsupportedInputs.length, 0);
+
+  // Pass & fail metrics for Lesson 5
+  const l5s1Pass = gameplayState.computeStageMetrics(l5s1Plan.units, 33, 3, 0, 30, 20000, l5s1, l5Config.lesson, 1);
+  assert.ok(l5s1Pass.accuracy >= 90);
+  assert.equal(gameplayState.shouldUnlockStage(l5s1Pass), true);
+  const l5s1Fail = gameplayState.computeStageMetrics(l5s1Plan.units, 33, 6, 0, 26, 20000, l5s1, l5Config.lesson, 1);
+  assert.ok(l5s1Fail.accuracy < 90);
+  assert.equal(gameplayState.shouldUnlockStage(l5s1Fail), false);
+
+  // Lesson 5 multi-stage progression and final metrics
+  let l5States = gameplayState.createInitialStageProgressStates(l5Config.stages);
+  const l5Sess1 = { ...gameplayState.createTypingSessionState(1), completedCount: 33, incorrectCount: 1, bestStreak: 28, finished: true };
+  l5States = gameplayState.recordStageAttemptResult(l5States, 0, l5s1Pass, l5Sess1, l5s1Plan.units, 20000, 'open');
+
+  const l5s2Pass = gameplayState.computeStageMetrics(l5s2Plan.units, 26, 1, 0, 25, 21000, l5s2, l5Config.lesson, 1);
+  const l5Sess2 = { ...gameplayState.createTypingSessionState(2), completedCount: 26, incorrectCount: 1, bestStreak: 24, finished: true };
+  l5States = gameplayState.recordStageAttemptResult(l5States, 1, l5s2Pass, l5Sess2, l5s2Plan.units, 21000, 'open');
+
+  const l5s3Pass = gameplayState.computeStageMetrics(l5s3Plan.units, 39, 2, 0, 37, 24000, l5s3, l5Config.lesson, 1);
+  const l5Sess3 = { ...gameplayState.createTypingSessionState(3), completedCount: 39, incorrectCount: 2, bestStreak: 32, finished: true };
+  l5States = gameplayState.recordStageAttemptResult(l5States, 2, l5s3Pass, l5Sess3, l5s3Plan.units, 24000, 'open');
+
+  assert.equal(gameplayState.areAllStagesCompleted(l5States), true);
+  const l5FinalMetrics = gameplayState.computeFinalLessonMetrics(l5States, l5Config.lesson, 1);
+  assert.equal(l5FinalMetrics.passed, true);
+  assert.equal(l5FinalMetrics.totalRequiredInputs, 33 + 26 + 39);
+  assert.ok(l5FinalMetrics.accuracy >= 92);
+
 
 } finally {
   await server.close();
