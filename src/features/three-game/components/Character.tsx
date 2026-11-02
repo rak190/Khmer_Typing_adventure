@@ -12,6 +12,7 @@ import {
 import { getLessonExperienceConfig, isCustomExperienceSupported } from '../config/lessonExperienceConfig';
 import type { AdventureNodeId } from '../../../data/adventureWorlds';
 import type { GameMode, GateStatus, Position3D } from '../types';
+import { gameAudio } from '../../../lib/audio/gameAudio';
 
 type CharacterProps = {
   positionRef: MutableRefObject<Position3D>;
@@ -193,11 +194,15 @@ export default function Character({
     const targetBlend = isMoving ? 1.0 : 0.0;
     moveBlendRef.current = THREE.MathUtils.lerp(moveBlendRef.current, targetBlend, Math.min(1, dt * 12));
 
+    const isSprinting = Boolean(movement.sprint);
+    const speed = isSprinting ? 8.8 : MOVE_SPEED;
+
     if (isMoving) {
-      curX += dirX * MOVE_SPEED * dt;
-      curZ += dirZ * MOVE_SPEED * dt;
+      curX += dirX * speed * dt;
+      curZ += dirZ * speed * dt;
       targetRotationRef.current = targetRotation;
-      walkCycleRef.current += dt * 11.5;
+      walkCycleRef.current += dt * (isSprinting ? 16.5 : 11.5);
+      gameAudio.playFootstep(isSprinting);
     } else if (mode === 'typing' || mode === 'opening') {
       // Face toward the temple gate/altar (+Z) during typing or gate opening
       targetRotationRef.current = 0;
@@ -723,6 +728,19 @@ export default function Character({
           opacity={mode === 'typing' ? 0.65 : 0.32}
         />
       </mesh>
+      {mode === 'typing' && (
+        <group position={[0, 1.25, 0.4]}>
+          <mesh position={[-0.22, 0, 0]}>
+            <sphereGeometry args={[0.045, 8, 8]} />
+            <meshBasicMaterial color="#38BDF8" transparent opacity={0.85} />
+          </mesh>
+          <mesh position={[0.22, 0, 0]}>
+            <sphereGeometry args={[0.045, 8, 8]} />
+            <meshBasicMaterial color="#38BDF8" transparent opacity={0.85} />
+          </mesh>
+          <pointLight color="#38BDF8" intensity={1.5} distance={1.8} />
+        </group>
+      )}
 
       {/* Skinned Armature Mesh (smooth bending joints, elbows, knees, spine, cape) */}
       {rigObject ? (

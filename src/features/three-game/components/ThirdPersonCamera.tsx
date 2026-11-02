@@ -6,9 +6,14 @@ import type { GameMode, Position3D } from '../types';
 type ThirdPersonCameraProps = {
   targetPositionRef: MutableRefObject<Position3D>;
   mode: GameMode;
+  isSprinting?: boolean;
 };
 
-export default function ThirdPersonCamera({ targetPositionRef, mode }: ThirdPersonCameraProps) {
+export default function ThirdPersonCamera({
+  targetPositionRef,
+  mode,
+  isSprinting = false,
+}: ThirdPersonCameraProps) {
   const { camera } = useThree();
 
   const currentCamPos = useRef(new THREE.Vector3(0, 2.8, -11.5));
@@ -38,17 +43,19 @@ export default function ThirdPersonCamera({ targetPositionRef, mode }: ThirdPers
 
     let offsetBack = -6.2;
     let offsetUp = 2.25;
+    let offsetX = 0;
     let lookUp = 2.05;
     let lookAheadZ = 2.2;
     let damping = 5.0;
 
     if (mode === 'typing') {
-      // Intimate, focused framing on student character and glowing altar pedestal
-      offsetBack = -4.2;
-      offsetUp = 2.2;
-      lookUp = 2.05;
-      lookAheadZ = 1.0;
-      damping = 4.2;
+      // Action-RPG over-the-shoulder framing: hero visible on left, glowing altar on right
+      offsetBack = -3.8;
+      offsetUp = 2.0;
+      offsetX = -0.75;
+      lookUp = 1.95;
+      lookAheadZ = 1.8;
+      damping = 4.6;
     } else if (mode === 'opening') {
       // Cinematic majestic sweep: pull back and tilt up toward the towering pediment
       offsetBack = -7.0;
@@ -71,8 +78,14 @@ export default function ThirdPersonCamera({ targetPositionRef, mode }: ThirdPers
       lookAheadZ = 6.0;
     }
 
-    desiredCamPos.current.set(tx * 0.75, ty + offsetUp, tz + offsetBack);
-    desiredLookAt.current.set(tx * 0.4, ty + lookUp, tz + lookAheadZ);
+    if (isSprinting && mode === 'exploration') {
+      // Dynamic sprint pull-back
+      offsetBack -= 0.85;
+      damping = 4.2;
+    }
+
+    desiredCamPos.current.set(tx * 0.75 + offsetX, ty + offsetUp, tz + offsetBack);
+    desiredLookAt.current.set(tx * 0.4 + offsetX * 0.4, ty + lookUp, tz + lookAheadZ);
 
     // Frame-rate independent exponential smoothing
     const blend = 1 - Math.exp(-damping * dt);

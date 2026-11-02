@@ -35,6 +35,7 @@ import {
   type TypingUnit,
 } from '../../../lib/lessonTypingPlan';
 import type { TypingMetricResult } from '../../../lib/typingMetrics';
+import { gameAudio } from '../../../lib/audio/gameAudio';
 
 type TypingOverlayProps = {
   targetUnits: TypingUnit[];
@@ -113,6 +114,8 @@ export default function TypingOverlay({
   onCompleteHandPositionStage,
 }: TypingOverlayProps) {
   const [showKeyboard, setShowKeyboard] = useState(true);
+  const [floatingScore, setFloatingScore] = useState<{ id: number; text: string; color: string } | null>(null);
+  const floatingTimeoutRef = useRef<number | undefined>(undefined);
   const [feedback, setFeedback] = useState<{
     code: string;
     state: 'correct' | 'wrong';
@@ -149,87 +152,84 @@ export default function TypingOverlay({
           endUnitIdx: unitIdx,
         });
       } else {
-        last.text += isPhysicalKeyMode ? ` ${getKhmerTypingUnitPresentation(unit).khmer}` : unit.value;
+        last.text += isPhysicalKeyMode
+          ? getKhmerTypingUnitPresentation(unit).khmer
+          : unit.value;
         last.endUnitIdx = unitIdx;
       }
     });
     return groups;
   }, [isPhysicalKeyMode, targetUnits]);
 
-  const fullTargetText = useMemo(
-    () => targetUnits.map((unit) => unit.value).join(''),
-    [targetUnits],
-  );
+  const activeTargetKey = activeTarget?.key;
+
+  const fingerGuidance = useMemo(() => {
+    if (!activeTargetKey) {
+      return {
+        activeFinger: 'index' as const,
+        activeHand: 'right' as const,
+        homeKeyCode: 'KeyJ',
+        homeKeyChar: 'J',
+        labelKh: 'ដៃស្តាំ • ម្រាមចង្អុល',
+        bilingualLabel: 'ដៃស្តាំ • ម្រាមចង្អុល (Right Index)',
+        reachInstructionKh: 'ត្រៀមខ្លួនលើជួរកណ្តាល',
+        highlights: [],
+        isOnHomePosition: true,
+      };
+    }
+    return getFingerGuidance(activeTargetKey, shiftRequired, altgrRequired);
+  }, [activeTargetKey, altgrRequired, shiftRequired]);
+
+  const requiredShiftCode = useMemo(() => {
+    if (!activeTargetKey || !shiftRequired) return undefined;
+    return getRequiredShiftKeyCode(activeTargetKey, shiftRequired);
+  }, [activeTargetKey, shiftRequired]);
+
+  const requiredAltGrCode = useMemo(() => {
+    if (!activeTargetKey || !altgrRequired) return undefined;
+    return getRequiredAltGrKeyCode(altgrRequired);
+  }, [activeTargetKey, altgrRequired]);
+
   const typedText = useMemo(
     () => getTypedText(targetUnits, completedCount),
     [completedCount, targetUnits],
   );
+
   const currentTargetText = useMemo(
     () => getCurrentTargetText(targetUnits, completedCount),
     [completedCount, targetUnits],
   );
-  const remainingText = useMemo(
-    () => fullTargetText.slice(typedText.length + currentTargetText.length),
-    [currentTargetText.length, fullTargetText, typedText.length],
-  );
 
-  const fingerGuidance = useMemo(() => {
-    if (!activeTarget) {
-      return {
-        activeHand: 'right' as const,
-        activeFinger: 'right-index' as const,
-        label: 'រួចរាល់ (Completed)',
-        labelKh: 'រួចរាល់',
-        bilingualLabel: 'រួចរាល់ (Completed)',
-        handLabelKh: 'ដៃខាងស្តាំ',
-        fingerLabelKh: 'ម្រាមដៃចង្អុល',
-        homeKeyCode: 'KeyJ',
-        homeKeyLatin: 'J',
-        isOnHomePosition: true,
-        reachDirection: 'home' as const,
-        reachInstructionKh: 'រួចរាល់',
-        highlights: [],
-        shiftRequired: false,
-        altgrRequired: false,
-        requiredShiftCode: null,
-        requiredModifierCode: null,
-      };
-    }
-    return getFingerGuidance(activeTarget.key, Boolean(shiftRequired), Boolean(altgrRequired));
-  }, [activeTarget, altgrRequired, shiftRequired]);
+  const remainingText = useMemo(() => {
+    if (completedCount >= targetUnits.length) return '';
+    return targetUnits
+      .slice(completedCount + 1)
+      .map((u) => u.value)
+      .join('');
+  }, [completedCount, targetUnits]);
 
-  const requiredShiftCode = useMemo(() => {
-    return activeTarget ? getRequiredShiftKeyCode(activeTarget.key, Boolean(shiftRequired)) : null;
-  }, [activeTarget, shiftRequired]);
-
-  const requiredAltGrCode = useMemo(() => {
-    return getRequiredAltGrKeyCode(Boolean(altgrRequired));
-  }, [altgrRequired]);
-
+  const activeTargetRef = useRef(activeTarget);
+  const isPhysicalKeyModeRef = useRef(isPhysicalKeyMode);
   const onTypedValueRef = useRef(onTypedValue);
   const onBackspaceRef = useRef(onBackspace);
-  const activeTargetRef = useRef(activeTarget);
-  const isFinishedRef = useRef(isFinished);
-  const fingerGuidanceRef = useRef(fingerGuidance);
-  const isPhysicalKeyModeRef = useRef(isPhysicalKeyMode);
+  const streakRef = useRef(streak);
 
   useEffect(() => {
+    activeTargetRef.current = activeTarget;
+    isPhysicalKeyModeRef.current = isPhysicalKeyMode;
     onTypedValueRef.current = onTypedValue;
     onBackspaceRef.current = onBackspace;
-    activeTargetRef.current = activeTarget;
-    isFinishedRef.current = isFinished;
-    fingerGuidanceRef.current = fingerGuidance;
-    isPhysicalKeyModeRef.current = isPhysicalKeyMode;
+    streakRef.current = streak;
   });
 
   const handleInputEvent = useCallback(
     (value: string, code: string, inputSource: 'physical' | 'virtual' = 'physical') => {
-      if (isFinishedRef.current || !activeTargetRef.current) return;
       const target = activeTargetRef.current;
-      const guidance = fingerGuidanceRef.current;
+      if (!target) return;
+
+      const guidance = getFingerGuidance(target.key, target.modifier === 'shift', target.modifier === 'altgr');
 
       if (isPhysicalKeyModeRef.current && inputSource === 'virtual') {
-        // Do not count a virtual mouse click as verified physical-key mastery in Mode A
         window.clearTimeout(feedbackTimeoutRef.current);
         setFeedback({
           code,
@@ -244,6 +244,26 @@ export default function TypingOverlay({
       const isCorrect = isPhysicalKeyModeRef.current
         ? code === target.key.code
         : khmerTextEquals(value, target.value);
+
+      if (isCorrect) {
+        const curStreak = streakRef.current + 1;
+        gameAudio.playKeystrokeChime(curStreak);
+        if (curStreak > 0 && curStreak % 5 === 0) {
+          gameAudio.playComboFanfare(Math.floor(curStreak / 5));
+        }
+        const text =
+          curStreak > 0 && curStreak % 5 === 0
+            ? `🔥 COMBO x${curStreak}!`
+            : curStreak > 8
+            ? 'ល្អឥតខ្ចោះ! (+15 XP)'
+            : '+10 XP';
+        const color = curStreak % 5 === 0 ? 'text-amber-300' : 'text-cyan-300';
+        window.clearTimeout(floatingTimeoutRef.current);
+        setFloatingScore({ id: Date.now(), text, color });
+        floatingTimeoutRef.current = window.setTimeout(() => setFloatingScore(null), 900);
+      } else {
+        gameAudio.playMistakeSound();
+      }
 
       window.clearTimeout(feedbackTimeoutRef.current);
       setFeedback({
@@ -272,7 +292,11 @@ export default function TypingOverlay({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code === 'Tab') return;
+      if (event.code === 'Tab') {
+        event.preventDefault();
+        setShowKeyboard((prev) => !prev);
+        return;
+      }
       const target = event.target instanceof HTMLElement ? event.target : null;
       if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (event.code === 'Space' && target?.closest('button, a')) return;
@@ -290,7 +314,7 @@ export default function TypingOverlay({
         return;
       }
 
-      // Ignore modifier-only key events so pressing Shift alone does not count as input or mistake
+      // Ignore modifier-only key events
       if (
         [
           'ShiftLeft',
@@ -338,15 +362,14 @@ export default function TypingOverlay({
     const isHandActive = fingerGuidance.highlights.some((h) => h.hand === hand);
     return (
       <div
-        data-testid={`three-hand-card-${hand}`}
-        data-active={isHandActive ? 'true' : 'false'}
-        className={`flex flex-col gap-1.5 rounded-2xl border px-3 py-2 transition ${
+        data-testid={`three-hand-${hand}`}
+        className={`flex flex-col gap-1 rounded-2xl border p-2 backdrop-blur-md transition ${
           isHandActive
-            ? 'border-amber-400/70 bg-amber-500/15 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-            : 'border-white/10 bg-slate-900/75'
+            ? 'border-amber-400/80 bg-slate-900/90 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+            : 'border-white/10 bg-slate-950/75'
         }`}
       >
-        <div className="flex items-center justify-between text-[11px] font-bold">
+        <div className="flex items-center justify-between text-xs font-bold px-1">
           <span className={isHandActive ? 'text-amber-300' : 'text-slate-300'}>
             ✋ {titleKh}
           </span>
@@ -354,7 +377,7 @@ export default function TypingOverlay({
             {hand === 'left' ? 'A • S • D • F' : 'J • K • L • ;'}
           </span>
         </div>
-        <div className="relative mx-auto h-16 w-32 overflow-hidden rounded-lg bg-white/5">
+        <div className="relative mx-auto h-12 w-28 overflow-hidden rounded-lg bg-white/5">
           <img
             src={hand === 'left' ? handImages.leftTyping : handImages.rightTyping}
             alt={hand === 'left' ? 'ទីតាំងដៃឆ្វេង' : 'ទីតាំងដៃស្តាំ'}
@@ -374,7 +397,7 @@ export default function TypingOverlay({
                 key={`${hand}-${f.finger}`}
                 data-testid={`three-finger-${hand}-${f.finger}`}
                 data-finger-role={highlight?.role ?? 'rest'}
-                className={`flex min-w-[46px] flex-col items-center rounded-xl border px-1.5 py-1 text-center transition ${
+                className={`flex min-w-[42px] flex-col items-center rounded-xl border px-1 py-0.5 text-center transition ${
                   isTargetFinger
                     ? 'border-amber-300 bg-amber-400 text-slate-950 font-black scale-105 shadow-[0_0_10px_rgba(245,158,11,0.7)]'
                     : isModifierFinger
@@ -382,8 +405,8 @@ export default function TypingOverlay({
                     : 'border-white/10 bg-slate-800/80 text-slate-300'
                 }`}
               >
-                <span className="text-[10px] leading-tight">{f.labelKh}</span>
-                <span className="font-mono text-[10px] font-bold leading-tight">
+                <span className="text-[9px] leading-tight">{f.labelKh}</span>
+                <span className="font-mono text-[9px] font-bold leading-tight">
                   {f.homeKey}
                   {f.bump ? '•' : ''}
                 </span>
@@ -399,182 +422,135 @@ export default function TypingOverlay({
     <div
       data-testid="three-typing-overlay"
       data-practice-mode={stagePracticeMode}
-      className="absolute inset-0 z-20 flex flex-col justify-between bg-black/65 backdrop-blur-sm p-3 sm:p-5 font-khmer text-white select-none overflow-y-auto"
+      className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between p-2 sm:p-4 font-khmer text-white select-none overflow-hidden"
     >
-      {/* ===== HEADER / TOP CONTROLS ===== */}
-      <div className="flex items-center justify-between">
-        <div className="flex flex-wrap items-center gap-2.5">
+      {/* ===== TOP FLOATING ANGKOR STONE GLYPH TABLET & ACTION-RPG CONTROLS ===== */}
+      <div className="pointer-events-auto flex flex-col items-center gap-1.5 w-full max-w-2xl mx-auto">
+        {/* Header Bar: Mission Title + Controls */}
+        <div className="flex items-center justify-between w-full gap-2">
           <div
             data-testid="three-typing-stage-banner"
-            className="rounded-xl border border-amber-500/40 bg-slate-900/90 px-4 py-2 shadow-lg"
+            className="flex items-center gap-2 rounded-xl border border-amber-500/40 bg-slate-950/85 px-3 py-1.5 shadow-lg backdrop-blur-md"
           >
-            <div className="text-xs font-bold text-amber-400">
+            <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+            <div className="text-xs font-bold text-amber-300">
               {stage
                 ? `ដំណាក់កាលទី ${stageIndex + 1}/${totalStages} • ${stage.titleKh} (${stage.titleEn})`
                 : `ការប្រកួតដោះសោទ្វារបុរាណ • ${lessonTitleKh}`}
             </div>
-            {stage && <div className="text-[11px] text-slate-300">{stage.mission}</div>}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowKeyboard(!showKeyboard)}
+              className="flex items-center gap-1 rounded-xl border border-white/20 bg-slate-900/80 px-2.5 py-1 text-xs font-semibold text-slate-200 backdrop-blur-md transition hover:bg-slate-800 hover:border-amber-400"
+              title="លាក់ / បង្ហាញក្តារចុច [Tab]"
+            >
+              <HelpCircle className="h-3.5 w-3.5 text-amber-400" />
+              <span className="hidden sm:inline">
+                {showKeyboard ? 'លាក់ក្តារចុច' : 'ក្តារចុច'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              data-testid="three-typing-restart"
+              onClick={onRestart}
+              className="flex items-center gap-1 rounded-xl border border-white/20 bg-slate-900/80 p-1.5 text-xs font-semibold text-slate-200 backdrop-blur-md transition hover:bg-slate-800"
+              title="ចាប់ផ្តើមឡើងវិញ (Restart)"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+
+            <button
+              type="button"
+              data-testid="three-typing-cancel"
+              onClick={onCancel}
+              className="flex items-center gap-1 rounded-xl border border-red-500/30 bg-red-950/70 px-2 py-1 text-xs font-semibold text-red-200 backdrop-blur-md transition hover:bg-red-900/80"
+              title="បោះបង់ (Cancel / Esc)"
+            >
+              <X className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">ចាកចេញ</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowKeyboard(!showKeyboard)}
-            className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
-          >
-            <HelpCircle className="h-4 w-4 text-amber-400" />
-            <span className="hidden sm:inline">
-              {showKeyboard ? 'លាក់ក្តារចុច' : 'បង្ហាញក្តារចុច'}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            data-testid="three-typing-restart"
-            onClick={onRestart}
-            className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
-            title="ចាប់ផ្តើមឡើងវិញ (Restart)"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </button>
-
-          <button
-            type="button"
-            data-testid="three-typing-cancel"
-            onClick={onCancel}
-            className="flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-950/60 px-3 py-1.5 text-xs font-semibold text-red-200 transition hover:bg-red-900/80"
-            title="បោះបង់ (Cancel / Esc)"
-          >
-            <X className="h-4 w-4" />
-            <span className="hidden sm:inline">ចាកចេញ [Esc]</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ===== CENTER STAGE: TARGET CARD, HAND DIAGRAMS & METRICS ===== */}
-      <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 my-auto py-1">
-        {/* Progress Bar */}
-        <div className="w-full">
-          <div className="flex justify-between text-xs font-bold text-slate-300 mb-1">
-            <span data-testid="three-typing-progress">
-              វឌ្ឍនភាព: {completedCount} / {targetUnits.length}
-            </span>
-            <span data-testid="three-typing-accuracy-goal">
-              {stage?.untimed
-                ? `គោលដៅភាពត្រឹមត្រូវ: ${minimumAccuracy}%+ • គ្មានកំណត់ពេល (ផ្តោតលើបច្ចេកទេសម្រាមដៃ)`
-                : `គោលដៅភាពត្រឹមត្រូវ: ${minimumAccuracy}%+ • គោលដៅ CPM: ${speedTargetCpm}`}
-            </span>
-          </div>
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-800 border border-white/10">
-            <div
-              className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-200"
-              style={{ width: `${(completedCount / Math.max(1, targetUnits.length)) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Live Metrics Strip */}
-        <div className="grid grid-cols-4 gap-2 sm:gap-3 w-full">
-          {/* CPM (Main Speed Metric) */}
-          <div className="flex items-center gap-2 rounded-2xl border border-amber-500/40 bg-slate-900/85 p-2.5 shadow-lg">
-            <Zap className="h-5 w-5 text-amber-400 shrink-0" />
-            <div>
-              <div className="text-[11px] font-bold text-amber-300">
-                {stage?.untimed ? 'CPM (មិនបង្ខំល្បឿន)' : 'CPM (ល្បឿន)'}
-              </div>
+        {/* Floating Sculpted Stone Tablet: Target Glyph & Compact Combat Meters */}
+        <div className="w-full rounded-2xl border border-amber-500/50 bg-gradient-to-b from-slate-950/90 via-slate-900/90 to-slate-950/95 p-3 shadow-[0_4px_30px_rgba(0,0,0,0.8)] backdrop-blur-md">
+          {/* Progress Bar */}
+          <div className="w-full mb-1.5">
+            <div className="flex justify-between text-[11px] font-bold text-slate-300 mb-0.5">
+              <span data-testid="three-typing-progress">
+                វឌ្ឍនភាព: {completedCount} / {targetUnits.length}
+              </span>
+              <span data-testid="three-typing-accuracy-goal">
+                {stage?.untimed
+                  ? `គោលដៅ: ${minimumAccuracy}%+ (ផ្តោតលើម្រាមដៃ)`
+                  : `គោលដៅ: ${minimumAccuracy}%+ • CPM: ${speedTargetCpm}`}
+              </span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800 border border-white/10">
               <div
-                data-testid="three-typing-cpm"
-                className="text-lg sm:text-xl font-black text-white font-sans"
-              >
-                {metrics.cpm}
-              </div>
+                className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-200"
+                style={{ width: `${(completedCount / Math.max(1, targetUnits.length)) * 100}%` }}
+              />
             </div>
           </div>
 
-          {/* Accuracy (Top Priority) */}
-          <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/40 bg-slate-900/85 p-2.5 shadow-lg">
-            <Target className="h-5 w-5 text-emerald-400 shrink-0" />
-            <div>
-              <div className="text-[11px] font-bold text-emerald-300">ភាពត្រឹមត្រូវ</div>
-              <div
-                data-testid="three-typing-accuracy"
-                className={`text-lg sm:text-xl font-black font-sans ${
-                  metrics.accuracy >= minimumAccuracy ? 'text-emerald-400' : 'text-coral'
-                }`}
-              >
-                {Math.round(metrics.accuracy)}%
+          {/* Compact Action-RPG Live Metrics Pill Grid */}
+          <div className="grid grid-cols-4 gap-1.5 w-full mb-2">
+            <div className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-slate-900/80 px-2 py-1 shadow">
+              <Zap className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+              <div>
+                <div className="text-[9px] font-bold text-amber-300/80">CPM</div>
+                <div data-testid="three-typing-cpm" className="text-sm font-black text-white font-sans leading-none">
+                  {metrics.cpm}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Streak */}
-          <div className="flex items-center gap-2 rounded-2xl border border-orange-500/40 bg-slate-900/85 p-2.5 shadow-lg">
-            <Flame className="h-5 w-5 text-orange-400 shrink-0" />
-            <div>
-              <div className="text-[11px] font-bold text-orange-300">ជាប់ៗគ្នា</div>
-              <div
-                data-testid="three-typing-streak"
-                className="text-lg sm:text-xl font-black text-white font-sans"
-              >
-                {streak}
-              </div>
-            </div>
-          </div>
-
-          {/* Mistakes */}
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/85 p-2.5 shadow-lg">
-            <div className="h-3 w-3 rounded-full bg-red-400 shrink-0" />
-            <div>
-              <div className="text-[11px] font-bold text-slate-300">កំហុស</div>
-              <div
-                data-testid="three-typing-mistakes"
-                className="text-lg sm:text-xl font-black text-white font-sans"
-              >
-                {metrics.incorrectInputs}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stage 1 Special Card: Learn Hand Position & Sitting Posture Checklist */}
-        {isHandPositionStage && stage?.postureInstructionsKh && (
-          <div
-            data-testid="three-hand-position-guide"
-            className="w-full rounded-2xl border border-emerald-400/40 bg-slate-900/95 p-3.5 shadow-xl"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2 text-xs sm:text-sm font-black text-emerald-300">
-                <Hand className="h-4 w-4 text-amber-400" />
-                <span>ការណែនាំអំពីឥរិយាបថ និងទីតាំងដៃលើជួរកណ្តាល (Home-Row Hand Placement)</span>
-              </div>
-              {onCompleteHandPositionStage && (
-                <button
-                  type="button"
-                  data-testid="three-complete-hand-position-btn"
-                  onClick={onCompleteHandPositionStage}
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 px-3.5 py-1.5 text-xs font-black text-slate-950 shadow-md transition hover:brightness-110 active:scale-95"
+            <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-slate-900/80 px-2 py-1 shadow">
+              <Target className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+              <div>
+                <div className="text-[9px] font-bold text-emerald-300/80">ភាពត្រឹមត្រូវ</div>
+                <div
+                  data-testid="three-typing-accuracy"
+                  className={`text-sm font-black font-sans leading-none ${
+                    metrics.accuracy >= minimumAccuracy ? 'text-emerald-400' : 'text-coral'
+                  }`}
                 >
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>យល់ហើយ • បន្តទៅដំណាក់កាលទី 2 (Continue)</span>
-                </button>
-              )}
+                  {Math.round(metrics.accuracy)}%
+                </div>
+              </div>
             </div>
-            <ul className="space-y-1 text-xs text-slate-200 leading-relaxed">
-              {stage.postureInstructionsKh.map((line, idx) => (
-                <li key={idx}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        )}
 
-        {/* Continuous Khmer / Physical Key Target Display */}
-        <div className="relative flex w-full flex-col items-center justify-center rounded-3xl border-2 border-amber-500/50 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 p-4 sm:p-5 shadow-2xl backdrop-blur-md">
-          {/* Curriculum Stage Item Tiles */}
+            <div className="flex items-center gap-1.5 rounded-xl border border-orange-500/30 bg-slate-900/80 px-2 py-1 shadow">
+              <Flame className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+              <div>
+                <div className="text-[9px] font-bold text-orange-300/80">ជាប់គ្នា</div>
+                <div data-testid="three-typing-streak" className="text-sm font-black text-white font-sans leading-none">
+                  {streak}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-slate-900/80 px-2 py-1 shadow">
+              <div className="h-2.5 w-2.5 rounded-full bg-red-400 shrink-0" />
+              <div>
+                <div className="text-[9px] font-bold text-slate-300/80">កំហុស</div>
+                <div data-testid="three-typing-mistakes" className="text-sm font-black text-white font-sans leading-none">
+                  {metrics.incorrectInputs}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stage Items Chips (if grouped words/syllables) */}
           {stageItemGroups.length > 0 && (
             <div
               data-testid="three-typing-stage-items"
-              className="mb-2.5 flex flex-wrap items-center justify-center gap-1.5"
+              className="mb-1.5 flex flex-wrap items-center justify-center gap-1"
             >
               {stageItemGroups.map((group) => {
                 const isGroupDone = completedCount > group.endUnitIdx;
@@ -587,11 +563,11 @@ export default function TypingOverlay({
                     data-item-state={
                       isGroupDone ? 'done' : isGroupActive ? 'active' : 'pending'
                     }
-                    className={`khmer-body rounded-xl border px-2.5 py-0.5 text-base sm:text-lg font-bold transition ${
+                    className={`rounded-lg border px-2 py-0.5 text-xs sm:text-sm font-bold transition ${
                       isGroupDone
                         ? 'border-emerald-400/50 bg-emerald-950/60 text-emerald-300'
                         : isGroupActive
-                        ? 'border-amber-400 bg-amber-500/25 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.45)] scale-105'
+                        ? 'border-amber-400 bg-amber-500/25 text-amber-200 shadow-[0_0_10px_rgba(245,158,11,0.5)] scale-105'
                         : 'border-white/10 bg-slate-800/70 text-slate-400'
                     }`}
                   >
@@ -602,59 +578,63 @@ export default function TypingOverlay({
             </div>
           )}
 
+          {/* Big Active Glyph Tablet */}
           <div
             data-testid="three-typing-target"
             data-target={currentTargetText}
-            className="khmer-body min-h-[54px] text-center text-3xl sm:text-4xl font-bold leading-[1.8]"
+            className="khmer-body min-h-[44px] text-center text-2xl sm:text-3xl font-bold leading-normal flex items-center justify-center"
           >
             {isPhysicalKeyMode ? (
               <div className="flex flex-wrap items-center justify-center gap-1.5" data-testid="three-khmer-physical-targets">
                 {targetUnits.map((unit, index) => {
                   const presentation = getKhmerTypingUnitPresentation(unit);
                   return (
-                    <span key={index} className={`flex min-w-10 flex-col items-center rounded-lg border px-1.5 py-1 leading-tight ${
-                      index < completedCount
-                        ? 'border-emerald-400/40 bg-emerald-950/50 text-emerald-300'
-                        : index === completedCount
-                        ? 'border-amber-300 bg-amber-500/25 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.45)]'
-                        : 'border-white/10 bg-slate-800/60 text-slate-300'
-                    }`}>
-                      <span className="text-2xl font-bold">{presentation.khmer}</span>
-                      <span className="font-mono text-[10px] opacity-70">{presentation.keyLabel}</span>
+                    <span
+                      key={index}
+                      className={`flex min-w-9 flex-col items-center rounded-lg border px-1.5 py-0.5 leading-tight ${
+                        index < completedCount
+                          ? 'border-emerald-400/40 bg-emerald-950/50 text-emerald-300'
+                          : index === completedCount
+                          ? 'border-amber-300 bg-amber-500/30 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.6)] scale-110'
+                          : 'border-white/10 bg-slate-800/60 text-slate-300'
+                      }`}
+                    >
+                      <span className="text-xl font-bold">{presentation.khmer}</span>
+                      <span className="font-mono text-[9px] opacity-70">{presentation.keyLabel}</span>
                     </span>
                   );
                 })}
               </div>
             ) : (
-              <>
+              <div>
                 <span className="text-emerald-400">{typedText}</span>
                 {currentTargetText && (
-                  <span className="rounded-lg bg-amber-500/30 px-1.5 py-0.5 text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-8">
+                  <span className="rounded-lg bg-amber-500/30 px-2 py-0.5 text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-4 shadow-sm">
                     {visibleTargetUnit(currentTargetText)}
                   </span>
                 )}
                 <span className="text-slate-400">{remainingText}</span>
-              </>
+              </div>
             )}
           </div>
 
-          {/* Active Key, Finger & Home-Row Reach Guidance Banner */}
+          {/* Guidance Banner */}
           {activeTarget && !isFinished && (
             <div
               data-testid="three-active-guidance-banner"
-              className="mt-3 flex flex-col items-center gap-1.5 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-xs sm:text-sm font-semibold text-amber-200 w-full"
+              className="mt-2 flex flex-col items-center gap-1 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 w-full"
             >
-              <div className="flex flex-wrap items-center justify-center gap-2.5">
+              <div className="flex flex-wrap items-center justify-center gap-2">
                 {isPhysicalKeyMode ? (
                   <span>
                     គ្រាប់ចុចត្រូវចុច:{' '}
-                    <span className="font-mono font-bold text-white bg-slate-800 px-2.5 py-0.5 rounded border border-amber-400/50">
+                    <span className="font-mono font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-amber-400/50">
                       {activeTarget.key.latin.toUpperCase()}
                     </span>{' '}
-                    <span className="text-xs text-slate-300">
-                      (អក្សរខ្មែរលើគ្រាប់ចុច៖ {activeTarget.key.khmer}
+                    <span className="text-[11px] text-slate-300">
+                      ({activeTarget.key.khmer}
                       {isStandaloneCombiningMarkOutput(activeTarget.key.khmer)
-                        ? ' • សញ្ញាផ្សំ/ជើងអក្សរ'
+                        ? ' • សញ្ញាផ្សំ'
                         : ''}
                       )
                     </span>
@@ -662,15 +642,15 @@ export default function TypingOverlay({
                 ) : (
                   <>
                     <span>
-                      អក្សរត្រូវវាយ:{' '}
-                      <span className="font-bold text-white bg-slate-800 px-2.5 py-0.5 rounded border border-amber-400/50">
+                      អក្សរ:{' '}
+                      <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-amber-400/50">
                         {visibleTargetUnit(activeTarget.value)}
                       </span>
                     </span>
                     <span>•</span>
                     <span>
                       គ្រាប់ចុច:{' '}
-                      <span className="font-mono font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-amber-400/50">
+                      <span className="font-mono font-bold text-white bg-slate-800 px-1.5 py-0.5 rounded border border-amber-400/50">
                         {getModifierKeyHint(activeTarget)}
                       </span>
                     </span>
@@ -679,12 +659,12 @@ export default function TypingOverlay({
                 <span>•</span>
                 <span data-testid="three-finger-instruction">{fingerGuidance.bilingualLabel}</span>
                 {shiftRequired && (
-                  <span className="rounded bg-coral px-2 py-0.5 text-xs font-bold text-white">
+                  <span className="rounded bg-coral px-1.5 py-0.5 text-[10px] font-bold text-white">
                     ចុច Shift ({requiredShiftCode === 'ShiftLeft' ? 'ឆ្វេង' : 'ស្តាំ'})
                   </span>
                 )}
                 {altgrRequired && (
-                  <span className="rounded bg-purple-600 px-2 py-0.5 text-xs font-bold text-white">
+                  <span className="rounded bg-purple-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
                     ចុច AltGr
                   </span>
                 )}
@@ -692,7 +672,7 @@ export default function TypingOverlay({
 
               <div
                 data-testid="three-reach-instruction"
-                className="text-xs text-emerald-300 font-bold"
+                className="text-[11px] text-emerald-300 font-bold"
               >
                 🎯 {fingerGuidance.reachInstructionKh}
               </div>
@@ -701,7 +681,7 @@ export default function TypingOverlay({
                 <div
                   data-testid="three-feedback-message"
                   data-feedback-state={feedback.state}
-                  className={`rounded-lg px-3 py-0.5 text-xs font-bold ${
+                  className={`rounded-lg px-2.5 py-0.5 text-[11px] font-bold ${
                     feedback.state === 'correct'
                       ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40'
                       : 'bg-red-500/20 text-red-200 border border-red-400/40'
@@ -713,128 +693,166 @@ export default function TypingOverlay({
             </div>
           )}
 
-          {/* Both-Hand Visual Finger & Home-Row Diagram */}
-          <div
-            data-testid="three-hand-guidance-diagram"
-            data-active-finger={fingerGuidance.activeFinger}
-            data-home-key={fingerGuidance.homeKeyCode}
-            className="mt-3 grid w-full grid-cols-1 sm:grid-cols-2 gap-2"
-          >
-            {renderHandStrip('left', 'ដៃឆ្វេង (Left Hand)', LEFT_HAND_FINGERS)}
-            {renderHandStrip('right', 'ដៃស្តាំ (Right Hand)', RIGHT_HAND_FINGERS)}
-          </div>
-
-          {stage?.hint && (
+          {/* Stage 1 Checklist if active */}
+          {isHandPositionStage && stage?.postureInstructionsKh && (
             <div
-              data-testid="three-typing-stage-hint"
-              className="mt-2 text-center text-xs text-slate-300"
+              data-testid="three-hand-position-guide"
+              className="mt-2 w-full rounded-xl border border-emerald-400/40 bg-slate-900/95 p-2.5 shadow-xl"
             >
-              💡 {stage.hint}
+              <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-300">
+                  <Hand className="h-3.5 w-3.5 text-amber-400" />
+                  <span>ឥរិយាបថ និងទីតាំងដៃលើជួរកណ្តាល</span>
+                </div>
+                {onCompleteHandPositionStage && (
+                  <button
+                    type="button"
+                    data-testid="three-complete-hand-position-btn"
+                    onClick={onCompleteHandPositionStage}
+                    className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-bold text-slate-950 transition hover:bg-emerald-400"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>យល់ហើយ • បន្តទៅដំណាក់កាលទី 2</span>
+                  </button>
+                )}
+              </div>
+              <ul className="space-y-0.5 text-[11px] text-slate-200">
+                {stage.postureInstructionsKh.map((line, idx) => (
+                  <li key={idx}>{line}</li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
       </div>
 
-      {/* ===== BOTTOM STAGE: COMPACT RESPONSIVE ON-SCREEN KEYBOARD ===== */}
-      {showKeyboard && (
-        <div
-          data-testid="three-khmer-keyboard"
-          className="mx-auto w-full max-w-4xl rounded-2xl border border-white/15 bg-slate-950/90 p-2 sm:p-3 shadow-2xl backdrop-blur-md"
-        >
-          <div className="space-y-1 sm:space-y-1.5">
-            {khmerKeyboardRows.map((row, rowIndex) => (
-              <div key={rowIndex} className="flex justify-center gap-1 sm:gap-1.5">
-                {row.map((keyData: KhmerKeyboardKey) => {
-                  const isBackspace = keyData.action === 'backspace';
-                  const isTarget = activeTarget?.key.code === keyData.code;
-                  const isShiftTarget = Boolean(
-                    requiredShiftCode && requiredShiftCode === keyData.code,
-                  );
-                  const isAltGrTarget = Boolean(
-                    requiredAltGrCode && requiredAltGrCode === keyData.code,
-                  );
-                  const isHomeKey = isHomeRowRestKeyCode(keyData.code);
-                  const isFingerHomeAnchor =
-                    !isTarget && activeTarget && fingerGuidance.homeKeyCode === keyData.code;
-                  const isTactileBump = hasTactileBump(keyData.code);
-                  const isFeedback = feedback?.code === keyData.code;
-                  const isDisabled = Boolean(keyData.disabled && !isBackspace);
-
-                  let keyBg = 'bg-slate-800 text-slate-200 border-slate-700';
-                  if (isFeedback && feedback.state === 'correct') {
-                    keyBg = 'bg-emerald-600 text-white border-emerald-400 scale-105';
-                  } else if (isFeedback && feedback.state === 'wrong') {
-                    keyBg = 'bg-coral text-white border-red-300 scale-105';
-                  } else if (isTarget) {
-                    keyBg =
-                      'bg-amber-500 text-slate-950 border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.8)] scale-105 font-bold';
-                  } else if (isShiftTarget || isAltGrTarget) {
-                    keyBg =
-                      'bg-purple-600 text-white border-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.7)] animate-pulse font-bold scale-105';
-                  } else if (isFingerHomeAnchor) {
-                    keyBg = 'bg-slate-800 text-emerald-300 border-emerald-400/80 ring-1 ring-emerald-400/50';
-                  } else if (isHomeKey && isHandPositionStage) {
-                    keyBg = 'bg-emerald-950/80 text-emerald-200 border-emerald-400/60';
-                  } else if (isHomeKey) {
-                    keyBg = 'bg-slate-800/95 text-slate-100 border-amber-500/35';
-                  } else if (isDisabled) {
-                    keyBg = 'bg-slate-900/50 text-slate-600 border-transparent';
-                  }
-
-                  const displayKhmer = isBackspace
-                    ? '⌫'
-                    : shiftRequired && keyData.shiftKhmer
-                    ? keyData.shiftKhmer
-                    : altgrRequired && keyData.altgrKhmer
-                    ? keyData.altgrKhmer
-                    : keyData.khmer || keyData.latin;
-
-                  return (
-                    <button
-                      type="button"
-                      key={`${rowIndex}-${keyData.latin}-${keyData.code}`}
-                      data-key-code={keyData.code}
-                      data-home-key={isHomeKey ? 'true' : undefined}
-                      data-tactile-bump={isTactileBump ? 'true' : undefined}
-                      data-is-target={isTarget ? 'true' : undefined}
-                      data-is-shift-target={isShiftTarget || isAltGrTarget ? 'true' : undefined}
-                      disabled={isDisabled}
-                      onClick={() => {
-                        if (isBackspace) {
-                          onBackspaceRef.current();
-                          return;
-                        }
-                        const modifier =
-                          activeTarget && keyData.code === activeTarget.key.code
-                            ? activeTarget.modifier
-                            : 'base';
-                        const val = getKhmerKeyOutput(keyData, modifier);
-                        handleInputEvent(val, keyData.code, 'virtual');
-                      }}
-                      className={`relative flex h-8 sm:h-10 min-w-[24px] sm:min-w-[36px] flex-col items-center justify-center rounded-lg border text-xs transition-all active:scale-90 ${keyBg} ${
-                        keyData.action === 'space' ? 'w-48 sm:w-64' : 'px-1.5 sm:px-2'
-                      }`}
-                    >
-                      <span className="text-[11px] sm:text-xs font-bold leading-none">
-                        {displayKhmer}
-                      </span>
-                      <span className="text-[8px] sm:text-[9px] opacity-75 leading-none font-mono">
-                        {keyData.latin.toUpperCase()}
-                      </span>
-                      {isTactileBump && (
-                        <span
-                          aria-hidden="true"
-                          className="pointer-events-none absolute bottom-0.5 left-1/2 h-0.5 w-2.5 -translate-x-1/2 rounded-full bg-amber-300"
-                        />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+      {/* ===== CENTER STAGE IS UNOBSTRUCTED (Hero, Altar & 3D Spell Projectiles) ===== */}
+      <div className="pointer-events-none flex-1 flex items-center justify-center">
+        {floatingScore && (
+          <div
+            key={floatingScore.id}
+            data-testid="three-floating-combat-score"
+            className={`font-black text-2xl sm:text-3xl font-khmer ${floatingScore.color} animate-bounce drop-shadow-[0_0_20px_rgba(245,158,11,0.9)]`}
+          >
+            {floatingScore.text}
           </div>
+        )}
+      </div>
+
+      {/* ===== BOTTOM DOCK: HAND DIAGRAM & RESPONSIVE KEYBOARD ===== */}
+      <div className="pointer-events-auto flex flex-col items-center gap-1.5 w-full max-w-3xl mx-auto pb-1">
+        {/* Hand Guidance Diagram Dock */}
+        <div
+          data-testid="three-hand-guidance-diagram"
+          data-active-finger={fingerGuidance.activeFinger}
+          data-home-key={fingerGuidance.homeKeyCode}
+          className="grid w-full grid-cols-1 sm:grid-cols-2 gap-2"
+        >
+          {renderHandStrip('left', 'ដៃឆ្វេង (Left Hand)', LEFT_HAND_FINGERS)}
+          {renderHandStrip('right', 'ដៃស្តាំ (Right Hand)', RIGHT_HAND_FINGERS)}
         </div>
-      )}
+
+        {/* Compact On-Screen Physical Keyboard */}
+        {showKeyboard && (
+          <div
+            data-testid="three-khmer-keyboard"
+            className="w-full rounded-2xl border border-white/15 bg-slate-950/85 p-2 shadow-2xl backdrop-blur-md"
+          >
+            <div className="space-y-1">
+              {khmerKeyboardRows.map((row, rowIndex) => (
+                <div key={rowIndex} className="flex justify-center gap-1">
+                  {row.map((keyData: KhmerKeyboardKey) => {
+                    const isBackspace = keyData.action === 'backspace';
+                    const isTarget = activeTarget?.key.code === keyData.code;
+                    const isShiftTarget = Boolean(
+                      requiredShiftCode && requiredShiftCode === keyData.code,
+                    );
+                    const isAltGrTarget = Boolean(
+                      requiredAltGrCode && requiredAltGrCode === keyData.code,
+                    );
+                    const isHomeKey = isHomeRowRestKeyCode(keyData.code);
+                    const isFingerHomeAnchor =
+                      !isTarget && activeTarget && fingerGuidance.homeKeyCode === keyData.code;
+                    const isTactileBump = hasTactileBump(keyData.code);
+                    const isFeedback = feedback?.code === keyData.code;
+                    const isDisabled = Boolean(keyData.disabled && !isBackspace);
+
+                    let keyBg = 'bg-slate-850/90 text-slate-200 border-slate-700/80';
+                    if (isFeedback && feedback.state === 'correct') {
+                      keyBg = 'bg-emerald-600 text-white border-emerald-400 scale-105';
+                    } else if (isFeedback && feedback.state === 'wrong') {
+                      keyBg = 'bg-coral text-white border-red-300 scale-105';
+                    } else if (isTarget) {
+                      keyBg =
+                        'bg-amber-500 text-slate-950 border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.8)] scale-105 font-bold';
+                    } else if (isShiftTarget || isAltGrTarget) {
+                      keyBg =
+                        'bg-purple-600 text-white border-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.7)] animate-pulse font-bold scale-105';
+                    } else if (isFingerHomeAnchor) {
+                      keyBg = 'bg-slate-800 text-emerald-300 border-emerald-400/80 ring-1 ring-emerald-400/50';
+                    } else if (isHomeKey && isHandPositionStage) {
+                      keyBg = 'bg-emerald-950/80 text-emerald-200 border-emerald-400/60';
+                    } else if (isHomeKey) {
+                      keyBg = 'bg-slate-800/95 text-slate-100 border-amber-500/35';
+                    } else if (isDisabled) {
+                      keyBg = 'bg-slate-900/50 text-slate-600 border-transparent';
+                    }
+
+                    const displayKhmer = isBackspace
+                      ? '⌫'
+                      : shiftRequired && keyData.shiftKhmer
+                      ? keyData.shiftKhmer
+                      : altgrRequired && keyData.altgrKhmer
+                      ? keyData.altgrKhmer
+                      : keyData.khmer || keyData.latin;
+
+                    return (
+                      <button
+                        type="button"
+                        key={`${rowIndex}-${keyData.latin}-${keyData.code}`}
+                        data-key-code={keyData.code}
+                        data-home-key={isHomeKey ? 'true' : undefined}
+                        data-tactile-bump={isTactileBump ? 'true' : undefined}
+                        data-is-target={isTarget ? 'true' : undefined}
+                        data-is-shift-target={isShiftTarget || isAltGrTarget ? 'true' : undefined}
+                        disabled={isDisabled}
+                        onClick={() => {
+                          if (isBackspace) {
+                            onBackspaceRef.current();
+                            return;
+                          }
+                          const modifier =
+                            activeTarget && keyData.code === activeTarget.key.code
+                              ? activeTarget.modifier
+                              : 'base';
+                          const val = getKhmerKeyOutput(keyData, modifier);
+                          handleInputEvent(val, keyData.code, 'virtual');
+                        }}
+                        className={`relative flex h-7 sm:h-9 min-w-[22px] sm:min-w-[34px] flex-col items-center justify-center rounded-lg border text-xs transition-all active:scale-90 ${keyBg} ${
+                          keyData.action === 'space' ? 'w-44 sm:w-60' : 'px-1 sm:px-1.5'
+                        }`}
+                      >
+                        <span className="text-[10px] sm:text-xs font-bold leading-none">
+                          {displayKhmer}
+                        </span>
+                        <span className="text-[7px] sm:text-[8px] opacity-75 leading-none font-mono">
+                          {keyData.latin.toUpperCase()}
+                        </span>
+                        {isTactileBump && (
+                          <span
+                            aria-hidden="true"
+                            className="pointer-events-none absolute bottom-0.5 left-1/2 h-0.5 w-2 -translate-x-1/2 rounded-full bg-amber-300"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

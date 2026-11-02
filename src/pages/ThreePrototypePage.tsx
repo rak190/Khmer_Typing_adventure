@@ -17,6 +17,7 @@ import TypingOverlay from '../features/three-game/components/TypingOverlay';
 import VictoryModal from '../features/three-game/components/VictoryModal';
 import { usePlayerControls } from '../features/three-game/hooks/usePlayerControls';
 import AncientGateScene from '../features/three-game/scenes/AncientGateScene';
+import { gameAudio } from '../lib/audio/gameAudio';
 import { getLessonExperienceConfig, isCustomExperienceSupported } from '../features/three-game/config/lessonExperienceConfig';
 import {
   applyBackspaceInput,
@@ -225,6 +226,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       }
     }
     startStageTypingSession(activeStageIndex);
+    gameAudio.playTempleGong();
     setMode('typing');
   }, [activeStageIndex, isBossEncounter, stageStates, startStageTypingSession]);
 
@@ -379,6 +381,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       });
 
       if (passed) {
+        gameAudio.playStageVictory();
         persistenceAdapterRef.current.recordStageCompletion(
           worldId,
           lessonRewardKey,
@@ -770,6 +773,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           onNearGateChange={setIsNearGate}
           onGateOpeningFinished={handleGateOpeningFinished}
           onStageOpeningFinished={handleStageOpeningFinished}
+          onInteract={handleStartTyping}
           lessonId={lesson.id}
           stageId={activeStage?.id}
           totalStageUnits={typingPlan.units.length}

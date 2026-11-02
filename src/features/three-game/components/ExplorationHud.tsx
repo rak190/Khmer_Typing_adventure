@@ -16,6 +16,7 @@ import type { CurriculumStage } from '../../../data/lessonCurriculum';
 import type { AdventureNodeId } from '../../../data/adventureWorlds';
 import { getLessonExperienceConfig, isCustomExperienceSupported } from '../config/lessonExperienceConfig';
 import type { GateStatus, StageProgressState } from '../types';
+import { gameAudio } from '../../../lib/audio/gameAudio';
 
 type ExplorationHudProps = {
   isNearGate: boolean;
@@ -51,7 +52,7 @@ export default function ExplorationHud({
   const isCustomExp = isCustomExperienceSupported(lessonId);
   const expConfig = isCustomExp && lessonId ? getLessonExperienceConfig(lessonId) : null;
   const currentStation = expConfig?.stations?.[activeStageIndex];
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(() => !gameAudio.isSoundEnabled());
 
   const activeStage = stages[activeStageIndex];
   const activeStageState = stageStates[activeStageIndex];
@@ -87,6 +88,24 @@ export default function ExplorationHud({
                 3D Lesson • {lessonTitleKh} ({lessonTitleEn})
               </span>
             </div>
+
+            <div
+              data-testid="three-in-world-waypoint"
+              className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 shadow-lg backdrop-blur-md transition-all ${
+                isNearGate
+                  ? 'border-amber-400 bg-amber-500/25 text-amber-200 font-bold shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse'
+                  : 'border-cyan-500/30 bg-slate-900/90 text-cyan-200 text-xs font-semibold'
+              }`}
+            >
+              <span className="text-amber-400 text-xs">{isNearGate ? '✨' : '🎯'}</span>
+              <span className="text-xs">
+                {isNearGate
+                  ? `[E] ចាប់ផ្តើមវាយអក្សរ • ${currentStation ? currentStation.stationTitleKh : `អាសនៈទី ${activeStageIndex + 1}`}`
+                  : currentStation
+                  ? currentStation.stationTitleKh
+                  : `អាសនៈទី ${activeStageIndex + 1}`}
+              </span>
+            </div>
           </div>
 
           <div className="pointer-events-auto flex items-center gap-2">
@@ -103,7 +122,7 @@ export default function ExplorationHud({
             )}
             <button
               type="button"
-              onClick={() => setMuted(!muted)}
+              onClick={() => setMuted((prev) => { const next = !prev; gameAudio.setSoundEnabled(!next); return next; })}
               className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-white/20 bg-slate-900/85 text-slate-300 shadow-lg backdrop-blur-md transition hover:text-white"
               title={muted ? 'បើកសំឡេង' : 'បិទសំឡេង'}
             >
@@ -179,7 +198,10 @@ export default function ExplorationHud({
           <Compass className="h-4 w-4 text-amber-400 shrink-0" />
           <div>
             <div className="font-bold text-white">ការបញ្ជាតួអង្គ (Movement)</div>
-            <div className="text-[11px] text-slate-300 font-sans mt-0.5 flex items-center gap-1">
+            <div className="text-[11px] text-slate-300 font-sans mt-0.5 flex flex-wrap items-center gap-1">
+              <span className="rounded bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.2 font-mono text-[10px] text-amber-300 font-bold">Shift</span>
+              <span className="text-[10px] text-amber-200 mr-1">រត់ (Sprint)</span>
+              <span className="text-slate-500 text-[10px]">•</span>
               <span className="rounded bg-slate-800 border border-slate-700 px-1 py-0.2 font-mono text-[10px] text-amber-300">W</span>
               <span className="rounded bg-slate-800 border border-slate-700 px-1 py-0.2 font-mono text-[10px] text-amber-300">A</span>
               <span className="rounded bg-slate-800 border border-slate-700 px-1 py-0.2 font-mono text-[10px] text-amber-300">S</span>

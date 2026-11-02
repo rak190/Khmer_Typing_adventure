@@ -186,7 +186,7 @@ try {
   controlStore.setCanMove(false);
   assert.deepEqual(
     controlStore.getSnapshot(),
-    { forward: false, backward: false, left: false, right: false },
+    { forward: false, backward: false, left: false, right: false, sprint: false },
     'Entering typing mode must immediately clear held movement keys',
   );
 
@@ -195,7 +195,7 @@ try {
   assert.equal(controlStore.handleKeyDown('ArrowUp'), false);
   assert.deepEqual(
     controlStore.getSnapshot(),
-    { forward: false, backward: false, left: false, right: false },
+    { forward: false, backward: false, left: false, right: false, sprint: false },
     'Movement keys pressed during typing must be ignored',
   );
 
@@ -203,9 +203,15 @@ try {
   controlStore.setCanMove(true);
   assert.deepEqual(
     controlStore.getSnapshot(),
-    { forward: false, backward: false, left: false, right: false },
+    { forward: false, backward: false, left: false, right: false, sprint: false },
     'Previously held keys must remain cleared after returning to exploration',
   );
+
+  // Sprint key (Shift) handling
+  controlStore.handleKeyDown('ShiftLeft');
+  assert.equal(controlStore.getSnapshot().sprint, true, 'Holding ShiftLeft activates sprint');
+  controlStore.handleKeyUp('ShiftLeft');
+  assert.equal(controlStore.getSnapshot().sprint, false, 'Releasing ShiftLeft deactivates sprint');
 
   // 4.1 Movement direction mapping, camera projection, diagonal normalization, and rotation
   // Camera stands at negative Z looking along +Z toward the gate.
