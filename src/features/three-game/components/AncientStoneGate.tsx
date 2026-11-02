@@ -13,7 +13,7 @@ type AncientStoneGateProps = {
   incorrectCount?: number;
   onOpeningFinished: () => void;
   playerPositionRef?: MutableRefObject<Position3D>;
-  lessonId?: number;
+  lessonId?: number | 'boss';
   stageId?: string;
   totalStageUnits?: number;
 };
@@ -1610,6 +1610,150 @@ function VowelMirrorStation({
   );
 }
 
+
+/**
+ * Lesson 6 Stage 1: Sky Rune Windows (បង្អួចអាកាស) for Right-Hand Upper Row
+ */
+function SkyRuneWindows({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const runes = useMemo(() => [
+    { label: 'យ', x: -2.2, y: 3.2, z: 0 },
+    { label: 'ុ', x: -1.3, y: 3.4, z: 0 },
+    { label: 'ិ', x: -0.4, y: 3.5, z: 0 },
+    { label: 'ោ', x: 0.4, y: 3.5, z: 0 },
+    { label: 'ផ', x: 1.3, y: 3.4, z: 0 },
+    { label: 'ៀ', x: 2.2, y: 3.2, z: 0 },
+  ], []);
+
+  return (
+    <group position={[0, 0, 0]}>
+      {runes.map((r, i) => {
+        const active = i === (completedCount % runes.length);
+        const passed = isUnlocked || completedCount > i * 5;
+        const col = passed ? '#38BDF8' : active ? '#F59E0B' : '#64748B';
+        const streakGlow = (passed || active) ? Math.min(streak * 0.05, 0.5) : 0;
+        return (
+          <group key={`sky-rune-${i}`} position={[r.x, r.y, r.z]}>
+            <mesh>
+              <boxGeometry args={[0.45, 0.45, 0.15]} />
+              <meshStandardMaterial
+                color="#334155"
+                roughness={0.7}
+                emissive={col}
+                emissiveIntensity={streakGlow}
+              />
+            </mesh>
+            <mesh position={[0, 0, 0.08]}>
+              <circleGeometry args={[0.18, 16]} />
+              <meshBasicMaterial color={col} />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+/**
+ * Lesson 7 Stage 1: Lower Stone Step Inlays (កាំជណ្តើរថ្មក្រោម) for Left-Hand Lower Row
+ */
+function LowerStoneStepInlays({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const steps = useMemo(() => [
+    { label: 'ឋ', z: -3.2, x: -1.2 },
+    { label: 'ខ', z: -2.4, x: -0.6 },
+    { label: 'ច', z: -1.6, x: 0.0 },
+    { label: 'វ', z: -0.8, x: 0.6 },
+    { label: 'ប', z: 0.0, x: 1.2 },
+  ], []);
+
+  return (
+    <group position={[0, 0, 0]}>
+      {steps.map((s, i) => {
+        const active = i === (completedCount % steps.length);
+        const passed = isUnlocked || completedCount > i * 6;
+        const col = passed ? '#10B981' : active ? '#FBBF24' : '#475569';
+        return (
+          <mesh key={`lower-step-${i}`} position={[s.x, 0.04, s.z]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.55, 0.55]} />
+            <meshStandardMaterial
+              color="#1E293B"
+              emissive={col}
+              emissiveIntensity={passed || active ? 1.2 + Math.min(streak * 0.05, 0.6) : 0.2}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
+/**
+ * Lesson 8 Stage 1: Right Lower Pillar Runes (សិលាស្តម្ភជួរក្រោម) for Right-Hand Lower Row
+ */
+function RightLowerPillarRunes({
+  completedCount = 0,
+  streak = 0,
+  isUnlocked = false,
+}: {
+  completedCount?: number;
+  streak?: number;
+  isUnlocked?: boolean;
+}) {
+  const pillars = useMemo(() => [
+    { label: 'ន', x: -1.8, z: -2.0 },
+    { label: 'ម', x: -1.8, z: -0.5 },
+    { label: 'ុំ', x: 1.8, z: -2.0 },
+    { label: '។', x: 1.8, z: -0.5 },
+    { label: '៊', x: 0, z: -1.2 },
+  ], []);
+
+  return (
+    <group position={[0, 0, 0]}>
+      {pillars.map((p, i) => {
+        const active = i === (completedCount % pillars.length);
+        const passed = isUnlocked || completedCount > i * 6;
+        const col = passed ? '#A855F7' : active ? '#F59E0B' : '#64748B';
+        return (
+          <group key={`lower-pillar-${i}`} position={[p.x, 0, p.z]}>
+            <mesh position={[0, 1.0, 0]} castShadow>
+              <cylinderGeometry args={[0.22, 0.28, 2.0, 8]} />
+              <meshStandardMaterial
+                color="#475569"
+                roughness={0.8}
+                emissive={col}
+                emissiveIntensity={passed || active ? 0.8 + Math.min(streak * 0.05, 0.6) : 0.1}
+              />
+            </mesh>
+            <mesh position={[0, 2.1, 0]}>
+              <octahedronGeometry args={[0.2]} />
+              <meshStandardMaterial
+                color={col}
+                emissive={col}
+                emissiveIntensity={passed || active ? 1.5 : 0.3}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
 export default function AncientStoneGate({
   gateState,
   streak = 0,
@@ -1874,6 +2018,33 @@ export default function AncientStoneGate({
       {/* Stage 1 Lesson 5: Vowel Mirror Reflection Station (កញ្ចក់ស្រៈ) */}
       {(stageId === 'w1-l5-s1' || (lessonId === 5 && (!stageId || stageId === 'w1-l5-s1'))) && (
         <VowelMirrorStation
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={isUnlocked}
+        />
+      )}
+
+      {/* Stage 1 Lesson 6: Sky Rune Windows */}
+      {(stageId === 'w1-l6-s1' || (lessonId === 6 && (!stageId || stageId === 'w1-l6-s1'))) && (
+        <SkyRuneWindows
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={isUnlocked}
+        />
+      )}
+
+      {/* Stage 1 Lesson 7: Lower Stone Step Inlays */}
+      {(stageId === 'w1-l7-s1' || (lessonId === 7 && (!stageId || stageId === 'w1-l7-s1'))) && (
+        <LowerStoneStepInlays
+          completedCount={completedCount}
+          streak={streak}
+          isUnlocked={isUnlocked}
+        />
+      )}
+
+      {/* Stage 1 Lesson 8: Right Lower Pillar Runes */}
+      {(stageId === 'w1-l8-s1' || (lessonId === 8 && (!stageId || stageId === 'w1-l8-s1'))) && (
+        <RightLowerPillarRunes
           completedCount={completedCount}
           streak={streak}
           isUnlocked={isUnlocked}

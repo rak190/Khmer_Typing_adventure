@@ -79,7 +79,7 @@ export default function App() {
   const location = useLocation();
   const [session, setSession] = useState<AppSession | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
-  const isInternalRoute = internalRoutesEnabled && (location.pathname === '/design-system' || location.pathname === '/3d-prototype');
+  const isInternalRoute = internalRoutesEnabled && (location.pathname === '/design-system' || location.pathname === '/3d-prototype' || location.pathname === '/three-game');
   const isPublicRoute = publicRoutes.has(location.pathname) || isInternalRoute;
 
   useEffect(() => {
@@ -149,7 +149,7 @@ export default function App() {
             <Route path="/khmer-keyboard-guide" element={<PublicInfoPage />} />
             <Route path="/typing-practice" element={<PublicInfoPage />} />
             <Route path="/3d-prototype" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
-            <Route path="/three-game" element={<ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
+            <Route path="/three-game" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </RouteErrorBoundary>

@@ -3,7 +3,9 @@ import AncientStoneGate from '../components/AncientStoneGate';
 import Character from '../components/Character';
 import Environment from '../components/Environment';
 import World1SceneryAddon from '../components/World1SceneryAddon';
+import type { AdventureNodeId } from '../../../data/adventureWorlds';
 import StageChallenges from '../components/StageChallenges';
+import TempleGuardianBoss from '../components/TempleGuardianBoss';
 import ThirdPersonCamera from '../components/ThirdPersonCamera';
 import type { MovementInput } from '../hooks/usePlayerControls';
 import { getStageBarrierIndex } from '../systems/gameplayState';
@@ -23,7 +25,7 @@ type AncientGateSceneProps = {
   onNearGateChange: (isNear: boolean) => void;
   onGateOpeningFinished: () => void;
   onStageOpeningFinished?: (stageIndex: number) => void;
-  lessonId?: number;
+  lessonId?: AdventureNodeId;
   stageId?: string;
   totalStageUnits?: number;
 };
@@ -101,6 +103,21 @@ export default function AncientGateScene({
         lessonId={lessonId}
         stageId={stageId}
       />
+
+      {/* World 1 Boss: Temple Guardian (ម្ចាស់ប្រាសាទព្រៃ at Z = 32.5) */}
+      {lessonId === 'boss' && (
+        <TempleGuardianBoss
+          activeWaveIndex={activeStageIndex}
+          waveStatus={gateState.status}
+          isTypingMode={mode === 'typing'}
+          completedCount={completedCount}
+          streak={streak}
+          incorrectCount={incorrectCount}
+          isDefeated={mode === 'completed'}
+          onNearBossChange={onNearGateChange}
+          playerPositionRef={playerPositionRef}
+        />
+      )}
     </>
   );
 }

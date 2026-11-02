@@ -9,6 +9,7 @@ import {
   computeMovementDelta,
   isPositionNearStage,
 } from '../systems/gameplayState';
+import type { AdventureNodeId } from '../../../data/adventureWorlds';
 import type { GameMode, GateStatus, Position3D } from '../types';
 
 type CharacterProps = {
@@ -22,6 +23,7 @@ type CharacterProps = {
   completedCount?: number;
   incorrectCount?: number;
   onNearGateChange: (isNear: boolean) => void;
+  lessonId?: AdventureNodeId;
 };
 
 const MOVE_SPEED = 5.8;
@@ -88,6 +90,7 @@ export default function Character({
   completedCount = 0,
   incorrectCount = 0,
   onNearGateChange,
+  lessonId,
 }: CharacterProps) {
   const groupRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Group>(null);
@@ -201,7 +204,9 @@ export default function Character({
 
     // Always enforce courtyard & multi-stage barrier collision bounds
     const [clampedX, clampedZ] =
-      stageStatuses && stageStatuses.length > 0
+      lessonId === 'boss'
+        ? [Math.max(-8, Math.min(8, curX)), Math.max(18, Math.min(30.5, curZ))]
+        : stageStatuses && stageStatuses.length > 0
         ? clampMultiStageCharacterPosition(curX, curZ, stageStatuses)
         : clampCharacterPosition(curX, curZ, gateStatus);
     positionRef.current[0] = clampedX;
@@ -226,7 +231,10 @@ export default function Character({
       lastStageIndexRef.current = activeStageIndex;
       lastNearGateRef.current = null;
     }
-    const nearGate = isPositionNearStage(clampedX, clampedZ, activeStageIndex, stageStatuses?.length ?? 3);
+    const nearGate =
+      lessonId === 'boss'
+        ? Math.hypot(clampedX - 0, clampedZ - 32.5) <= 10.5
+        : isPositionNearStage(clampedX, clampedZ, activeStageIndex, stageStatuses?.length ?? 3);
     if (lastNearGateRef.current !== nearGate) {
       lastNearGateRef.current = nearGate;
       onNearGateChange(nearGate);
