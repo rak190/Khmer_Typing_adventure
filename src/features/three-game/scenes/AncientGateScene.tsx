@@ -88,13 +88,16 @@ export default function AncientGateScene({
         targetPositionRef={playerPositionRef}
         mode={mode}
         isSprinting={movement.sprint}
+        cameraPreset={expConfig?.cameraPreset}
       />
 
       {/* Cambodian Courtyard Environment & Warm Golden Lighting */}
-      <Environment />
+      <Environment lessonId={lessonId} />
 
       {/* World 1 Scenic Dressing Add-on (LITE) */}
-      <World1SceneryAddon quality="lite" />
+      {!expConfig?.environmentTheme?.hideCauseway && !expConfig?.environmentTheme?.isCavern && (
+        <World1SceneryAddon quality="lite" />
+      )}
 
       {/* Playable Hero Character with Cambodian Regalia, Sprint Locomotion & Spell Poses */}
       <Character
@@ -138,6 +141,8 @@ export default function AncientGateScene({
           stageStatuses={stageStatuses}
           streak={streak}
           completedCount={completedCount}
+          totalStageUnits={totalStageUnits}
+          mode={mode}
         />
       )}
 
@@ -146,6 +151,9 @@ export default function AncientGateScene({
           activeStageIndex={activeStageIndex}
           stageStatuses={stageStatuses}
           streak={streak}
+          completedCount={completedCount}
+          totalStageUnits={totalStageUnits}
+          mode={mode}
         />
       )}
 
@@ -154,6 +162,9 @@ export default function AncientGateScene({
           activeStageIndex={activeStageIndex}
           stageStatuses={stageStatuses}
           streak={streak}
+          completedCount={completedCount}
+          totalStageUnits={totalStageUnits}
+          mode={mode}
         />
       )}
 
@@ -162,6 +173,9 @@ export default function AncientGateScene({
           activeStageIndex={activeStageIndex}
           stageStatuses={stageStatuses}
           streak={streak}
+          completedCount={completedCount}
+          totalStageUnits={totalStageUnits}
+          mode={mode}
         />
       )}
 
@@ -169,6 +183,10 @@ export default function AncientGateScene({
         <TempleTowerClimbExperience
           activeStageIndex={activeStageIndex}
           stageStatuses={stageStatuses}
+          streak={streak}
+          completedCount={completedCount}
+          totalStageUnits={totalStageUnits}
+          mode={mode}
         />
       )}
 
@@ -177,6 +195,9 @@ export default function AncientGateScene({
           activeStageIndex={activeStageIndex}
           stageStatuses={stageStatuses}
           streak={streak}
+          completedCount={completedCount}
+          totalStageUnits={totalStageUnits}
+          mode={mode}
         />
       )}
 
@@ -185,6 +206,9 @@ export default function AncientGateScene({
           activeStageIndex={activeStageIndex}
           stageStatuses={stageStatuses}
           streak={streak}
+          completedCount={completedCount}
+          totalStageUnits={totalStageUnits}
+          mode={mode}
         />
       )}
 
@@ -193,6 +217,9 @@ export default function AncientGateScene({
           activeStageIndex={activeStageIndex}
           stageStatuses={stageStatuses}
           streak={streak}
+          completedCount={completedCount}
+          totalStageUnits={totalStageUnits}
+          mode={mode}
         />
       )}
 

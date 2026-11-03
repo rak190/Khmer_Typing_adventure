@@ -1847,6 +1847,142 @@ try {
   assert.ok(hudL5ExploringHtml.includes('ដើរទៅជើងជណ្តើរប្រាសាទ'), 'HUD L5 must show staircase mission prompt');
   assert.ok(hudL5ExploringHtml.includes('raise the first flight of stone steps'), 'HUD L5 must show staircase mission in English');
 
+  // =========================================================================
+  // TASK 8B: WORLD 1 QUALITY POLISH, THEMING, COLLISION, AND FEEDBACK TESTS
+  // =========================================================================
+  const lessonExpMod = await server.ssrLoadModule('/src/features/three-game/config/lessonExperienceConfig.ts');
+  const gameAudioMod = await server.ssrLoadModule('/src/lib/audio/gameAudio.ts');
+  const VictoryModal = (await server.ssrLoadModule('/src/features/three-game/components/VictoryModal.tsx')).default;
+
+  // 1. Procedural Audio Methods Verification
+  assert.equal(typeof gameAudioMod.gameAudio.playMechanismActivation, 'function', 'playMechanismActivation must be a function');
+  assert.equal(typeof gameAudioMod.gameAudio.playShieldShatter, 'function', 'playShieldShatter must be a function');
+  assert.equal(typeof gameAudioMod.gameAudio.playBossAwaken, 'function', 'playBossAwaken must be a function');
+  assert.doesNotThrow(() => gameAudioMod.gameAudio.playMechanismActivation(), 'playMechanismActivation must execute safely without throwing');
+  assert.doesNotThrow(() => gameAudioMod.gameAudio.playShieldShatter(), 'playShieldShatter must execute safely without throwing');
+  assert.doesNotThrow(() => gameAudioMod.gameAudio.playBossAwaken(), 'playBossAwaken must execute safely without throwing');
+
+  // 2. All 8 Lessons + Boss Experience Configurations & Pedagogical Content
+  const experienceKeys = [1, 2, 3, 4, 5, 6, 7, 8, 'boss'];
+  for (const expKey of experienceKeys) {
+    const config = lessonExpMod.getLessonExperienceConfig(expKey);
+    assert.ok(config, `Experience config for ${expKey} must exist`);
+    assert.ok(config.introMissionKh?.length > 0, `Config ${expKey} must have introMissionKh`);
+    assert.ok(config.introMissionEn?.length > 0, `Config ${expKey} must have introMissionEn`);
+    assert.ok(config.educationalSkillKh?.length > 0, `Config ${expKey} must have educationalSkillKh`);
+    assert.ok(config.educationalSkillEn?.length > 0, `Config ${expKey} must have educationalSkillEn`);
+    assert.ok(config.cameraPreset, `Config ${expKey} must have a tailored cameraPreset`);
+    assert.ok(config.environmentTheme, `Config ${expKey} must have an environmentTheme`);
+  }
+
+  // 3. Environmental Theme Specifics (Causeway suppression & Cavern dome)
+  assert.equal(lessonExpMod.getLessonExperienceConfig(2).environmentTheme?.hideCauseway, true, 'Lotus Garden must hide causeway to prevent water clipping');
+  assert.equal(lessonExpMod.getLessonExperienceConfig(3).environmentTheme?.hideCauseway, true, 'Twin Bridges must hide causeway to prevent chasm clipping');
+  assert.equal(lessonExpMod.getLessonExperienceConfig(5).environmentTheme?.hideCauseway, true, 'Tower Climb must hide causeway for stepped terraces');
+  assert.equal(lessonExpMod.getLessonExperienceConfig(6).environmentTheme?.hideCauseway, true, 'Sky Platforms must hide causeway for floating stones');
+  assert.equal(lessonExpMod.getLessonExperienceConfig(7).environmentTheme?.hideCauseway, true, 'Crystal Cave must hide causeway');
+  assert.equal(lessonExpMod.getLessonExperienceConfig(7).environmentTheme?.isCavern, true, 'Crystal Cave must enable subterranean cavern mode');
+  assert.equal(lessonExpMod.getLessonExperienceConfig(8).environmentTheme?.hideCauseway, true, 'Sacred River must hide causeway for river channel');
+
+  // 4. Geometry-Accurate Collision & Walkable Area Clamping Tests
+  // Level 1: Finger Sanctuary
+  const [l1X, l1ZLocked] = gameplayState.clampLessonCharacterPosition(12, 8, 1, ['closed', 'closed', 'closed']);
+  assert.equal(l1X, 7.0, 'Level 1 X must clamp to courtyard perimeter [-7, 7]');
+  assert.equal(l1ZLocked, 2.5, 'Level 1 Z must clamp before stage 1 altar when closed');
+  const [, l1ZOpening] = gameplayState.clampLessonCharacterPosition(0, 6.0, 1, ['opening', 'closed', 'closed']);
+  assert.equal(l1ZOpening, 6.0, 'Level 1 Z must treat "opening" stage status as traversable');
+  const [, l1ZOpen] = gameplayState.clampLessonCharacterPosition(0, 9.5, 1, ['open', 'open', 'open']);
+  assert.equal(l1ZOpen, 9.5, 'Level 1 Z can pass through exit when stage 3 passed');
+
+  // Level 2: Lotus Garden (No walking on open water!)
+  const [l2XWater, l2ZWater] = gameplayState.clampLessonCharacterPosition(4.5, 5.0, 2, ['open', 'closed', 'closed']);
+  assert.equal(l2XWater, 2.5, 'Level 2 must clamp X to stepping corridor [-2.5, 2.5]');
+  assert.equal(l2ZWater, 5.0, 'Level 2 Z stays within allowed bounds');
+  const [, l2ZLocked] = gameplayState.clampLessonCharacterPosition(0, 6.0, 2, ['closed', 'closed', 'closed']);
+  assert.equal(l2ZLocked, 2.5, 'Level 2 cannot advance past stage 0 altar when closed');
+
+  // Level 3: Twin Bridges (Mid-Chasm Pier Platform at [0, 0, 10.5])
+  const [l3XChasm] = gameplayState.clampLessonCharacterPosition(0, 5.0, 3, ['open', 'closed', 'closed']);
+  assert.ok(Math.abs(l3XChasm) >= 1.8, 'Level 3 must clamp character onto either causeway over open chasm');
+  // When Stage 0 is open, Mid-Chasm Pier platform (Z = 10.5) is accessible at X = 0
+  const [l3XPier] = gameplayState.clampLessonCharacterPosition(0, 10.5, 3, ['open', 'closed', 'closed']);
+  assert.equal(l3XPier, 0, 'Level 3 allows standing at Station 1 on the Mid-Chasm Pier platform');
+  // When Stage 1 is open, cantilever arch crossing is connected
+  const [l3XArch] = gameplayState.clampLessonCharacterPosition(0, 10.5, 3, ['open', 'open', 'closed']);
+  assert.equal(l3XArch, 0, 'Level 3 allows crossing between bridges when cantilever arches are connected');
+
+  // Level 5: Temple Tower Climb (Narrow stairs, Station 2 at Z = 20.0)
+  const [l5XStairs] = gameplayState.clampLessonCharacterPosition(4.0, 5.5, 5, ['open', 'closed', 'closed']);
+  assert.equal(l5XStairs, 2.5, 'Level 5 staircase risers must constrain X to flight width [-2.5, 2.5]');
+  const [, l5ZStation2] = gameplayState.clampLessonCharacterPosition(0, 20.0, 5, ['open', 'open', 'closed']);
+  assert.equal(l5ZStation2, 20.0, 'Level 5 Station 2 at Z = 20.0 must be reachable when Stage 1 is open');
+
+  // Level 6: Sky Platforms (Station 2 at Z = 20.0)
+  const [, l6ZStation2] = gameplayState.clampLessonCharacterPosition(0, 20.0, 6, ['open', 'open', 'closed']);
+  assert.equal(l6ZStation2, 20.0, 'Level 6 Station 2 at Z = 20.0 must be reachable when Stage 1 is open');
+
+  // Level 8: Sacred River (Continuous Dragon Barge crossing across channel)
+  const [l8XClosed, l8ZClosed] = gameplayState.clampLessonCharacterPosition(0, 4.0, 8, ['closed', 'closed', 'closed']);
+  assert.equal(l8XClosed, 0, 'Level 8 X stays centered without sudden sideways teleportation');
+  assert.equal(l8ZClosed, 1.5, 'Level 8 Z clamps before water until Stage 0 opens');
+  const [l8XStation1, l8ZStation1] = gameplayState.clampLessonCharacterPosition(0, 9.5, 8, ['open', 'closed', 'closed']);
+  assert.equal(l8XStation1, 0, 'Level 8 Station 1 is accessible along the central barge bridge corridor');
+  assert.equal(l8ZStation1, 9.5, 'Level 8 Station 1 at Z = 9.5 is reachable when Stage 0 is open');
+  const [l8XStation2, l8ZStation2] = gameplayState.clampLessonCharacterPosition(0, 19.5, 8, ['open', 'open', 'closed']);
+  assert.equal(l8XStation2, 0, 'Level 8 Station 2 is accessible along the second barge crossing');
+  assert.equal(l8ZStation2, 19.5, 'Level 8 Station 2 at Z = 19.5 is reachable when Stage 1 is open');
+
+  // Boss: Arena bounding box
+  const [bossX, bossZ] = gameplayState.clampLessonCharacterPosition(15, 35, 'boss', []);
+  assert.equal(bossX, 8.0, 'Boss arena X must clamp to 8.0');
+  assert.equal(bossZ, 31.0, 'Boss arena Z must clamp to 31.0');
+
+  // 5. Victory Modal Pedagogical Skill Integration
+  const victoryModalHtml = ReactDOMServer.renderToString(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(VictoryModal, {
+        passed: true,
+        minimumAccuracy: 90,
+        reward: {
+          expGained: 150,
+          gemsGained: 25,
+          accuracy: 94,
+          cpm: 45,
+          stars: 3,
+          score: 850,
+        },
+        stages: l1Curriculum.stages,
+        stageStates: gameplayState.createInitialStageProgressStates(l1Curriculum.stages),
+        lessonId: 1,
+        onWalkThrough: () => {},
+        onRetry: () => {},
+      }),
+    ),
+  );
+  assert.ok(victoryModalHtml.includes('ជំនាញដែលបានរៀន'), 'VictoryModal must show pedagogical skill banner header');
+  assert.ok(victoryModalHtml.includes('ពង្រឹងម្រាមដៃគោលខាងឆ្វេង'), 'VictoryModal must render authentic educationalSkillKh');
+  assert.ok(victoryModalHtml.includes('Left home-row key fluency'), 'VictoryModal must render educationalSkillEn');
+  const cleanVictoryHtml = victoryModalHtml.replace(/<!--.*?-->/g, '');
+  assert.ok(cleanVictoryHtml.includes('94%'), 'VictoryModal must display accuracy');
+  assert.ok(cleanVictoryHtml.includes('45'), 'VictoryModal must display CPM');
+
+  // 6. Lesson Intro Briefing Modal SSR Integration
+  const LessonIntroModal = (await server.ssrLoadModule('/src/features/three-game/components/LessonIntroModal.tsx')).default;
+  const introModalHtml = ReactDOMServer.renderToString(
+    React.createElement(LessonIntroModal, {
+      isOpen: true,
+      onStart: () => {},
+      lessonId: 1,
+      lessonTitleKh: l1Curriculum.titleKh,
+      lessonTitleEn: l1Curriculum.title,
+      stages: l1Curriculum.stages,
+    }),
+  );
+  assert.ok(introModalHtml.includes('គោលបំណងបេសកកម្ម'), 'LessonIntroModal must display Mission Objective header');
+  assert.ok(introModalHtml.includes('បេសកកម្ម៖ ដាស់សិលាម្រាមដៃឆ្វេងទាំង ៤'), 'LessonIntroModal must render introMissionKh');
+  assert.ok(introModalHtml.includes('ចាប់ផ្តើមបេសកកម្ម'), 'LessonIntroModal must render Start Mission action button');
 
 } finally {
   await server.close();

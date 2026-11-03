@@ -2,12 +2,16 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useGltfClone } from '../../hooks/useGltfAsset';
-import type { GateStatus } from '../../types';
+import type { GameMode, GateStatus } from '../../types';
+import { gameAudio } from '../../../../lib/audio/gameAudio';
 
 interface SacredRiverExperienceProps {
   activeStageIndex: number;
   stageStatuses: GateStatus[];
   streak?: number;
+  completedCount?: number;
+  totalStageUnits?: number;
+  mode?: GameMode;
   isUnlocked?: boolean;
 }
 
@@ -16,7 +20,12 @@ interface SacredRiverExperienceProps {
  * Sacred water channel where typing advances a ceremonial dragon barge toward the Temple Guardian.
  */
 export default function SacredRiverExperience({
+  activeStageIndex,
   stageStatuses,
+  streak = 0,
+  completedCount = 0,
+  totalStageUnits = 12,
+  mode,
   isUnlocked = false,
 }: SacredRiverExperienceProps) {
   const lotusGlb = useGltfClone('/models/props/khmer_lotus_altar.glb');
@@ -27,17 +36,47 @@ export default function SacredRiverExperience({
   const bargeRef = useRef<THREE.Group>(null);
   const riverRef = useRef<THREE.Mesh>(null);
   const guardianGateRef = useRef<THREE.Group>(null);
+  const lastCompletedRef = useRef(completedCount);
+  const hitPulseTimerRef = useRef(0);
+  const hasTriggeredGateAudioRef = useRef(false);
 
   const stage1Passed = stageStatuses[0] === 'open' || isUnlocked;
   const stage2Passed = stageStatuses[1] === 'open' || isUnlocked;
   const stage3Passed = stageStatuses[2] === 'open' || isUnlocked;
 
+  const stageProgressRatio = Math.min(1, Math.max(0, completedCount / Math.max(1, totalStageUnits)));
+
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
+
+    // Detect keystroke hits (Feedback A)
+    if (completedCount > lastCompletedRef.current) {
+      hitPulseTimerRef.current = 0.4;
+      lastCompletedRef.current = completedCount;
+    }
+    if (hitPulseTimerRef.current > 0) {
+      hitPulseTimerRef.current = Math.max(0, hitPulseTimerRef.current - delta);
+    }
+
     if (bargeRef.current) {
+      const pulseScale = 1.0 + (hitPulseTimerRef.current > 0 ? (hitPulseTimerRef.current / 0.4) * 0.04 : 0);
+      bargeRef.current.scale.set(pulseScale, pulseScale, pulseScale);
       // Gentle water bobbing and rocking
       bargeRef.current.position.y = Math.sin(t * 1.5) * 0.08;
       bargeRef.current.rotation.z = Math.sin(t * 1.2) * 0.02;
+
+      // Feedback B: Barge sails forward with typing progress across the river
+      let targetZ = 4.125;
+      if (stage2Passed) {
+        targetZ = 14.5;
+      } else if (stage1Passed) {
+        targetZ = 14.5;
+      } else if (activeStageIndex === 1 && mode === 'typing') {
+        targetZ = 4.125 + stageProgressRatio * (14.5 - 4.125);
+      } else {
+        targetZ = 4.125;
+      }
+      bargeRef.current.position.z = THREE.MathUtils.lerp(bargeRef.current.position.z, targetZ, delta * 3.0);
     }
     if (riverRef.current) {
       const mat = riverRef.current.material as THREE.MeshStandardMaterial;
@@ -48,8 +87,14 @@ export default function SacredRiverExperience({
     if (guardianGateRef.current) {
       const targetY = stage3Passed ? -4.5 : 0;
       guardianGateRef.current.position.y = THREE.MathUtils.lerp(guardianGateRef.current.position.y, targetY, delta * 2.0);
+      if (stage3Passed && !hasTriggeredGateAudioRef.current) {
+        hasTriggeredGateAudioRef.current = true;
+        gameAudio.playMechanismActivation();
+      }
     }
   });
+
+  const streakBonus = Math.min(streak * 0.05, 0.4);
 
   return (
     <group name="SacredRiverExperience">
@@ -65,23 +110,47 @@ export default function SacredRiverExperience({
         />
       </mesh>
 
-      {/* 2. Moored Ceremonial Dragon Barge */}
-      <group position={[-3.8, 0, 8.5]} ref={bargeRef}>
+      {/* 2. Moored Ceremonial Dragon Barge (Centered along the river channel at X = 0) */}
+      <group position={[0, 0, 4.125]} ref={bargeRef}>
         {/* Wooden Hull */}
-        <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
-          <boxGeometry args={[2.2, 0.6, 7.5]} />
-          <meshStandardMaterial color="#78350F" roughness={0.8} />
+        <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
+          <boxGeometry args={[3.2, 0.5, 7.6]} />
+          <meshStandardMaterial color="#78350F" roughness={0.78} />
         </mesh>
-        {/* Carved Dragon/Naga Prow */}
-        <mesh position={[0, 0.8, 3.8]} castShadow>
-          <coneGeometry args={[0.5, 1.2, 8]} />
-          <meshStandardMaterial color="#F59E0B" emissive="#D97706" emissiveIntensity={0.4} roughness={0.6} />
+        {/* Walkable Teak Deck Planks */}
+        <mesh position={[0, 0.42, 0]} receiveShadow>
+          <boxGeometry args={[2.7, 0.05, 7.2]} />
+          <meshStandardMaterial color="#92400E" roughness={0.72} />
         </mesh>
-        {/* Ceremonial Canopy */}
-        <mesh position={[0, 1.4, 0]} castShadow>
-          <boxGeometry args={[2.4, 0.1, 4.0]} />
+        {/* Carved Dragon/Naga Prow facing downstream toward Guardian Shore */}
+        <mesh position={[0, 0.85, 3.8]} castShadow>
+          <coneGeometry args={[0.55, 1.3, 8]} />
+          <meshStandardMaterial
+            color="#F59E0B"
+            emissive="#D97706"
+            emissiveIntensity={0.5 + streakBonus}
+            roughness={0.55}
+          />
+        </mesh>
+        {/* Stern Carved Dragon Tail */}
+        <mesh position={[0, 0.7, -3.8]} castShadow>
+          <coneGeometry args={[0.45, 1.1, 8]} />
+          <meshStandardMaterial color="#D97706" roughness={0.65} />
+        </mesh>
+        {/* Elevated Ceremonial Canopy (Head clearance for adventurer) */}
+        <mesh position={[0, 2.3, 0]} castShadow>
+          <boxGeometry args={[3.4, 0.15, 4.6]} />
           <meshStandardMaterial color="#DC2626" roughness={0.7} />
         </mesh>
+        {/* Canopy Support Pillars */}
+        {[-1.4, 1.4].map((px) =>
+          [-1.8, 1.8].map((pz) => (
+            <mesh key={`canopy-pillar-${px}-${pz}`} position={[px, 1.25, pz]} castShadow>
+              <cylinderGeometry args={[0.07, 0.09, 2.1, 8]} />
+              <meshStandardMaterial color="#F59E0B" metalness={0.5} roughness={0.4} />
+            </mesh>
+          ))
+        )}
       </group>
 
       {/* 3. Three Stone Crossing Piers (Stations 0, 1, 2) */}

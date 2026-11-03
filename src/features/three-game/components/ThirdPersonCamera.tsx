@@ -3,16 +3,26 @@ import { useEffect, useRef, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import type { GameMode, Position3D } from '../types';
 
+export type CameraPreset = {
+  offsetBack: number;
+  offsetUp: number;
+  lookUp: number;
+  lookAheadZ: number;
+  damping?: number;
+};
+
 type ThirdPersonCameraProps = {
   targetPositionRef: MutableRefObject<Position3D>;
   mode: GameMode;
   isSprinting?: boolean;
+  cameraPreset?: CameraPreset;
 };
 
 export default function ThirdPersonCamera({
   targetPositionRef,
   mode,
   isSprinting = false,
+  cameraPreset,
 }: ThirdPersonCameraProps) {
   const { camera } = useThree();
 
@@ -41,27 +51,27 @@ export default function ThirdPersonCamera({
     const dt = Math.min(delta, 0.05);
     const [tx, ty, tz] = targetPositionRef.current;
 
-    let offsetBack = -6.2;
-    let offsetUp = 2.25;
+    let offsetBack = cameraPreset?.offsetBack ?? -6.2;
+    let offsetUp = cameraPreset?.offsetUp ?? 2.25;
     let offsetX = 0;
-    let lookUp = 2.05;
-    let lookAheadZ = 2.2;
-    let damping = 5.0;
+    let lookUp = cameraPreset?.lookUp ?? 2.05;
+    let lookAheadZ = cameraPreset?.lookAheadZ ?? 2.2;
+    let damping = cameraPreset?.damping ?? 5.0;
 
     if (mode === 'typing') {
       // Action-RPG over-the-shoulder framing: hero visible on left, glowing altar on right
-      offsetBack = -3.8;
-      offsetUp = 2.0;
+      offsetBack = (cameraPreset?.offsetBack ?? -6.2) * 0.65;
+      offsetUp = (cameraPreset?.offsetUp ?? 2.25) * 0.9;
       offsetX = -0.75;
-      lookUp = 1.95;
-      lookAheadZ = 1.8;
+      lookUp = (cameraPreset?.lookUp ?? 2.05) * 0.95;
+      lookAheadZ = (cameraPreset?.lookAheadZ ?? 2.2) * 0.8;
       damping = 4.6;
     } else if (mode === 'opening') {
-      // Cinematic majestic sweep: pull back and tilt up toward the towering pediment
-      offsetBack = -7.0;
-      offsetUp = 3.8;
-      lookUp = 3.2;
-      lookAheadZ = 2.8;
+      // Cinematic majestic sweep: pull back and tilt up toward the towering transformation
+      offsetBack = (cameraPreset?.offsetBack ?? -6.2) * 1.15;
+      offsetUp = (cameraPreset?.offsetUp ?? 2.25) * 1.7;
+      lookUp = (cameraPreset?.lookUp ?? 2.05) * 1.55;
+      lookAheadZ = (cameraPreset?.lookAheadZ ?? 2.2) * 1.35;
       damping = 2.8;
     } else if (mode === 'completed') {
       // Triumphant framing looking toward the open gateway bathed in sunlight

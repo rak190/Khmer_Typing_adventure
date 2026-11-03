@@ -15,6 +15,7 @@ import {
 import ExplorationHud from '../features/three-game/components/ExplorationHud';
 import TypingOverlay from '../features/three-game/components/TypingOverlay';
 import VictoryModal from '../features/three-game/components/VictoryModal';
+import LessonIntroModal from '../features/three-game/components/LessonIntroModal';
 import { usePlayerControls } from '../features/three-game/hooks/usePlayerControls';
 import AncientGateScene from '../features/three-game/scenes/AncientGateScene';
 import { gameAudio } from '../lib/audio/gameAudio';
@@ -179,6 +180,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     createTypingSessionState(1),
   );
   const [showModal, setShowModal] = useState(false);
+  const [showIntroModal, setShowIntroModal] = useState(true);
   const [stageSummary, setStageSummary] = useState<StageCompletionSummary | null>(null);
   const [finalLessonMetrics, setFinalLessonMetrics] = useState<TypingMetricResult | null>(null);
   const [reward, setReward] = useState<PrototypeReward | null>(null);
@@ -225,6 +227,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
         /* Local / offline fallback */
       }
     }
+    setShowIntroModal(false);
     startStageTypingSession(activeStageIndex);
     gameAudio.playTempleGong();
     setMode('typing');
@@ -264,6 +267,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     };
     win.__threeStartStage = (stageIdx: number) => {
       setActiveStageIndex(stageIdx);
+      setShowIntroModal(false);
       startStageTypingSession(stageIdx);
       setMode('typing');
     };
@@ -282,6 +286,8 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     };
   }, [activeStageIndex, stageStates, startStageTypingSession]);
 
+  const isAnyModalOpen = showModal || showIntroModal;
+
   const movement = usePlayerControls(
     mode,
     () => {
@@ -289,13 +295,13 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
         isNearGate &&
         canAccessStage(activeStageIndex, activeStageIndex, stageStates) &&
         mode === 'exploration' &&
-        !showModal
+        !isAnyModalOpen
       ) {
         handleStartTyping();
       }
     },
     handleEscape,
-    showModal,
+    isAnyModalOpen,
   );
 
   const handleRestartTyping = useCallback(() => {
@@ -770,7 +776,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           stageStatuses={stageStatuses}
           activeStageIndex={activeStageIndex}
           movement={movement}
-          isModalOpen={showModal}
+          isModalOpen={isAnyModalOpen}
           streak={sessionState.streak}
           completedCount={sessionState.completedCount}
           incorrectCount={sessionState.incorrectCount}
@@ -837,6 +843,18 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           onWalkThrough={handleWalkThrough}
           onRetry={handleRetryChallenge}
           onReplayLesson={handleReplayLesson}
+          lessonId={lesson.id}
+        />
+      )}
+
+      {showIntroModal && mode === 'exploration' && !showModal && (
+        <LessonIntroModal
+          isOpen={showIntroModal}
+          onStart={() => setShowIntroModal(false)}
+          lessonId={lesson.id}
+          lessonTitleKh={lesson.labelKh}
+          lessonTitleEn={lesson.labelEn}
+          stages={stages}
         />
       )}
     </div>

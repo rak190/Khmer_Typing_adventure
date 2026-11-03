@@ -1,6 +1,8 @@
-import { ArrowRight, CheckCircle2, RotateCcw, Star, Trophy } from 'lucide-react';
+import { ArrowRight, CheckCircle2, RotateCcw, Sparkles, Star, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import type { AdventureNodeId } from '../../../data/adventureWorlds';
 import type { CurriculumStage } from '../../../data/lessonCurriculum';
+import { getLessonExperienceConfig, isCustomExperienceSupported } from '../config/lessonExperienceConfig';
 import type { TypingMetricResult } from '../../../lib/typingMetrics';
 import type { PrototypeReward, StageCompletionSummary, StageProgressState } from '../types';
 
@@ -25,6 +27,7 @@ type VictoryModalProps = {
   onWalkThrough: () => void;
   onRetry: () => void;
   onReplayLesson?: () => void;
+  lessonId?: AdventureNodeId;
 };
 
 export default function VictoryModal({
@@ -41,6 +44,7 @@ export default function VictoryModal({
   onWalkThrough,
   onRetry,
   onReplayLesson,
+  lessonId,
 }: VictoryModalProps) {
   const navigate = useNavigate();
 
@@ -57,6 +61,8 @@ export default function VictoryModal({
   const displayStars = displayMetrics ? displayMetrics.stars : reward?.stars ?? 0;
   const displayScore = displayMetrics ? displayMetrics.finalScore : reward?.score ?? 0;
   const foundationSummary = stageSummary?.foundationPracticeSummary ?? null;
+  const isCustomExp = isCustomExperienceSupported(lessonId);
+  const expConfig = isCustomExp && lessonId ? getLessonExperienceConfig(lessonId) : null;
 
   return (
     <div
@@ -93,6 +99,22 @@ export default function VictoryModal({
             ? `${stageSummary.titleEn} unlocked! Proceed to Stage ${stageSummary.stageIndex + 2}.`
             : `Need at least ${minimumAccuracy}% accuracy to unlock this stage barrier.`}
         </p>
+
+        {/* Educational Pedagogical Skill Banner */}
+        {expConfig && (
+          <div className="my-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3 text-left">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+              <Sparkles className="h-4 w-4 shrink-0 text-amber-400" />
+              <span>ជំនាញដែលបានរៀន • {expConfig.titleKh}</span>
+            </div>
+            <p className="mt-1 text-xs text-amber-100 font-khmer">
+              {expConfig.educationalSkillKh}
+            </p>
+            <p className="text-[11px] text-amber-200/80 font-sans mt-0.5">
+              {expConfig.educationalSkillEn}
+            </p>
+          </div>
+        )}
 
         {/* Stars */}
         {passed && (
