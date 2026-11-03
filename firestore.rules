@@ -5,18 +5,26 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
-    // Direct Firestore student and user access (Option B)
+    // 100% Server-Authoritative: Students may read their own data, but all writes are denied.
+    // All mutations (rewards, XP, coins, items, progress, profile) must be executed by
+    // trusted Cloud Functions v2 callables using the Firebase Admin SDK.
     match /users/{uid} {
-      allow read, write: if owns(uid);
+      allow read: if owns(uid);
+      allow write: if false;
+
       match /{document=**} {
-        allow read, write: if owns(uid);
+        allow read: if owns(uid);
+        allow write: if false;
       }
     }
 
     match /students/{uid} {
-      allow read, write: if owns(uid);
+      allow read: if owns(uid);
+      allow write: if false;
+
       match /{document=**} {
-        allow read, write: if owns(uid);
+        allow read: if owns(uid);
+        allow write: if false;
       }
     }
 

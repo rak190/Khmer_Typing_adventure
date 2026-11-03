@@ -257,7 +257,11 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     };
     win.__threeGetPlayerPos = () => playerPositionRef.current;
     win.__threeSetPlayerPos = (x: number, y: number, z: number) => { playerPositionRef.current = [x, y, z]; };
-    win.__threeUnlockAllStages = () => { setStageStates((prev) => prev.map((s) => ({ ...s, status: 'open', passed: true }))); setGateState({ status: 'open', openProgress: 1.0 }); };
+    win.__threeUnlockAllStages = () => {
+      setStageStates((prev) => prev.map((s) => ({ ...s, status: 'open', passed: true })));
+      setGateState({ status: 'open', openProgress: 1.0 });
+      setMode('completed');
+    };
     win.__threeStartStage = (stageIdx: number) => {
       setActiveStageIndex(stageIdx);
       startStageTypingSession(stageIdx);

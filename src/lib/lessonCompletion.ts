@@ -1,5 +1,5 @@
-import { doc, getDoc, setDoc, updateDoc, increment, arrayUnion } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, functions } from './firebase';
 import { validateLessonAttempt, type LessonAttempt } from './completionContract';
 import { calculateRewards } from './rewardPolicy';
 import { getLessonSpeedTargetCpm } from './typingMetrics';
@@ -11,52 +11,33 @@ export type SaveResult = {
   firstClear: boolean;
 };
 
-export function isOnlineSaveAllowed(): boolean {
+export function isOnlineBackendAvailable(userId?: string): boolean {
+  const allowOnline =
+    import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true' ||
+    Boolean(import.meta.env.VITE_FIREBASE_STAGE === 'staging' || import.meta.env.VITE_FIREBASE_PROJECT_ID);
   return Boolean(
-    db && (
-      import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true' ||
-      import.meta.env.VITE_FIREBASE_STAGE === 'staging' ||
-      Boolean(import.meta.env.VITE_FIREBASE_PROJECT_ID)
-    )
+    allowOnline &&
+    functions &&
+    auth?.currentUser?.uid &&
+    (!userId || auth.currentUser.uid === userId)
   );
 }
 
 export function isStudentOnlineSaveAvailable(): boolean {
-  return Boolean(auth?.currentUser && isOnlineSaveAllowed());
+  return Boolean(auth?.currentUser && isOnlineBackendAvailable());
 }
 
 /**
- * Saves lesson attempt directly to Cloud Firestore under the authenticated student's path.
- * Retains failed records locally for offline retry with the exact same attemptId.
+ * Submits a validated lesson attempt to the trusted Cloud Functions v2 backend.
+ * Replays and retries are idempotent on the server.
+ * Retains failed or offline records in localStorage for seamless automatic retry when reconnected.
  */
 export async function submitLessonAttempt(attempt: LessonAttempt): Promise<SaveResult> {
   const identity = validateLessonAttempt(attempt);
   const uid = auth?.currentUser?.uid;
-  if (!uid || !db) throw new Error('Local demonstration only — no server save');
-  if (!isOnlineSaveAllowed()) throw new Error('Cloud storage disabled in this environment');
 
-  const key = `khmer-pending:${uid}:${attempt.attemptId}`;
-  const prefix = `khmer-pending:${uid}:`;
-  const pending = Object.keys(localStorage).filter(k => k.startsWith(prefix));
-  if (!pending.includes(key) && pending.length >= 20) throw new Error('Pending save limit reached. Retry earlier saves first.');
-  localStorage.setItem(key, JSON.stringify(attempt));
-
-  try {
-    // 1. Check idempotency: If this attemptId was already saved, return the existing reward
-    const claimRef = doc(db, 'users', uid, 'rewardClaims', `attempt-${attempt.attemptId}`);
-    const existingClaim = await getDoc(claimRef);
-    if (existingClaim.exists()) {
-      localStorage.removeItem(key);
-      const data = existingClaim.data() as { result: SaveResult };
-      return data.result;
-    }
-
-    // 2. Check if this is the student's first clear of this lesson
-    const lessonDocRef = doc(db, 'students', uid, 'lessonProgress', identity.id);
-    const existingProgress = await getDoc(lessonDocRef);
-    const firstClear = attempt.metrics.passed && (!existingProgress.exists() || !existingProgress.data()?.passed);
-
-    // 3. Calculate rewards based on performance policy
+  // Local demo / unauthenticated fallback
+  if (!uid || !functions || !isOnlineBackendAvailable()) {
     const targetCPM = getLessonSpeedTargetCpm(identity.lesson, identity.worldId);
     const policy = calculateRewards({
       mode: identity.levelId === 'boss' ? 'boss' : 'lesson',
@@ -71,83 +52,42 @@ export async function submitLessonAttempt(attempt: LessonAttempt): Promise<SaveR
       lessonId: identity.legacyId,
     });
 
-    const reward = {
-      XP: Math.min(policy.xpEarned, 500),
-      coins: Math.min(policy.coinsEarned, 500),
-      gems: firstClear ? Math.min(policy.gemsEarned, 5) : 0,
-    };
-
-    const saveResult: SaveResult = {
+    return {
       status: 'saved',
       attemptId: attempt.attemptId,
-      reward,
-      firstClear,
+      reward: {
+        XP: Math.min(policy.xpEarned, 500),
+        coins: Math.min(policy.coinsEarned, 500),
+        gems: attempt.metrics.passed ? Math.min(policy.gemsEarned, 5) : 0,
+      },
+      firstClear: attempt.metrics.passed,
     };
+  }
 
-    // 4. Save lesson progress document in Firestore
-    await setDoc(lessonDocRef, {
-      worldId: identity.worldId,
-      lessonId: identity.levelId,
-      score: attempt.metrics.score,
-      accuracy: attempt.metrics.accuracy,
-      cpm: attempt.metrics.cpm,
-      wpm: Math.round(attempt.metrics.cpm / 5),
-      stars: attempt.metrics.stars,
-      xpEarned: reward.XP,
-      coinsEarned: reward.coins,
-      passed: attempt.metrics.passed,
-      completed: true,
-      timeSeconds: attempt.metrics.elapsedSeconds,
-      mistakes: attempt.metrics.mistakes,
-      backspaces: attempt.metrics.backspaces,
-      stages: attempt.stages,
-      updatedAt: attempt.completedAt,
-    }, { merge: true });
+  const key = `khmer-pending:${uid}:${attempt.attemptId}`;
+  const prefix = `khmer-pending:${uid}:`;
+  const pending = Object.keys(localStorage).filter((k) => k.startsWith(prefix));
+  if (!pending.includes(key) && pending.length >= 20) {
+    throw new Error('Pending save limit reached. Retry earlier saves first.');
+  }
 
-    // 5. Record the claim record for idempotency
-    await setDoc(claimRef, {
-      attemptId: attempt.attemptId,
-      lessonId: identity.id,
-      result: saveResult,
-      createdAt: attempt.completedAt,
-    });
+  // Record pending attempt locally before sending network request
+  localStorage.setItem(key, JSON.stringify(attempt));
 
-    // 6. Update student summary (completed lessons and streak)
-    if (attempt.metrics.passed) {
-      const summaryRef = doc(db, 'students', uid, 'progress', 'summary');
-      try {
-        await updateDoc(summaryRef, {
-          completedLessons: arrayUnion(identity.id, identity.legacyId),
-          lastPracticeDate: attempt.completedAt.slice(0, 10),
-        });
-      } catch {
-        await setDoc(summaryRef, {
-          completedLessons: [identity.id, identity.legacyId],
-          lastPracticeDate: attempt.completedAt.slice(0, 10),
-          currentStreak: 1,
-        }, { merge: true });
-      }
+  try {
+    const callable = httpsCallable<LessonAttempt, SaveResult>(functions, 'submitLessonAttempt');
+    const response = await callable(attempt);
+
+    // Verify account did not switch while call was in flight
+    if (auth?.currentUser?.uid !== uid) {
+      throw new Error('Account changed; result belongs to previous account');
     }
 
-    // 7. Update user balance (typingXP and totalCoins)
-    const userRef = doc(db, 'users', uid);
-    try {
-      await updateDoc(userRef, {
-        typingXP: increment(reward.XP),
-        totalCoins: increment(reward.coins),
-        lastAttemptAt: Date.now(),
-      });
-    } catch {
-      await setDoc(userRef, {
-        typingXP: reward.XP,
-        totalCoins: reward.coins,
-        lastAttemptAt: Date.now(),
-      }, { merge: true });
-    }
-
+    // Success: remove from pending queue
     localStorage.removeItem(key);
-    return saveResult;
+    return response.data;
   } catch (error) {
+    // If account changed, discard previous account's pending save
     if (auth?.currentUser?.uid !== uid) {
       localStorage.removeItem(key);
     }
@@ -155,19 +95,38 @@ export async function submitLessonAttempt(attempt: LessonAttempt): Promise<SaveR
   }
 }
 
+/**
+ * Retries all pending offline attempts for the currently authenticated student.
+ */
 export async function retryPendingAttempts(): Promise<{ succeeded: number; failed: number }> {
   const uid = auth?.currentUser?.uid;
   if (!uid || !isStudentOnlineSaveAvailable()) return { succeeded: 0, failed: 0 };
+
+  const prefix = `khmer-pending:${uid}:`;
+  const keys = Object.keys(localStorage).filter((k) => k.startsWith(prefix)).slice(0, 20);
+
   let succeeded = 0;
   let failed = 0;
-  for (const key of Object.keys(localStorage).filter(k => k.startsWith(`khmer-pending:${uid}:`)).slice(0, 20)) {
+
+  for (const key of keys) {
     if (auth?.currentUser?.uid !== uid) break;
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
     try {
-      await submitLessonAttempt(JSON.parse(localStorage.getItem(key)!));
+      const attempt = JSON.parse(raw) as LessonAttempt;
+      await submitLessonAttempt(attempt);
       succeeded += 1;
     } catch {
       failed += 1;
     }
   }
+
   return { succeeded, failed };
+}
+
+// Automatically retry pending attempts when network connection is restored
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    void retryPendingAttempts();
+  });
 }

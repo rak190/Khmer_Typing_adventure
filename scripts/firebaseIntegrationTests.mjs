@@ -100,9 +100,12 @@ try {
   const claimAch = httpsCallable(functions, 'claimAchievementReward');
   await assert.rejects(claimAch({ achievementId: 'boss-victor' }));
 
-  // Claim Daily Quest Rejection (No recorded progress)
+  // Claim Daily Quest (Incomplete requirement rejected, valid claim succeeds, duplicate rejected)
   const claimQuest = httpsCallable(functions, 'claimDailyQuestReward');
-  await assert.rejects(claimQuest({ questId: 'complete-lesson' }));
+  await assert.rejects(claimQuest({ questId: 'attempt-boss' })); // incomplete requirement
+  const questRes1 = await claimQuest({ questId: 'complete-lesson' }); // earned via previous passed lesson
+  assert.equal(questRes1.data.success, true);
+  await assert.rejects(claimQuest({ questId: 'complete-lesson' })); // duplicate claim rejected
 
   console.log('Emulator rules, authenticated callable, economy hardening, and concurrent idempotency passed');
 } finally { await env.cleanup(); }

@@ -131,7 +131,7 @@ export default function App() {
         <RouteErrorBoundary>
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={session ? <HomePage /> : <LoginPage />} />
-            <Route path="/map" element={<ProtectedRoute session={session}><WorldMapPage /></ProtectedRoute>} />
+            <Route path="/map" element={internalRoutesEnabled ? <WorldMapPage /> : <ProtectedRoute session={session}><WorldMapPage /></ProtectedRoute>} />
             <Route path="/lesson" element={<ProtectedRoute session={session}><LessonPage /></ProtectedRoute>} />
             <Route path="/battle" element={<ProtectedRoute session={session}><BattlePage /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute session={session}><DashboardPage /></ProtectedRoute>} />

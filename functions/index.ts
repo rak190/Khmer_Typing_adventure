@@ -458,7 +458,7 @@ export async function handleClaimDailyQuestReward(uid: string, data: { questId: 
 
     const quests = questData.quests ?? {};
     const targetQuest = quests[data.questId] || quests[data.questId.replace(/-([a-z])/g, (_, c) => c.toUpperCase())];
-    if (targetQuest && targetQuest.progress < targetQuest.total) {
+    if (!targetQuest || targetQuest.progress < targetQuest.total) {
       throw new Error('Quest requirements not yet completed');
     }
 
