@@ -1,22 +1,7 @@
 /* global window */
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-let chromium;
-try {
-  const pw = await import('playwright');
-  chromium = pw.chromium;
-} catch {
-  try {
-    const pw = require('C:/Users/Admin/AppData/Local/npm-cache/_npx/9833c18b2d85bc59/node_modules/playwright');
-    chromium = pw.chromium;
-  } catch {
-    const pw = require('playwright');
-    chromium = pw.chromium;
-  }
-}
+import { chromium } from 'playwright';
 
 const PORT = 5188;
 const BASE_PATH = '/rak190/Khmer_Typing_adventure';
