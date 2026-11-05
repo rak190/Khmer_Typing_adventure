@@ -1217,7 +1217,7 @@ export default function Environment({ lessonId, quality = 'balanced' }: Environm
       )}
 
       {/* ===== 5C. SYMMETRICAL ANGKORIAN TEMPLE LIBRARIES (ហោត្រៃសងខាងផ្លូវដើរ) ===== */}
-      {!isCavern && (
+      {!isCavern && quality !== 'low' && (
         <>
           {/* North Library (Left of inner causeway, facing south toward walkway) */}
           <AngkorLibrary position={[-11.2, 0, 15.0]} rotation={[0, Math.PI / 2, 0]} scale={0.94} />

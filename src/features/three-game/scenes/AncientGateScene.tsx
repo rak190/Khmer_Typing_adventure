@@ -18,6 +18,7 @@ import SkyPlatformsExperience from '../components/experiences/SkyPlatformsExperi
 import CrystalCaveExperience from '../components/experiences/CrystalCaveExperience';
 import SacredRiverExperience from '../components/experiences/SacredRiverExperience';
 import { getLessonExperienceConfig, isCustomExperienceSupported } from '../config/lessonExperienceConfig';
+import { getGraphicsQuality } from '../config/graphicsQuality';
 import type { MovementInput } from '../hooks/usePlayerControls';
 import { getStageAltarPositionZ, getStageBarrierIndex } from '../systems/gameplayState';
 import type { GameMode, GateState, GateStatus, Position3D } from '../types';
@@ -65,6 +66,7 @@ export default function AncientGateScene({
   const firstBarrierUnlockStageIndex = stageStatuses.length === 5 ? 1 : 0;
 
   const isCustomExp = isCustomExperienceSupported(lessonId);
+  const graphicsQuality = getGraphicsQuality();
   const expConfig = isCustomExp && lessonId ? getLessonExperienceConfig(lessonId) : null;
   const currentStation = expConfig?.stations?.[activeStageIndex];
 
@@ -89,14 +91,15 @@ export default function AncientGateScene({
         mode={mode}
         isSprinting={movement.sprint}
         cameraPreset={expConfig?.cameraPreset}
+        revealPosition={lessonId === 'boss' ? [0, 2.8, 32] : expConfig?.stations[activeStageIndex + 1]?.position ?? currentStation?.position}
       />
 
       {/* Cambodian Courtyard Environment & Warm Golden Lighting */}
-      <Environment lessonId={lessonId} />
+      <Environment lessonId={lessonId} quality={graphicsQuality} />
 
       {/* World 1 Scenic Dressing Add-on (LITE) */}
-      {!expConfig?.environmentTheme?.hideCauseway && !expConfig?.environmentTheme?.isCavern && (
-        <World1SceneryAddon quality="lite" />
+      {graphicsQuality !== 'low' && !expConfig?.environmentTheme?.hideCauseway && !expConfig?.environmentTheme?.isCavern && (
+        <World1SceneryAddon quality={graphicsQuality === 'high' ? 'full' : 'lite'} />
       )}
 
       {/* Playable Hero Character with Cambodian Regalia, Sprint Locomotion & Spell Poses */}

@@ -16,6 +16,7 @@ type ThirdPersonCameraProps = {
   mode: GameMode;
   isSprinting?: boolean;
   cameraPreset?: CameraPreset;
+  revealPosition?: Position3D;
 };
 
 export default function ThirdPersonCamera({
@@ -23,6 +24,7 @@ export default function ThirdPersonCamera({
   mode,
   isSprinting = false,
   cameraPreset,
+  revealPosition,
 }: ThirdPersonCameraProps) {
   const { camera } = useThree();
 
@@ -96,6 +98,9 @@ export default function ThirdPersonCamera({
 
     desiredCamPos.current.set(tx * 0.75 + offsetX, ty + offsetUp, tz + offsetBack);
     desiredLookAt.current.set(tx * 0.4 + offsetX * 0.4, ty + lookUp, tz + lookAheadZ);
+    if (mode === 'opening' && revealPosition) {
+      desiredLookAt.current.set(revealPosition[0], revealPosition[1] + 1.6, revealPosition[2]);
+    }
 
     // Frame-rate independent exponential smoothing
     const blend = 1 - Math.exp(-damping * dt);

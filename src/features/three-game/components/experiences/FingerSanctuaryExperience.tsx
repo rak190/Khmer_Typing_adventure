@@ -16,7 +16,7 @@ interface FingerSanctuaryExperienceProps {
 }
 
 /**
- * Level 1: Ancient Finger Sanctuary (វិហារម្រាមបុរាណ)
+ * Level 1: Ancient Finger Sanctuary
  * Four monumental stelas representing F, D, S, A surrounding an ancient central sundial mechanism.
  */
 export default function FingerSanctuaryExperience({
@@ -40,9 +40,9 @@ export default function FingerSanctuaryExperience({
   const hitPulseTimerRef = useRef(0);
   const hasTriggeredExitAudioRef = useRef(false);
 
-  const stage1Passed = stageStatuses[0] === 'open' || isUnlocked;
-  const stage2Passed = stageStatuses[1] === 'open' || isUnlocked;
-  const stage3Passed = stageStatuses[2] === 'open' || isUnlocked;
+  const stage1Passed = (stageStatuses[0] === 'opening' || stageStatuses[0] === 'open') || isUnlocked;
+  const stage2Passed = (stageStatuses[1] === 'opening' || stageStatuses[1] === 'open') || isUnlocked;
+  const stage3Passed = (stageStatuses[2] === 'opening' || stageStatuses[2] === 'open') || isUnlocked;
 
   const stageProgressRatio = Math.min(1, Math.max(0, completedCount / Math.max(1, totalStageUnits)));
 

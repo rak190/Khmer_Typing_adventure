@@ -36,13 +36,16 @@ export default function LotusGardenExperience({
   const poolWaterRef = useRef<THREE.Mesh>(null);
   const petalsRef = useRef<THREE.Group>(null);
   const exitPortalRef = useRef<THREE.Group>(null);
+  const firstRootRef = useRef<THREE.Mesh>(null);
+  const secondRootRef = useRef<THREE.Mesh>(null);
+  const finalRootRef = useRef<THREE.Mesh>(null);
   const lastCompletedRef = useRef(completedCount);
   const hitPulseTimerRef = useRef(0);
   const hasTriggeredExitAudioRef = useRef(false);
 
-  const stage1Passed = stageStatuses[0] === 'open' || isUnlocked;
-  const stage2Passed = stageStatuses[1] === 'open' || isUnlocked;
-  const stage3Passed = stageStatuses[2] === 'open' || isUnlocked;
+  const stage1Passed = (stageStatuses[0] === 'opening' || stageStatuses[0] === 'open') || isUnlocked;
+  const stage2Passed = (stageStatuses[1] === 'opening' || stageStatuses[1] === 'open') || isUnlocked;
+  const stage3Passed = (stageStatuses[2] === 'opening' || stageStatuses[2] === 'open') || isUnlocked;
 
   const stageProgressRatio = Math.min(1, Math.max(0, completedCount / Math.max(1, totalStageUnits)));
 
@@ -79,17 +82,21 @@ export default function LotusGardenExperience({
     }
     if (exitPortalRef.current) {
       const targetScale = stage3Passed ? 1.0 : 0.001;
-      exitPortalRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), delta * 3.0);
+      const scale = THREE.MathUtils.damp(exitPortalRef.current.scale.x, targetScale, 3, delta);
+      exitPortalRef.current.scale.setScalar(scale);
       if (stage3Passed && !hasTriggeredExitAudioRef.current) {
         hasTriggeredExitAudioRef.current = true;
         gameAudio.playMechanismActivation();
       }
     }
+    if (firstRootRef.current) firstRootRef.current.position.y = THREE.MathUtils.damp(firstRootRef.current.position.y, stage1Passed ? 0.08 : -0.5, 3, delta);
+    if (secondRootRef.current) secondRootRef.current.position.y = THREE.MathUtils.damp(secondRootRef.current.position.y, stage2Passed ? 0.08 : -0.5, 3, delta);
+    if (finalRootRef.current) finalRootRef.current.position.y = THREE.MathUtils.damp(finalRootRef.current.position.y, stage3Passed ? 0.08 : -0.5, 3, delta);
   });
 
   // Calculate pad emergence heights (Feedback B & C)
-  const pad01Rise = stage1Passed ? 1.0 : activeStageIndex === 0 ? Math.min(1, stageProgressRatio * 1.2) : 0.2;
-  const pad23Rise = stage2Passed ? 1.0 : activeStageIndex === 1 ? Math.min(1, stageProgressRatio * 1.2) : stage1Passed ? 0.4 : 0.1;
+  const pad01Rise = stage1Passed ? 1.0 : activeStageIndex === 0 && mode === 'typing' ? Math.min(0.8, stageProgressRatio * 0.8) : 0.2;
+  const pad23Rise = stage2Passed ? 1.0 : activeStageIndex === 1 && mode === 'typing' ? Math.min(0.8, stageProgressRatio * 0.8) : stage1Passed ? 0.4 : 0.1;
   const streakBonus = Math.min(streak * 0.05, 0.4);
 
   const lotusPads = useMemo(
@@ -114,6 +121,19 @@ export default function LotusGardenExperience({
           roughness={0.12}
           metalness={0.85}
         />
+      </mesh>
+      {/* Continuous lotus-root walkways make the unlocked central collision corridor visible. */}
+      <mesh ref={firstRootRef} position={[0, -0.5, 3.7]} receiveShadow>
+        <boxGeometry args={[2.8, 0.16, 9.2]} />
+        <meshStandardMaterial color="#65A30D" emissive="#166534" emissiveIntensity={0.2} roughness={0.8} />
+      </mesh>
+      <mesh ref={secondRootRef} position={[0, -0.5, 10.7]} receiveShadow>
+        <boxGeometry args={[2.8, 0.16, 5.8]} />
+        <meshStandardMaterial color="#65A30D" emissive="#166534" emissiveIntensity={0.2} roughness={0.8} />
+      </mesh>
+      <mesh ref={finalRootRef} position={[0, -0.5, 15.1]} receiveShadow>
+        <boxGeometry args={[2.8, 0.16, 3.2]} />
+        <meshStandardMaterial color="#F9A8D4" emissive="#DB2777" emissiveIntensity={0.2} roughness={0.75} />
       </mesh>
 
       {/* Decorative Stone Basin Curbs */}

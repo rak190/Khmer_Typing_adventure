@@ -17,7 +17,7 @@ interface JungleCrossroadsExperienceProps {
 
 /**
  * Level 4: Jungle Crossroads (ផ្លូវបំបែកព្រៃស្រោង)
- * Branching jungle paths where G (ង) and H (ហ) index reaches unlock western grove and central shrine.
+ * Branching jungle paths where G and H index reaches unlock western grove and central shrine.
  */
 export default function JungleCrossroadsExperience({
   activeStageIndex,
@@ -39,9 +39,9 @@ export default function JungleCrossroadsExperience({
   const hitPulseTimerRef = useRef(0);
   const hasTriggeredGateAudioRef = useRef(false);
 
-  const stage1Passed = stageStatuses[0] === 'open' || isUnlocked;
-  const stage2Passed = stageStatuses[1] === 'open' || isUnlocked;
-  const stage3Passed = stageStatuses[2] === 'open' || isUnlocked;
+  const stage1Passed = (stageStatuses[0] === 'opening' || stageStatuses[0] === 'open') || isUnlocked;
+  const stage2Passed = (stageStatuses[1] === 'opening' || stageStatuses[1] === 'open') || isUnlocked;
+  const stage3Passed = (stageStatuses[2] === 'opening' || stageStatuses[2] === 'open') || isUnlocked;
 
   const stageProgressRatio = Math.min(1, Math.max(0, completedCount / Math.max(1, totalStageUnits)));
 
@@ -117,7 +117,7 @@ export default function JungleCrossroadsExperience({
         />
       </mesh>
 
-      {/* 3. Right Branch: East Shrine Trail (H / ហ Reach) */}
+      {/* 3. Right Branch: East Shrine Trail (H reach) */}
       <mesh position={[2.2, 0.02, 13.5]} rotation={[0, 0.28, 0]} receiveShadow>
         <boxGeometry args={[2.4, 0.12, 10.0]} />
         <meshStandardMaterial

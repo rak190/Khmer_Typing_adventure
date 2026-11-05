@@ -1890,7 +1890,23 @@ try {
   assert.equal(l1X, 7.0, 'Level 1 X must clamp to courtyard perimeter [-7, 7]');
   assert.equal(l1ZLocked, 2.5, 'Level 1 Z must clamp before stage 1 altar when closed');
   const [, l1ZOpening] = gameplayState.clampLessonCharacterPosition(0, 6.0, 1, ['opening', 'closed', 'closed']);
-  assert.equal(l1ZOpening, 6.0, 'Level 1 Z must treat "opening" stage status as traversable');
+  assert.equal(l1ZOpening, 2.5, 'Level 1 route stays locked while the opening animation runs');
+  for (const [level, lockedZ] of [[2, 2.5], [3, 0.5], [4, 3.0], [5, 4.2], [6, 2.5], [7, 3.5], [8, 1.5]]) {
+    const [, openingZ] = gameplayState.clampLessonCharacterPosition(0, 30, level, ['opening', 'closed', 'closed']);
+    assert.equal(openingZ, lockedZ, `Level ${level} must not allow traversal before stage 1 is open`);
+  }
+  for (let level = 1; level <= 8; level++) {
+    const config = expConfigMod.getLessonExperienceConfig(level);
+    for (const station of config.stations) {
+      const statuses = config.stations.map((_, index) => index < station.stageIndex ? 'open' : 'closed');
+      const [reachableX, reachableZ] = gameplayState.clampLessonCharacterPosition(
+        station.position[0], station.position[2], level, statuses,
+      );
+      const distance = Math.hypot(reachableX - station.position[0], reachableZ - station.position[2]);
+      assert.ok(distance <= (station.interactionRadius ?? 3.5),
+        `Level ${level} stage ${station.stageIndex + 1} station must be interactable after earlier stages open (distance ${distance})`);
+    }
+  }
   const [, l1ZOpen] = gameplayState.clampLessonCharacterPosition(0, 9.5, 1, ['open', 'open', 'open']);
   assert.equal(l1ZOpen, 9.5, 'Level 1 Z can pass through exit when stage 3 passed');
 
@@ -1902,8 +1918,11 @@ try {
   assert.equal(l2ZLocked, 2.5, 'Level 2 cannot advance past stage 0 altar when closed');
 
   // Level 3: Twin Bridges (Mid-Chasm Pier Platform at [0, 0, 10.5])
-  const [l3XChasm] = gameplayState.clampLessonCharacterPosition(0, 5.0, 3, ['open', 'closed', 'closed']);
-  assert.ok(Math.abs(l3XChasm) >= 1.8, 'Level 3 must clamp character onto either causeway over open chasm');
+  const [l3XChasm, l3ZChasm] = gameplayState.clampLessonCharacterPosition(0, 5.0, 3, ['open', 'closed', 'closed']);
+  assert.equal(l3XChasm, 0, 'Level 3 must not teleport sideways onto a causeway');
+  assert.equal(l3ZChasm, 0.5, 'Level 3 must stop at the chasm edge until a causeway is chosen');
+  const [, l3ZLane] = gameplayState.clampLessonCharacterPosition(-2.8, 5.0, 3, ['open', 'closed', 'closed']);
+  assert.equal(l3ZLane, 5.0, 'Level 3 side causeway must be traversable after stage 1');
   // When Stage 0 is open, Mid-Chasm Pier platform (Z = 10.5) is accessible at X = 0
   const [l3XPier] = gameplayState.clampLessonCharacterPosition(0, 10.5, 3, ['open', 'closed', 'closed']);
   assert.equal(l3XPier, 0, 'Level 3 allows standing at Station 1 on the Mid-Chasm Pier platform');

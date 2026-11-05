@@ -40,9 +40,9 @@ export default function TempleTowerClimbExperience({
   const hitPulseTimerRef = useRef(0);
   const hasTriggeredSummitAudioRef = useRef(false);
 
-  const stage1Passed = stageStatuses[0] === 'open' || isUnlocked;
-  const stage2Passed = stageStatuses[1] === 'open' || isUnlocked;
-  const stage3Passed = stageStatuses[2] === 'open' || isUnlocked;
+  const stage1Passed = (stageStatuses[0] === 'opening' || stageStatuses[0] === 'open') || isUnlocked;
+  const stage2Passed = (stageStatuses[1] === 'opening' || stageStatuses[1] === 'open') || isUnlocked;
+  const stage3Passed = (stageStatuses[2] === 'opening' || stageStatuses[2] === 'open') || isUnlocked;
 
   const stageProgressRatio = Math.min(1, Math.max(0, completedCount / Math.max(1, totalStageUnits)));
 
@@ -143,23 +143,23 @@ export default function TempleTowerClimbExperience({
       {/* Monumental Crown Temple Colonnade (Towering Prangs) */}
       <group ref={crownSanctuaryRef} position={[0, 4.4, 24.5]}>
         {/* Central Prang Spire */}
-        <mesh position={[0, 4.0, 0]} castShadow>
-          <coneGeometry args={[1.8, 8.0, 8]} />
+        <mesh position={[0, 1.7, 3.0]} castShadow>
+          <coneGeometry args={[0.85, 3.4, 8]} />
           <meshStandardMaterial
             color="#6B543E"
             emissive={stage3Passed ? '#F59E0B' : '#000000'}
-            emissiveIntensity={stage3Passed ? 1.2 + streakBonus : 0}
+            emissiveIntensity={stage3Passed ? 0.18 + streakBonus * 0.1 : 0}
             roughness={0.7}
           />
         </mesh>
         {/* Flanking Corner Spires */}
-        {[-3.2, 3.2].map((sx, idx) => (
-          <mesh key={`spire-${idx}`} position={[sx, 2.8, -1.0]} castShadow>
-            <coneGeometry args={[1.1, 5.5, 6]} />
+        {[-3.8, 3.8].map((sx, idx) => (
+          <mesh key={`spire-${idx}`} position={[sx, 1.55, 2.5]} castShadow>
+            <coneGeometry args={[0.55, 3.1, 6]} />
             <meshStandardMaterial
               color="#5C4D3C"
               emissive={stage3Passed ? '#38BDF8' : '#000000'}
-              emissiveIntensity={stage3Passed ? 1.0 + streakBonus : 0}
+              emissiveIntensity={stage3Passed ? 0.15 + streakBonus * 0.1 : 0}
               roughness={0.75}
             />
           </mesh>

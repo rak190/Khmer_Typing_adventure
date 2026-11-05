@@ -1,6 +1,6 @@
 # Task 8B: World 1 Complete 3D Gameplay, Visual Quality, and Player Experience Polish Reference Report
 
-**Document Status**: Final Deliverable & Quality Reference Report  
+**Document Status**: Historical baseline with current Task 8B verification addendum below
 **Branch**: `feat/task-8b-world1-complete-polish`  
 **Date**: November 2026  
 **Scope**: World 1 (Temple Jungle / ព្រៃប្រាសាទ) Lessons 1–8 and Temple Guardian Boss Encounter  
@@ -8,7 +8,7 @@
 
 ---
 
-## 1. Executive Summary & Polish Objectives
+## 1. Earlier implementation summary (historical; see current findings below)
 
 Master Task 8B completes the transformation of World 1 (ព្រៃប្រាសាទ / Temple Jungle) from an exploratory prototype into a polished, high-fidelity 3D educational adventure game for Cambodian students.
 
@@ -206,3 +206,118 @@ Master Task 8B completes the transformation of World 1 (ព្រៃប្រា
 | `src/pages/ThreePrototypePage.tsx` | Wired `LessonIntroModal`, established `isAnyModalOpen` locking to prevent hero locomotion and interaction during mission briefings, and auto-dismisses modal on debug stage start. |
 | `scripts/threePrototypeTests.mjs` | Added test cases for fixed Level 8 barge traversal, Level 3 Mid-Chasm Pier, Level 5/6 Station 2 reaching, `'opening'` status traversal, and `LessonIntroModal` SSR rendering. |
 | `docs/3d/TASK8B_WORLD1_QUALITY_REFERENCE_REPORT.md` | Comprehensive quality reference report documenting all before/after findings, architecture, and verification records. |
+
+
+---
+
+# Task 8B World 1 quality reference — implementation in progress
+
+## Baseline and changes
+
+The existing World 1 already has eight individual experience components, a three-wave guardian, Khmer typing overlays, progress-driven visual effects, stage-result gating, camera following, and a rigged student hero. This pass focused on a concrete mismatch between the visual transition and movement collision. Previously every custom lesson treated a stage with status `opening` as traversable, before its transformation finished. The experience components, conversely, waited for `open` to show their completed forms. A student could therefore move into an unfinished path.
+
+The shared movement clamp now unlocks a route only at authoritative `open`. All eight experience components begin their completed visual target when the authoritative stage result sets `opening`; the existing controller still marks the stage `open` after the reveal. Lotus pads rise during validated typing progress, stop short of full height until a passing result, and return to their inactive height after a failed attempt. This preserves the distinction between practice feedback and a safe crossing.
+
+| Level | Existing identity and baseline concern | Change in this pass | Learning purpose |
+| --- | --- | --- | --- |
+| 1 Finger Sanctuary | Stela and sundial reveal could lag behind traversal | Reveal starts with passed-stage opening; route waits for open | Connect F D S A practice to sanctuary activation |
+| 2 Lotus Garden | Pad could appear fully raised during a failed task; water route opened early | Practice pad height capped; completed reveal and collision synchronized | Make safe pads distinguishable from practice feedback |
+| 3 Twin Bridges | Arch and keystone reveal could lag behind movement | Reveal starts during opening; chasm route remains locked | Connect coordinated practice to bridge completion |
+| 4 Jungle Crossroads | Branch could be entered before mechanism reveal finished | Branch unlock waits for open | Connect G/H practice to path choice |
+| 5 Temple Tower | Stairs could be entered before their rise finished | Stairs rise during opening; climb waits for open | Connect upper-row mastery to ascent |
+| 6 Sky Platforms | Route could open during platform alignment | Alignment begins during opening; traversal waits for open | Keep typing as the challenge, with stable platforms |
+| 7 Crystal Cave | Barrier could be passed during illumination reveal | Reveal begins during opening; route waits for open | Connect lower-row practice to cave discovery |
+| 8 Sacred River | Crossing collision could open during boat transition | Visual transition begins during opening; route waits for open | Connect review practice to river progression |
+
+The guardian remains governed by the existing three-wave stage engine. This pass did not change its rewards, progression, or animation.
+
+## Character, camera, game feel, and performance (earlier checkpoint)
+
+Existing character animation, third-person camera, spell effects, audio, Khmer-first mission text, keyboard and finger guidance, and victory presentation were retained. They were inspected but not changed in this pass. No new meshes, textures, dependencies, or per-frame allocations were introduced. The production build still warns that the 3D route chunk is 1,295.14 kB before gzip (327.08 kB gzip). Frame rate, draw calls, triangles, and integrated-GPU performance were not measured.
+
+## Verification
+
+- `npm run check`: passed, including both TypeScript projects, ESLint, curriculum, typing, gamification, 3D, and completion suites.
+- `npm run build`: passed, with the existing large-chunk warning.
+- `npm run test:browser`: passed in headless Chrome with software WebGL. It mounted canvas, exploration HUD, and waypoint for all eight World 1 lessons and the boss. It exercised Level 1 altar proximity, typing overlay, key presses, cancel, and return to the map.
+- Added regression assertions that `opening` does not unlock the first route in any of Lessons 1–8.
+
+The browser suite does not type through every lesson or boss wave, measure performance, or save before/after gameplay screenshots. No screenshots are presented as proof of completed interactions. Full Task 8B acceptance remains open: actual traversal after every stage, replay and failure flows on every route, boss wave interactions, camera and animation polish, quality settings, and school-hardware measurement need further implementation and verification.
+
+The known direct-client-Firestore-write security concern remains outside this pass. No production backend, student records, or security rules were changed. No push, merge, or deployment was performed.
+
+---
+
+## Current verification addendum — 5 November 2026
+
+The historical opening summary above describes an earlier checkpoint and contains claims that the current evidence does not support. In particular, `opening` is no longer traversable. The current implementation makes visual mechanisms begin their completed movement at `opening`, while collision opens only at `open`. This prevents entry during the 2.2-second reveal.
+
+### Implemented in this continuation
+
+- Added continuous stage-gated lotus-root and river-wake walkways where the movement controller permits walking over water. The river boat still animates, and its canopy folds away after docking so it does not cover the shore camera.
+- Continued custom lessons from the completed station rather than teleporting the hero to the next altar. The waypoint points to the next objective. The boss still keeps the hero in its arena between waves.
+- Extended Level 3's second unlocked boundary to reach its third altar. A straight approach to the chasm now stops at the safe edge instead of snapping the hero sideways onto a bridge.
+- Adjusted the Level 5 summit spires after an actual gameplay screenshot showed overbright geometry filling the camera. The opening camera now aims toward the next station or guardian.
+- Added `?quality=low|balanced|high`. Low uses DPR 1, disables shadows, and omits optional scenery and gallery models. The lesson platforms, stations, guardian, waypoints, and keyboard overlay remain present. High opts into the existing full scenery asset. Quality selection by an in-game control is still outstanding.
+- Added a development-only renderer readout and a repeatable Playwright flow in `scripts/verifyTask8bWorld1Browser.mjs`. The script presses keys through the existing typing handler; it does not mark stages passed. It injects player positions solely to set up proximity and locked-route checks. The browser's ordinary movement keys verify forward motion after Continue.
+
+### Browser QA evidence
+
+The full Playwright run in headless Chrome at 1280×720 passed for Lessons 1–8 and the boss. For each route it checked: three curriculum stages through victory, a wrong key that did not advance progress, a deliberately inaccurate completed Stage 1 attempt that failed, retry and successful completion, cancel and restart, no duplicate completion record, movement after Continue, and replay reset. The route smoke suite also passed separately. These are automated browser checks; they do not establish that every visible mesh matches its collision boundary or that every animation feels smooth to a child.
+
+Screenshots are **before Stage 1 and after victory in the same implementation**, captured from actual browser gameplay. They are not a comparison against an older commit:
+
+| Route | Before | After |
+| --- | --- | --- |
+| Level 1 | [before](task8b-evidence/level-1-before.png) | [after](task8b-evidence/level-1-after.png) |
+| Level 3 | [before](task8b-evidence/level-3-before.png) | [after](task8b-evidence/level-3-after.png) |
+| Level 5 | [before](task8b-evidence/level-5-before.png) | [after](task8b-evidence/level-5-after.png) |
+| Level 8 | [before](task8b-evidence/level-8-before.png) | [after](task8b-evidence/level-8-after.png) |
+| Guardian | [before](task8b-evidence/level-boss-before.png) | [after](task8b-evidence/level-boss-after.png) |
+
+The renderer measurements below are single approximate samples from headless Chrome using **software WebGL**. FPS varies with loading and software contention; these values cannot predict integrated-GPU school hardware performance.
+
+| Route | Sample FPS | Draw calls | Triangles |
+| --- | ---: | ---: | ---: |
+| 1 | 2.8 | 2,119 | 328,958 |
+| 2 | 3.7 | 1,652 | 190,018 |
+| 3 | 4.4 | 1,655 | 190,916 |
+| 4 | 3.7 | 1,625 | 189,034 |
+| 5 | 4.8 | 1,651 | 189,522 |
+| 6 | 2.1 | 1,637 | 190,054 |
+| 7 | 5.3 | 190 | 119,124 |
+| 8 | 3.2 | 1,650 | 189,334 |
+| Guardian | 4.0 | 1,335 | 291,338 |
+
+The outdoor draw-call counts remain too high for a confident 30 FPS school-computer claim. A final Low-mode Level 1 sample after omitting optional galleries measured 1,041 draw calls and 102,248 triangles, down from 2,119 calls and 328,958 triangles in Balanced. This is a geometry comparison in the software renderer, not a school-hardware FPS result. No production data or Firebase rules were touched.
+
+### Acceptance checklist
+
+| Criterion | Status | Evidence or remaining gap |
+| --- | --- | --- |
+| Eight lessons playable in 3D | Pass | Full browser typing flow through victory on each route |
+| Boss playable | Pass | Three waves and victory in browser |
+| Distinct lesson identity | Partial | Eight separate experiences and missions; child usability review outstanding |
+| Immediate correct-key feedback | Partial | Progress-driven scene effects present; visual timing not measured per key |
+| Physical transformation in each lesson | Partial | Component inspection and selected screenshots; every mesh transition not visually audited |
+| Meaningful stage progression event | Partial | Stage-gated route bounds and no-teleport Continue; full path traversal not completed on every route |
+| Transformation and collision alignment | Partial | Lotus and river support added; all major meshes not collision-audited |
+| No stage bypass | Partial | Authoritative stage checks and clamp tests pass; all geometric edge cases unverified |
+| Smooth character movement and animation | Unverified | Movement keys work; transitions and foot contact need visual playtest |
+| Polished typing-mode transition | Partial | Typing overlay and camera render; cinematic timing needs visual playtest |
+| Clear exploration and typing camera | Partial | Selected screenshots reviewed; tower and boat occlusion fixed, all routes not visually reviewed |
+| Boss wave reactions and completion | Partial | Three-wave pass verified; reaction animation quality not formally assessed |
+| Khmer-first mission instructions | Pass | Intro, HUD, and stage missions are present and browser-rendered |
+| Effects never obstruct teaching UI | Partial | Selected screenshots reviewed; every effect timing unverified |
+| Keyboard and finger guidance correct | Pass | Existing typing/finger tests pass; physical keyboard used in browser flow |
+| Curriculum and rewards preserved | Pass | Curriculum, completion, and duplicate-reward tests pass |
+| Performance measured and optimized | Partial | Software-renderer samples and Low mode; target hardware measurement unavailable |
+| Browser verification all World 1 routes | Pass | Full Playwright run, including boss |
+| Existing 2D features intact | Partial | Automated fallback tests pass; no full 2D browser regression in this run |
+| Automated tests and build pass | Pass | `npm run check`, `npm run build`, and `npm run test:browser` passed after the gameplay changes; Level 5 and 8 targeted full-playthrough reruns passed after their final visual fixes |
+| No production data or rules changed | Pass | Repository diff contains only 3D source, tests, and this report |
+| Report complete | Partial | Open issues and measurement limits recorded; manual school-hardware QA outstanding |
+
+Further unverified scenarios: missing GLB fallback, repeated entry and exit, tab visibility during a long stage, reduced-motion behavior, the full High-quality setting, and an in-game graphics quality control. The direct-client-Firestore-write security concern remains a separate production blocker. No push, merge, or deployment was performed.
+
+The final Level 5 screenshot shows the hero and shrine after reducing the overlarge spires, but it is still a limited forward view rather than a full panoramic camera sequence. The final Level 8 screenshot shows the shore without the former red canopy blocking the camera. Level 5 and Level 8 each passed a targeted full three-stage, fail/retry, victory, and replay browser rerun after these visual changes. The production build still warns that the 3D route chunk is about 1.30 MB before gzip.

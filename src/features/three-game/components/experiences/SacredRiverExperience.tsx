@@ -34,15 +34,19 @@ export default function SacredRiverExperience({
   const altar3 = useMemo(() => (lotusGlb ? lotusGlb.clone(true) : null), [lotusGlb]);
 
   const bargeRef = useRef<THREE.Group>(null);
+  const canopyRef = useRef<THREE.Mesh>(null);
+  const firstWakeRef = useRef<THREE.Mesh>(null);
+  const secondWakeRef = useRef<THREE.Mesh>(null);
+  const finalWakeRef = useRef<THREE.Mesh>(null);
   const riverRef = useRef<THREE.Mesh>(null);
   const guardianGateRef = useRef<THREE.Group>(null);
   const lastCompletedRef = useRef(completedCount);
   const hitPulseTimerRef = useRef(0);
   const hasTriggeredGateAudioRef = useRef(false);
 
-  const stage1Passed = stageStatuses[0] === 'open' || isUnlocked;
-  const stage2Passed = stageStatuses[1] === 'open' || isUnlocked;
-  const stage3Passed = stageStatuses[2] === 'open' || isUnlocked;
+  const stage1Passed = (stageStatuses[0] === 'opening' || stageStatuses[0] === 'open') || isUnlocked;
+  const stage2Passed = (stageStatuses[1] === 'opening' || stageStatuses[1] === 'open') || isUnlocked;
+  const stage3Passed = (stageStatuses[2] === 'opening' || stageStatuses[2] === 'open') || isUnlocked;
 
   const stageProgressRatio = Math.min(1, Math.max(0, completedCount / Math.max(1, totalStageUnits)));
 
@@ -78,6 +82,24 @@ export default function SacredRiverExperience({
       }
       bargeRef.current.position.z = THREE.MathUtils.lerp(bargeRef.current.position.z, targetZ, delta * 3.0);
     }
+    if (canopyRef.current) {
+      // Fold the canopy away on docking so the shore camera and next objective
+      // are not obscured by a solid red roof behind the hero.
+      canopyRef.current.scale.setScalar(THREE.MathUtils.damp(canopyRef.current.scale.x, stage2Passed ? 0.001 : 1, 4, delta));
+    }
+    // The navigable corridor must have visible support after each stage opens.
+    // These wakes rise only from an authoritative passing stage result.
+    if (firstWakeRef.current) {
+      const targetY = stage1Passed ? 0.01 : -0.55;
+      firstWakeRef.current.position.y = THREE.MathUtils.damp(firstWakeRef.current.position.y, targetY, 3, delta);
+    }
+    if (secondWakeRef.current) {
+      const targetY = stage2Passed ? 0.01 : -0.55;
+      secondWakeRef.current.position.y = THREE.MathUtils.damp(secondWakeRef.current.position.y, targetY, 3, delta);
+    }
+    if (finalWakeRef.current) {
+      finalWakeRef.current.position.y = THREE.MathUtils.damp(finalWakeRef.current.position.y, stage3Passed ? 0.01 : -0.55, 3, delta);
+    }
     if (riverRef.current) {
       const mat = riverRef.current.material as THREE.MeshStandardMaterial;
       if (mat.roughness !== undefined) {
@@ -85,7 +107,7 @@ export default function SacredRiverExperience({
       }
     }
     if (guardianGateRef.current) {
-      const targetY = stage3Passed ? -4.5 : 0;
+      const targetY = stage3Passed ? -6.0 : 0;
       guardianGateRef.current.position.y = THREE.MathUtils.lerp(guardianGateRef.current.position.y, targetY, delta * 2.0);
       if (stage3Passed && !hasTriggeredGateAudioRef.current) {
         hasTriggeredGateAudioRef.current = true;
@@ -108,6 +130,18 @@ export default function SacredRiverExperience({
           roughness={0.16}
           metalness={0.8}
         />
+      </mesh>
+      <mesh ref={firstWakeRef} position={[0, -0.55, 4.6]} receiveShadow>
+        <boxGeometry args={[3.6, 0.18, 9.2]} />
+        <meshStandardMaterial color="#5EEAD4" emissive="#0D9488" emissiveIntensity={0.3} roughness={0.38} metalness={0.15} />
+      </mesh>
+      <mesh ref={secondWakeRef} position={[0, -0.55, 14.5]} receiveShadow>
+        <boxGeometry args={[3.6, 0.18, 10.6]} />
+        <meshStandardMaterial color="#5EEAD4" emissive="#0D9488" emissiveIntensity={0.3} roughness={0.38} metalness={0.15} />
+      </mesh>
+      <mesh ref={finalWakeRef} position={[0, -0.55, 22.5]} receiveShadow>
+        <boxGeometry args={[3.6, 0.18, 6.2]} />
+        <meshStandardMaterial color="#FDE68A" emissive="#F59E0B" emissiveIntensity={0.25} roughness={0.48} />
       </mesh>
 
       {/* 2. Moored Ceremonial Dragon Barge (Centered along the river channel at X = 0) */}
@@ -138,7 +172,7 @@ export default function SacredRiverExperience({
           <meshStandardMaterial color="#D97706" roughness={0.65} />
         </mesh>
         {/* Elevated Ceremonial Canopy (Head clearance for adventurer) */}
-        <mesh position={[0, 2.3, 0]} castShadow>
+        <mesh ref={canopyRef} position={[0, 2.3, 0]} castShadow>
           <boxGeometry args={[3.4, 0.15, 4.6]} />
           <meshStandardMaterial color="#DC2626" roughness={0.7} />
         </mesh>

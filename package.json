@@ -24,6 +24,7 @@
     "test:completion": "node scripts/completionTests.mjs",
     "test:emulators": "node scripts/runEmulatorTests.mjs",
     "test:browser": "node scripts/verifyThreeIntegrationBrowser.mjs",
+    "test:browser:world1": "node scripts/verifyTask8bWorld1Browser.mjs",
     "typecheck:functions": "tsc -p tsconfig.functions.json"
   },
   "dependencies": {

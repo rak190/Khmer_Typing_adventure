@@ -256,6 +256,10 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
         stageStates: StageProgressState[];
         rewardTotals: ReturnType<typeof rewardLedgerRef.current.getTotals>;
         completionsCount: number;
+        mode: GameMode;
+        isNearGate: boolean;
+        completedCount: number;
+        nextKey: { code: string; modifier: string } | null;
       };
     };
     win.__threeGetPlayerPos = () => playerPositionRef.current;
@@ -276,6 +280,15 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       stageStates,
       rewardTotals: rewardLedgerRef.current.getTotals(),
       completionsCount: persistenceAdapterRef.current.getCompletions().length,
+      mode,
+      isNearGate,
+      completedCount: sessionState.completedCount,
+      nextKey: typingPlan.units[sessionState.completedCount]
+        ? {
+            code: typingPlan.units[sessionState.completedCount].key.code,
+            modifier: typingPlan.units[sessionState.completedCount].modifier,
+          }
+        : null,
     });
     return () => {
       delete win.__threeGetPlayerPos;
@@ -284,7 +297,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       delete win.__threeStartStage;
       delete win.__threeGetLessonDebug;
     };
-  }, [activeStageIndex, stageStates, startStageTypingSession]);
+  }, [activeStageIndex, isNearGate, mode, sessionState.completedCount, stageStates, startStageTypingSession, typingPlan.units]);
 
   const isAnyModalOpen = showModal || showIntroModal;
 
@@ -664,15 +677,9 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
         playerPositionRef.current = [0, 0, 24];
         setIsNearGate(true);
       } else if (isCustomLesson && expConfig) {
-        const nextStation = expConfig.stations[nextIdx];
-        if (nextStation) {
-          playerPositionRef.current = [
-            nextStation.position[0],
-            nextStation.position[1],
-            nextStation.position[2] - 1.2,
-          ];
-          setIsNearGate(true);
-        }
+        // Keep the hero at the completed station so the newly opened route
+        // remains part of the adventure. The waypoint now leads to nextIdx.
+        setIsNearGate(false);
       } else {
         // Advance player along the temple causeway to the next stage's altar
         const nextAltarZ = getStageAltarPositionZ(nextIdx, stages.length) - 0.5;

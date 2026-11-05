@@ -262,10 +262,11 @@ export function clampLessonCharacterPosition(
     ];
   }
 
-  // Treat both 'open' and 'opening' as traversable to prevent locking during transition animations
-  const s0Open = stageStatuses[0] === 'open' || stageStatuses[0] === 'opening';
-  const s1Open = stageStatuses[1] === 'open' || stageStatuses[1] === 'opening';
-  const s2Open = stageStatuses[2] === 'open' || stageStatuses[2] === 'opening';
+  // A passing result starts the visual reveal. Traversal waits until that reveal
+  // finishes and the existing stage controller commits the 'open' status.
+  const s0Open = stageStatuses[0] === 'open';
+  const s1Open = stageStatuses[1] === 'open';
+  const s2Open = stageStatuses[2] === 'open';
 
   if (lessonId === 1) {
     const maxZ = s2Open ? 10.0 : s0Open ? 6.5 : 2.5;
@@ -295,11 +296,11 @@ export function clampLessonCharacterPosition(
     // and Mid-Chasm Pier Platform at [0, 0, 10.5] (Z in [8.5, 12.5], X in [-2.6, 2.6])
     let maxZ = 3.0;
     if (s0Open) maxZ = 12.5;
-    if (s1Open) maxZ = 18.0;
+    if (s1Open) maxZ = 21.5; // Stage 3 altar is at Z = 20.
     if (s2Open) maxZ = 22.5;
 
-    const clampedZ = Math.max(-6.5, Math.min(maxZ, z));
-    let clampedX = Math.max(-4.2, Math.min(4.2, x));
+    let clampedZ = Math.max(-6.5, Math.min(maxZ, z));
+    const clampedX = Math.max(-4.2, Math.min(4.2, x));
 
     // Over the chasm (Z > 0.5 and Z < 18.5)
     if (clampedZ > 0.5 && clampedZ < 18.5) {
@@ -307,9 +308,10 @@ export function clampLessonCharacterPosition(
       const isArchCrossing = s1Open && clampedZ >= 7.5 && clampedZ <= 13.5;
       const isKeystoneBridged = s2Open;
       if (!isOnMidChasmPier && !isArchCrossing && !isKeystoneBridged) {
-        // Player must be on either Left Causeway [-3.8, -1.8] or Right Causeway [1.8, 3.8]
+        // Keep the player at the last safe edge until they steer onto a causeway.
+        // Snapping X onto a side bridge caused a jarring sideways teleport.
         if (clampedX > -1.8 && clampedX < 1.8) {
-          clampedX = clampedX < 0 ? -1.8 : 1.8;
+          clampedZ = clampedZ < 8.5 ? 0.5 : clampedZ < 13.5 ? 12.5 : 13.5;
         }
       }
     }
