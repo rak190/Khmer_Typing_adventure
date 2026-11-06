@@ -9,6 +9,11 @@ import { SHOP_ITEMS } from '../src/data/shopItems';
 
 // Fail closed until a separately reviewed production rollout enables a live backend.
 const isEmulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST || process.env.FUNCTIONS_EMULATOR);
+if (isEmulator) {
+  process.env.METADATA_SERVER_DETECTION = 'none';
+  process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
+  process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
+}
 const projectId = process.env.GCLOUD_PROJECT || 'demo-khmer-typing';
 const isStaging = process.env.FIREBASE_STAGE === 'staging' || projectId.includes('staging');
 

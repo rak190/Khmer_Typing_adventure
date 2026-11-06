@@ -3,14 +3,25 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 const rootDir = process.cwd();
-const localConfig = path.join(rootDir, '.local', 'config');
-if (!fs.existsSync(localConfig)) {
-  fs.mkdirSync(localConfig, { recursive: true });
+const env = { ...process.env };
+
+// Suppress GCP metadata server pings in emulator environment to prevent timeouts on non-GCE hosts (e.g. CI / local)
+env.METADATA_SERVER_DETECTION = 'none';
+
+// On Windows, use isolated local config to avoid permissions issues in system profile
+if (process.platform === 'win32') {
+  const localConfig = path.join(rootDir, '.local', 'config');
+  if (!fs.existsSync(localConfig)) {
+    fs.mkdirSync(localConfig, { recursive: true });
+  }
+  env.XDG_CONFIG_HOME = localConfig;
 }
 
-const env = { ...process.env };
-env.XDG_CONFIG_HOME = localConfig;
-env.FIREBASE_EMULATORS_PATH = path.join(rootDir, '.local', 'firebase-emulators');
+// Only use local emulators cache directory if it exists on disk
+const localEmulators = path.join(rootDir, '.local', 'firebase-emulators');
+if (fs.existsSync(localEmulators)) {
+  env.FIREBASE_EMULATORS_PATH = localEmulators;
+}
 
 // On Windows, if java is not in PATH, use the local bundled JRE if present
 if (process.platform === 'win32') {
