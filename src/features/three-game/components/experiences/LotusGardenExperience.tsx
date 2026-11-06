@@ -2,12 +2,16 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useGltfClone } from '../../hooks/useGltfAsset';
-import type { GateStatus } from '../../types';
+import type { GameMode, GateStatus } from '../../types';
+import { gameAudio } from '../../../../lib/audio/gameAudio';
 
 interface LotusGardenExperienceProps {
   activeStageIndex: number;
   stageStatuses: GateStatus[];
   streak?: number;
+  completedCount?: number;
+  totalStageUnits?: number;
+  mode?: GameMode;
   isUnlocked?: boolean;
 }
 
@@ -16,7 +20,12 @@ interface LotusGardenExperienceProps {
  * Shallow reflective water courtyard with sacred blooming lotus platforms (J, K, L, ;).
  */
 export default function LotusGardenExperience({
+  activeStageIndex,
   stageStatuses,
+  streak = 0,
+  completedCount = 0,
+  totalStageUnits = 12,
+  mode,
   isUnlocked = false,
 }: LotusGardenExperienceProps) {
   const lotusGlb = useGltfClone('/models/props/khmer_lotus_altar.glb');
@@ -27,13 +36,31 @@ export default function LotusGardenExperience({
   const poolWaterRef = useRef<THREE.Mesh>(null);
   const petalsRef = useRef<THREE.Group>(null);
   const exitPortalRef = useRef<THREE.Group>(null);
+  const firstRootRef = useRef<THREE.Mesh>(null);
+  const secondRootRef = useRef<THREE.Mesh>(null);
+  const finalRootRef = useRef<THREE.Mesh>(null);
+  const lastCompletedRef = useRef(completedCount);
+  const hitPulseTimerRef = useRef(0);
+  const hasTriggeredExitAudioRef = useRef(false);
 
-  const stage1Passed = stageStatuses[0] === 'open' || isUnlocked;
-  const stage2Passed = stageStatuses[1] === 'open' || isUnlocked;
-  const stage3Passed = stageStatuses[2] === 'open' || isUnlocked;
+  const stage1Passed = (stageStatuses[0] === 'opening' || stageStatuses[0] === 'open') || isUnlocked;
+  const stage2Passed = (stageStatuses[1] === 'opening' || stageStatuses[1] === 'open') || isUnlocked;
+  const stage3Passed = (stageStatuses[2] === 'opening' || stageStatuses[2] === 'open') || isUnlocked;
+
+  const stageProgressRatio = Math.min(1, Math.max(0, completedCount / Math.max(1, totalStageUnits)));
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
+
+    // Detect keystroke hits (Feedback A)
+    if (completedCount > lastCompletedRef.current) {
+      hitPulseTimerRef.current = 0.4;
+      lastCompletedRef.current = completedCount;
+    }
+    if (hitPulseTimerRef.current > 0) {
+      hitPulseTimerRef.current = Math.max(0, hitPulseTimerRef.current - delta);
+    }
+
     if (poolWaterRef.current) {
       const mat = poolWaterRef.current.material as THREE.MeshStandardMaterial;
       if (mat.roughness !== undefined) {
@@ -41,24 +68,45 @@ export default function LotusGardenExperience({
       }
     }
     if (petalsRef.current) {
+      const pulse = hitPulseTimerRef.current > 0 ? (hitPulseTimerRef.current / 0.4) * 0.15 : 0;
       petalsRef.current.children.forEach((child, idx) => {
-        child.position.y = Math.sin(t * 2.0 + idx) * 0.08;
+        child.position.y = Math.sin(t * 2.0 + idx) * 0.04;
+        // Blooming flower petal (children[1]) and water aura ring (children[2]) pulse on keystrokes
+        if (child.children[1]) {
+          child.children[1].scale.setScalar(1.0 + pulse);
+        }
+        if (child.children[2]) {
+          child.children[2].scale.setScalar(1.0 + pulse * 0.6);
+        }
       });
     }
     if (exitPortalRef.current) {
       const targetScale = stage3Passed ? 1.0 : 0.001;
-      exitPortalRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), delta * 3.0);
+      const scale = THREE.MathUtils.damp(exitPortalRef.current.scale.x, targetScale, 3, delta);
+      exitPortalRef.current.scale.setScalar(scale);
+      if (stage3Passed && !hasTriggeredExitAudioRef.current) {
+        hasTriggeredExitAudioRef.current = true;
+        gameAudio.playMechanismActivation();
+      }
     }
+    if (firstRootRef.current) firstRootRef.current.position.y = THREE.MathUtils.damp(firstRootRef.current.position.y, stage1Passed ? 0.08 : -0.5, 3, delta);
+    if (secondRootRef.current) secondRootRef.current.position.y = THREE.MathUtils.damp(secondRootRef.current.position.y, stage2Passed ? 0.08 : -0.5, 3, delta);
+    if (finalRootRef.current) finalRootRef.current.position.y = THREE.MathUtils.damp(finalRootRef.current.position.y, stage3Passed ? 0.08 : -0.5, 3, delta);
   });
+
+  // Calculate pad emergence heights (Feedback B & C)
+  const pad01Rise = stage1Passed ? 1.0 : activeStageIndex === 0 && mode === 'typing' ? Math.min(0.8, stageProgressRatio * 0.8) : 0.2;
+  const pad23Rise = stage2Passed ? 1.0 : activeStageIndex === 1 && mode === 'typing' ? Math.min(0.8, stageProgressRatio * 0.8) : stage1Passed ? 0.4 : 0.1;
+  const streakBonus = Math.min(streak * 0.05, 0.4);
 
   const lotusPads = useMemo(
     () => [
-      { key: 'J (់)', pos: [-1.4, 0.05, 1.8], color: '#F59E0B', active: stage1Passed },
-      { key: 'K (ក)', pos: [1.4, 0.05, 3.2], color: '#38BDF8', active: stage1Passed },
-      { key: 'L (ល)', pos: [-1.4, 0.05, 8.5], color: '#10B981', active: stage2Passed },
-      { key: '; (ើ)', pos: [1.4, 0.05, 10.2], color: '#EC4899', active: stage2Passed },
+      { key: 'J (់)', pos: [-1.4, -0.3 + pad01Rise * 0.38, 1.8], color: '#F59E0B', active: stage1Passed || (activeStageIndex === 0 && mode === 'typing'), scale: 0.5 + pad01Rise * 0.5 },
+      { key: 'K (ក)', pos: [1.4, -0.3 + pad01Rise * 0.38, 3.2], color: '#38BDF8', active: stage1Passed || (activeStageIndex === 0 && mode === 'typing'), scale: 0.5 + pad01Rise * 0.5 },
+      { key: 'L (ល)', pos: [-1.4, -0.3 + pad23Rise * 0.38, 8.5], color: '#10B981', active: stage2Passed || (activeStageIndex === 1 && mode === 'typing'), scale: 0.5 + pad23Rise * 0.5 },
+      { key: '; (ើ)', pos: [1.4, -0.3 + pad23Rise * 0.38, 10.2], color: '#EC4899', active: stage2Passed || (activeStageIndex === 1 && mode === 'typing'), scale: 0.5 + pad23Rise * 0.5 },
     ],
-    [stage1Passed, stage2Passed],
+    [activeStageIndex, mode, pad01Rise, pad23Rise, stage1Passed, stage2Passed],
   );
 
   return (
@@ -74,6 +122,19 @@ export default function LotusGardenExperience({
           metalness={0.85}
         />
       </mesh>
+      {/* Continuous lotus-root walkways make the unlocked central collision corridor visible. */}
+      <mesh ref={firstRootRef} position={[0, -0.5, 3.7]} receiveShadow>
+        <boxGeometry args={[2.8, 0.16, 9.2]} />
+        <meshStandardMaterial color="#65A30D" emissive="#166534" emissiveIntensity={0.2} roughness={0.8} />
+      </mesh>
+      <mesh ref={secondRootRef} position={[0, -0.5, 10.7]} receiveShadow>
+        <boxGeometry args={[2.8, 0.16, 5.8]} />
+        <meshStandardMaterial color="#65A30D" emissive="#166534" emissiveIntensity={0.2} roughness={0.8} />
+      </mesh>
+      <mesh ref={finalRootRef} position={[0, -0.5, 15.1]} receiveShadow>
+        <boxGeometry args={[2.8, 0.16, 3.2]} />
+        <meshStandardMaterial color="#F9A8D4" emissive="#DB2777" emissiveIntensity={0.2} roughness={0.75} />
+      </mesh>
 
       {/* Decorative Stone Basin Curbs */}
       <mesh position={[-5.8, 0.2, 6.0]} castShadow receiveShadow>
@@ -88,7 +149,7 @@ export default function LotusGardenExperience({
       {/* 2. Floating Giant Lotus Flower Stepping Pads */}
       <group ref={petalsRef}>
         {lotusPads.map((pad, idx) => (
-          <group key={idx} position={pad.pos as [number, number, number]}>
+          <group key={idx} position={pad.pos as [number, number, number]} scale={pad.scale}>
             {/* Lily Pad Base */}
             <mesh position={[0, 0.02, 0]} receiveShadow>
               <cylinderGeometry args={[0.95, 1.05, 0.08, 16]} />
@@ -100,7 +161,7 @@ export default function LotusGardenExperience({
               <meshStandardMaterial
                 color={pad.color}
                 emissive={pad.color}
-                emissiveIntensity={pad.active ? 1.2 : 0.25}
+                emissiveIntensity={pad.active ? 1.2 + streakBonus : 0.25}
                 roughness={0.5}
               />
             </mesh>
@@ -118,25 +179,52 @@ export default function LotusGardenExperience({
         ))}
       </group>
 
-      {/* 3. Three Sacred Lotus Altars (Stations 0, 1, 2) */}
+      {/* 3. Three Sacred Lotus Altars with Solid Stone Island Plinths (Stations 0, 1, 2) */}
+      {/* Station 0: Shore Landing Plinth & Altar */}
+      <mesh position={[0, 0.08, -1.5]} receiveShadow>
+        <cylinderGeometry args={[2.2, 2.5, 0.25, 16]} />
+        <meshStandardMaterial color="#6B543E" roughness={0.85} />
+      </mesh>
       {altar1 && (
-        <group position={[0, 0, -1.5]} scale={1.1}>
+        <group position={[0, 0.15, -1.5]} scale={1.1}>
           <primitive object={altar1} />
           {/* Station 0 Lotus Aura */}
           <pointLight color="#F59E0B" intensity={1.8} distance={6} position={[0, 1.2, 0]} />
         </group>
       )}
 
+      {/* Stepping Stone Pedestals across pond */}
+      <mesh position={[0, 0.04, 2.5]} receiveShadow>
+        <cylinderGeometry args={[1.1, 1.3, 0.15, 12]} />
+        <meshStandardMaterial color="#5C4D3C" roughness={0.88} />
+      </mesh>
+
+      {/* Station 1: Mid-Pond Lotus Island Plinth & Altar */}
+      <mesh position={[0, 0.08, 5.5]} receiveShadow>
+        <cylinderGeometry args={[2.4, 2.7, 0.25, 16]} />
+        <meshStandardMaterial color="#6B543E" roughness={0.85} />
+      </mesh>
       {altar2 && (
-        <group position={[0, 0, 5.5]} scale={1.1}>
+        <group position={[0, 0.15, 5.5]} scale={1.1}>
           <primitive object={altar2} />
           {/* Station 1 Lotus Aura */}
           <pointLight color="#38BDF8" intensity={stage1Passed ? 2.2 : 0.8} distance={7} position={[0, 1.2, 0]} />
         </group>
       )}
 
+      {/* Stepping Stone Pedestals to far shore */}
+      <mesh position={[0, 0.04, 9.2]} receiveShadow>
+        <cylinderGeometry args={[1.1, 1.3, 0.15, 12]} />
+        <meshStandardMaterial color="#5C4D3C" roughness={0.88} />
+      </mesh>
+
+      {/* Station 2: Far Shore Portal Plinth & Altar */}
+      <mesh position={[0, 0.08, 12.0]} receiveShadow>
+        <cylinderGeometry args={[2.6, 2.9, 0.25, 16]} />
+        <meshStandardMaterial color="#6B543E" roughness={0.85} />
+      </mesh>
       {altar3 && (
-        <group position={[0, 0, 12.0]} scale={1.2}>
+        <group position={[0, 0.15, 12.0]} scale={1.2}>
           <primitive object={altar3} />
           {/* Station 2 Sanctuary Portal Aura */}
           <pointLight color="#10B981" intensity={stage2Passed ? 3.0 : 1.0} distance={8} position={[0, 1.4, 0]} />

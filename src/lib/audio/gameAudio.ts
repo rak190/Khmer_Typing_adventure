@@ -315,6 +315,133 @@ class GameAudioManager {
     whiteNoise.start(audioNow);
     whiteNoise.stop(audioNow + 0.045);
   }
+
+  /**
+   * Ancient mechanism activation: stone friction, deep resonant rumble and subtle harmonic release.
+   */
+  public playMechanismActivation(): void {
+    if (!this.enabled) return;
+    const ctx = this.initContext();
+    if (!ctx || !this.sfxGain) return;
+
+    const now = ctx.currentTime;
+    // Deep stone rumble oscillator
+    const rumble = ctx.createOscillator();
+    const rumbleGain = ctx.createGain();
+    rumble.type = 'sawtooth';
+    rumble.frequency.setValueAtTime(65, now);
+    rumble.frequency.exponentialRampToValueAtTime(45, now + 0.7);
+
+    // Low-pass filter to make it sound like ancient heavy granite
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(220, now);
+
+    rumbleGain.gain.setValueAtTime(0.001, now);
+    rumbleGain.gain.exponentialRampToValueAtTime(0.28, now + 0.08);
+    rumbleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+
+    rumble.connect(filter);
+    filter.connect(rumbleGain);
+    rumbleGain.connect(this.sfxGain);
+
+    rumble.start(now);
+    rumble.stop(now + 0.72);
+
+    // Harmonic chime accent
+    const chime = ctx.createOscillator();
+    const chimeGain = ctx.createGain();
+    chime.type = 'triangle';
+    chime.frequency.setValueAtTime(587.33, now + 0.15); // D5
+    chimeGain.gain.setValueAtTime(0.001, now + 0.15);
+    chimeGain.gain.exponentialRampToValueAtTime(0.18, now + 0.18);
+    chimeGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+
+    chime.connect(chimeGain);
+    chimeGain.connect(this.sfxGain);
+
+    chime.start(now + 0.15);
+    chime.stop(now + 0.66);
+  }
+
+  /**
+   * Crystalline shield shatter sound: explosive crackle followed by descending glass sparkle.
+   */
+  public playShieldShatter(): void {
+    if (!this.enabled) return;
+    const ctx = this.initContext();
+    if (!ctx || !this.sfxGain) return;
+
+    const now = ctx.currentTime;
+    // Impact crack
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+
+    oscGain.gain.setValueAtTime(0.22, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+    osc.connect(oscGain);
+    oscGain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.15);
+
+    // High crystalline shards
+    const shardFreqs = [1200, 1550, 1820, 2200];
+    shardFreqs.forEach((freq, idx) => {
+      const shardOsc = ctx.createOscillator();
+      const shardGain = ctx.createGain();
+      const st = now + idx * 0.03;
+
+      shardOsc.type = 'sine';
+      shardOsc.frequency.setValueAtTime(freq, st);
+      shardOsc.frequency.exponentialRampToValueAtTime(freq * 0.5, st + 0.3);
+
+      shardGain.gain.setValueAtTime(0.001, st);
+      shardGain.gain.exponentialRampToValueAtTime(0.12, st + 0.01);
+      shardGain.gain.exponentialRampToValueAtTime(0.0001, st + 0.35);
+
+      shardOsc.connect(shardGain);
+      shardGain.connect(this.sfxGain!);
+      shardOsc.start(st);
+      shardOsc.stop(st + 0.36);
+    });
+  }
+
+  /**
+   * Boss awakening sound: rising low brass drone with energy swell.
+   */
+  public playBossAwaken(): void {
+    if (!this.enabled) return;
+    const ctx = this.initContext();
+    if (!ctx || !this.sfxGain) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(55, now); // A1
+    osc.frequency.exponentialRampToValueAtTime(110, now + 1.2);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(180, now);
+    filter.frequency.exponentialRampToValueAtTime(800, now + 1.2);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(0.3, now + 0.4);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 1.55);
+  }
 }
 
 export const gameAudio = new GameAudioManager();

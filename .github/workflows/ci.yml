@@ -1,0 +1,55 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: Full CI Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup Java 21 (Temurin for Firebase Emulators)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Run Core Code Checks (Typecheck, Lint & Unit Tests)
+        run: npm run check
+
+      - name: Build Cloud Functions
+        run: npm run build:functions
+
+      - name: Typecheck Cloud Functions
+        run: npm run typecheck:functions
+
+      - name: Run Firebase Emulator Integration & Security Rules Suite
+        run: npm run test:emulators
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run World 1 Browser Regression Suite
+        run: npm run test:browser
+
+      - name: Build Production Client
+        run: npm run build

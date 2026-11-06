@@ -2,21 +2,30 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useGltfClone } from '../../hooks/useGltfAsset';
-import type { GateStatus } from '../../types';
+import type { GameMode, GateStatus } from '../../types';
+import { gameAudio } from '../../../../lib/audio/gameAudio';
 
 interface SkyPlatformsExperienceProps {
   activeStageIndex: number;
   stageStatuses: GateStatus[];
   streak?: number;
+  completedCount?: number;
+  totalStageUnits?: number;
+  mode?: GameMode;
   isUnlocked?: boolean;
 }
 
 /**
- * Level 6: Sky Platforms (វេទិកាវេហាស៍)
+ * Level 6: Sky Platforms
  * Floating stone platforms suspended among clouds activated by right-hand upper keys (Y, U, I, O, P).
  */
 export default function SkyPlatformsExperience({
+  activeStageIndex,
   stageStatuses,
+  streak = 0,
+  completedCount = 0,
+  totalStageUnits = 12,
+  mode,
   isUnlocked = false,
 }: SkyPlatformsExperienceProps) {
   const lotusGlb = useGltfClone('/models/props/khmer_lotus_altar.glb');
@@ -26,33 +35,62 @@ export default function SkyPlatformsExperience({
 
   const floatGroupRef = useRef<THREE.Group>(null);
   const skyGateRef = useRef<THREE.Group>(null);
+  const lastCompletedRef = useRef(completedCount);
+  const hitPulseTimerRef = useRef(0);
+  const hasTriggeredGateAudioRef = useRef(false);
 
-  const stage1Passed = stageStatuses[0] === 'open' || isUnlocked;
-  const stage2Passed = stageStatuses[1] === 'open' || isUnlocked;
-  const stage3Passed = stageStatuses[2] === 'open' || isUnlocked;
+  const stage1Passed = (stageStatuses[0] === 'opening' || stageStatuses[0] === 'open') || isUnlocked;
+  const stage2Passed = (stageStatuses[1] === 'opening' || stageStatuses[1] === 'open') || isUnlocked;
+  const stage3Passed = (stageStatuses[2] === 'opening' || stageStatuses[2] === 'open') || isUnlocked;
+
+  const stageProgressRatio = Math.min(1, Math.max(0, completedCount / Math.max(1, totalStageUnits)));
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
+
+    // Detect keystroke hits (Feedback A)
+    if (completedCount > lastCompletedRef.current) {
+      hitPulseTimerRef.current = 0.35;
+      lastCompletedRef.current = completedCount;
+    }
+    if (hitPulseTimerRef.current > 0) {
+      hitPulseTimerRef.current = Math.max(0, hitPulseTimerRef.current - delta);
+    }
+
     if (floatGroupRef.current) {
+      // Feedback B: Platforms stabilize their wobble as typing progresses
+      const wobble = mode === 'typing' ? 0.04 * (1 - stageProgressRatio * 0.5) : 0.12;
+      const pulse = hitPulseTimerRef.current > 0 ? (hitPulseTimerRef.current / 0.35) * 0.06 : 0;
       floatGroupRef.current.children.forEach((child, idx) => {
-        child.position.y = Math.sin(t * 1.8 + idx * 0.8) * 0.12;
+        child.position.y = Math.sin(t * 1.8 + idx * 0.8) * wobble;
+        if (mode === 'typing' && pulse > 0) {
+          child.scale.setScalar(1.0 + pulse);
+        } else if (child.scale.x !== 1.0) {
+          child.scale.setScalar(1.0);
+        }
       });
     }
     if (skyGateRef.current) {
       const targetY = stage3Passed ? -3.5 : 0;
       skyGateRef.current.position.y = THREE.MathUtils.lerp(skyGateRef.current.position.y, targetY, delta * 2.5);
+      if (stage3Passed && !hasTriggeredGateAudioRef.current) {
+        hasTriggeredGateAudioRef.current = true;
+        gameAudio.playMechanismActivation();
+      }
     }
   });
 
+  const streakBonus = Math.min(streak * 0.05, 0.4);
+
   const platforms = useMemo(
     () => [
-      { key: 'Y (ប)', pos: [-1.2, 0.05, 3.5], active: stage1Passed },
-      { key: 'U (ហ)', pos: [1.2, 0.05, 6.0], active: stage1Passed },
-      { key: 'I (គ)', pos: [-1.2, 0.05, 13.5], active: stage2Passed },
-      { key: 'O (ស)', pos: [1.2, 0.05, 16.0], active: stage2Passed },
-      { key: 'P (ភ)', pos: [0, 0.05, 18.0], active: stage2Passed },
+      { key: 'Y (ប)', pos: [-1.2, 0.05, 3.5], active: stage1Passed || (activeStageIndex === 0 && mode === 'typing') },
+      { key: 'U (ហ)', pos: [1.2, 0.05, 6.0], active: stage1Passed || (activeStageIndex === 0 && mode === 'typing') },
+      { key: 'I (គ)', pos: [-1.2, 0.05, 13.5], active: stage2Passed || (activeStageIndex === 1 && mode === 'typing') },
+      { key: 'O (ស)', pos: [1.2, 0.05, 16.0], active: stage2Passed || (activeStageIndex === 1 && mode === 'typing') },
+      { key: 'P (ភ)', pos: [0, 0.05, 18.0], active: stage2Passed || (activeStageIndex === 1 && mode === 'typing') },
     ],
-    [stage1Passed, stage2Passed],
+    [activeStageIndex, mode, stage1Passed, stage2Passed],
   );
 
   return (
@@ -72,7 +110,7 @@ export default function SkyPlatformsExperience({
               <meshStandardMaterial
                 color={p.active ? '#1E40AF' : '#64748B'}
                 emissive={p.active ? '#38BDF8' : '#1E293B'}
-                emissiveIntensity={p.active ? 0.9 : 0.2}
+                emissiveIntensity={p.active ? 0.9 + streakBonus : 0.2}
                 roughness={0.7}
               />
             </mesh>

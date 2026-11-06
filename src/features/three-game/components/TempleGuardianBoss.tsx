@@ -3,6 +3,7 @@ import { useMemo, useRef, useState, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import { useGltfClone } from '../hooks/useGltfAsset';
 import type { GateStatus, Position3D } from '../types';
+import { gameAudio } from '../../../lib/audio/gameAudio';
 
 export type BossVisualState =
   | 'dormant'
@@ -57,6 +58,9 @@ export default function TempleGuardianBoss({
   const hitPulseTimerRef = useRef(0);
   const mistakeTimerRef = useRef(0);
   const awakenProgressRef = useRef(0);
+  const hasAwakenedRef = useRef(false);
+  const lastWaveRef = useRef(activeWaveIndex);
+  const lastWaveStatusRef = useRef(waveStatus);
   const [isNear, setIsNear] = useState(false);
 
   useFrame((state, delta) => {
@@ -86,11 +90,22 @@ export default function TempleGuardianBoss({
       currentState = awakenProgressRef.current >= 1 ? 'ready' : 'awakening';
     }
 
-    // Update awakening transition
+    // Update awakening transition & audio
     if (near && !isDefeated) {
       awakenProgressRef.current = Math.min(1, awakenProgressRef.current + delta * 1.8);
+      if (awakenProgressRef.current > 0.45 && !hasAwakenedRef.current) {
+        hasAwakenedRef.current = true;
+        gameAudio.playBossAwaken();
+      }
     } else if (!near && !isTypingMode && !isDefeated) {
       awakenProgressRef.current = Math.max(0, awakenProgressRef.current - delta * 0.8);
+    }
+
+    // Detect wave completions / shield shatters
+    if (activeWaveIndex > lastWaveRef.current || (waveStatus === 'open' && lastWaveStatusRef.current !== 'open')) {
+      lastWaveRef.current = activeWaveIndex;
+      lastWaveStatusRef.current = waveStatus;
+      gameAudio.playShieldShatter();
     }
 
     // Detect hit pulses

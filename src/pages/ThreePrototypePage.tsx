@@ -15,6 +15,7 @@ import {
 import ExplorationHud from '../features/three-game/components/ExplorationHud';
 import TypingOverlay from '../features/three-game/components/TypingOverlay';
 import VictoryModal from '../features/three-game/components/VictoryModal';
+import LessonIntroModal from '../features/three-game/components/LessonIntroModal';
 import { usePlayerControls } from '../features/three-game/hooks/usePlayerControls';
 import AncientGateScene from '../features/three-game/scenes/AncientGateScene';
 import { gameAudio } from '../lib/audio/gameAudio';
@@ -179,6 +180,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     createTypingSessionState(1),
   );
   const [showModal, setShowModal] = useState(false);
+  const [showIntroModal, setShowIntroModal] = useState(true);
   const [stageSummary, setStageSummary] = useState<StageCompletionSummary | null>(null);
   const [finalLessonMetrics, setFinalLessonMetrics] = useState<TypingMetricResult | null>(null);
   const [reward, setReward] = useState<PrototypeReward | null>(null);
@@ -225,6 +227,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
         /* Local / offline fallback */
       }
     }
+    setShowIntroModal(false);
     startStageTypingSession(activeStageIndex);
     gameAudio.playTempleGong();
     setMode('typing');
@@ -253,13 +256,22 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
         stageStates: StageProgressState[];
         rewardTotals: ReturnType<typeof rewardLedgerRef.current.getTotals>;
         completionsCount: number;
+        mode: GameMode;
+        isNearGate: boolean;
+        completedCount: number;
+        nextKey: { code: string; modifier: string } | null;
       };
     };
     win.__threeGetPlayerPos = () => playerPositionRef.current;
     win.__threeSetPlayerPos = (x: number, y: number, z: number) => { playerPositionRef.current = [x, y, z]; };
-    win.__threeUnlockAllStages = () => { setStageStates((prev) => prev.map((s) => ({ ...s, status: 'open', passed: true }))); setGateState({ status: 'open', openProgress: 1.0 }); };
+    win.__threeUnlockAllStages = () => {
+      setStageStates((prev) => prev.map((s) => ({ ...s, status: 'open', passed: true })));
+      setGateState({ status: 'open', openProgress: 1.0 });
+      setMode('completed');
+    };
     win.__threeStartStage = (stageIdx: number) => {
       setActiveStageIndex(stageIdx);
+      setShowIntroModal(false);
       startStageTypingSession(stageIdx);
       setMode('typing');
     };
@@ -268,6 +280,15 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       stageStates,
       rewardTotals: rewardLedgerRef.current.getTotals(),
       completionsCount: persistenceAdapterRef.current.getCompletions().length,
+      mode,
+      isNearGate,
+      completedCount: sessionState.completedCount,
+      nextKey: typingPlan.units[sessionState.completedCount]
+        ? {
+            code: typingPlan.units[sessionState.completedCount].key.code,
+            modifier: typingPlan.units[sessionState.completedCount].modifier,
+          }
+        : null,
     });
     return () => {
       delete win.__threeGetPlayerPos;
@@ -276,7 +297,9 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       delete win.__threeStartStage;
       delete win.__threeGetLessonDebug;
     };
-  }, [activeStageIndex, stageStates, startStageTypingSession]);
+  }, [activeStageIndex, isNearGate, mode, sessionState.completedCount, stageStates, startStageTypingSession, typingPlan.units]);
+
+  const isAnyModalOpen = showModal || showIntroModal;
 
   const movement = usePlayerControls(
     mode,
@@ -285,13 +308,13 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
         isNearGate &&
         canAccessStage(activeStageIndex, activeStageIndex, stageStates) &&
         mode === 'exploration' &&
-        !showModal
+        !isAnyModalOpen
       ) {
         handleStartTyping();
       }
     },
     handleEscape,
-    showModal,
+    isAnyModalOpen,
   );
 
   const handleRestartTyping = useCallback(() => {
@@ -654,15 +677,9 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
         playerPositionRef.current = [0, 0, 24];
         setIsNearGate(true);
       } else if (isCustomLesson && expConfig) {
-        const nextStation = expConfig.stations[nextIdx];
-        if (nextStation) {
-          playerPositionRef.current = [
-            nextStation.position[0],
-            nextStation.position[1],
-            nextStation.position[2] - 1.2,
-          ];
-          setIsNearGate(true);
-        }
+        // Keep the hero at the completed station so the newly opened route
+        // remains part of the adventure. The waypoint now leads to nextIdx.
+        setIsNearGate(false);
       } else {
         // Advance player along the temple causeway to the next stage's altar
         const nextAltarZ = getStageAltarPositionZ(nextIdx, stages.length) - 0.5;
@@ -766,7 +783,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           stageStatuses={stageStatuses}
           activeStageIndex={activeStageIndex}
           movement={movement}
-          isModalOpen={showModal}
+          isModalOpen={isAnyModalOpen}
           streak={sessionState.streak}
           completedCount={sessionState.completedCount}
           incorrectCount={sessionState.incorrectCount}
@@ -833,6 +850,18 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           onWalkThrough={handleWalkThrough}
           onRetry={handleRetryChallenge}
           onReplayLesson={handleReplayLesson}
+          lessonId={lesson.id}
+        />
+      )}
+
+      {showIntroModal && mode === 'exploration' && !showModal && (
+        <LessonIntroModal
+          isOpen={showIntroModal}
+          onStart={() => setShowIntroModal(false)}
+          lessonId={lesson.id}
+          lessonTitleKh={lesson.labelKh}
+          lessonTitleEn={lesson.labelEn}
+          stages={stages}
         />
       )}
     </div>

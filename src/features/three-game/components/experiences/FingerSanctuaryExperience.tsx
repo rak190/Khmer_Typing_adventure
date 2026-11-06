@@ -2,18 +2,21 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useGltfClone } from '../../hooks/useGltfAsset';
-import type { GateStatus } from '../../types';
+import type { GameMode, GateStatus } from '../../types';
+import { gameAudio } from '../../../../lib/audio/gameAudio';
 
 interface FingerSanctuaryExperienceProps {
   activeStageIndex: number;
   stageStatuses: GateStatus[];
   streak?: number;
   completedCount?: number;
+  totalStageUnits?: number;
+  mode?: GameMode;
   isUnlocked?: boolean;
 }
 
 /**
- * Level 1: Ancient Finger Sanctuary (វិហារម្រាមបុរាណ)
+ * Level 1: Ancient Finger Sanctuary
  * Four monumental stelas representing F, D, S, A surrounding an ancient central sundial mechanism.
  */
 export default function FingerSanctuaryExperience({
@@ -21,6 +24,8 @@ export default function FingerSanctuaryExperience({
   stageStatuses,
   streak = 0,
   completedCount = 0,
+  totalStageUnits = 12,
+  mode,
   isUnlocked = false,
 }: FingerSanctuaryExperienceProps) {
   const lotusGlb = useGltfClone('/models/props/khmer_lotus_altar.glb');
@@ -28,22 +33,52 @@ export default function FingerSanctuaryExperience({
   const altar2 = useMemo(() => (lotusGlb ? lotusGlb.clone(true) : null), [lotusGlb]);
   const altar3 = useMemo(() => (lotusGlb ? lotusGlb.clone(true) : null), [lotusGlb]);
 
+  const stelasGroupRef = useRef<THREE.Group>(null);
   const sundialRingRef = useRef<THREE.Group>(null);
   const exitWallRef = useRef<THREE.Group>(null);
+  const lastCompletedRef = useRef(completedCount);
+  const hitPulseTimerRef = useRef(0);
+  const hasTriggeredExitAudioRef = useRef(false);
 
-  const stage1Passed = stageStatuses[0] === 'open' || isUnlocked;
-  const stage2Passed = stageStatuses[1] === 'open' || isUnlocked;
-  const stage3Passed = stageStatuses[2] === 'open' || isUnlocked;
+  const stage1Passed = (stageStatuses[0] === 'opening' || stageStatuses[0] === 'open') || isUnlocked;
+  const stage2Passed = (stageStatuses[1] === 'opening' || stageStatuses[1] === 'open') || isUnlocked;
+  const stage3Passed = (stageStatuses[2] === 'opening' || stageStatuses[2] === 'open') || isUnlocked;
+
+  const stageProgressRatio = Math.min(1, Math.max(0, completedCount / Math.max(1, totalStageUnits)));
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
-    if (sundialRingRef.current) {
-      sundialRingRef.current.rotation.y = t * (stage2Passed ? 0.6 : 0.15) + (activeStageIndex === 2 ? streak * 0.04 : 0);
+
+    // Detect keystroke hits (Feedback A)
+    if (completedCount > lastCompletedRef.current) {
+      hitPulseTimerRef.current = 0.35;
+      lastCompletedRef.current = completedCount;
     }
+    if (hitPulseTimerRef.current > 0) {
+      hitPulseTimerRef.current = Math.max(0, hitPulseTimerRef.current - delta);
+    }
+
+    if (stelasGroupRef.current) {
+      const pulse = hitPulseTimerRef.current > 0 ? (hitPulseTimerRef.current / 0.35) * 0.05 : 0;
+      stelasGroupRef.current.children.forEach((child) => {
+        child.scale.setScalar(1.0 + pulse);
+      });
+    }
+
+    if (sundialRingRef.current) {
+      // Feedback B: Astrolabe spins progressively with keystrokes and streak
+      const typingBoost = mode === 'typing' ? 0.35 + stageProgressRatio * 0.8 : 0;
+      sundialRingRef.current.rotation.y = t * (stage2Passed ? 0.6 : 0.15) + (activeStageIndex === 2 ? streak * 0.04 : 0) + typingBoost;
+    }
+
     if (exitWallRef.current) {
-      // Lower exit barrier smoothly into floor when all stages pass
+      // Feedback C: Lower exit barrier smoothly into floor when stage 3 passes
       const targetY = stage3Passed ? -3.8 : 0;
       exitWallRef.current.position.y = THREE.MathUtils.lerp(exitWallRef.current.position.y, targetY, delta * 2.0);
+      if (stage3Passed && !hasTriggeredExitAudioRef.current) {
+        hasTriggeredExitAudioRef.current = true;
+        gameAudio.playMechanismActivation();
+      }
     }
   });
 
@@ -57,8 +92,9 @@ export default function FingerSanctuaryExperience({
   return (
     <group position={[0, 0, 0]}>
       {/* ===== 1. SANCTUARY QUADRANGLE PERIMETER & BASALT COLUMNS ===== */}
-      {stelas.map((stela, i) => {
-        const glowIntensity = stela.awakened ? 1.8 : stela.active ? 0.9 + Math.min(streak * 0.08, 0.7) : 0.2;
+      <group ref={stelasGroupRef}>
+        {stelas.map((stela, i) => {
+          const glowIntensity = stela.awakened ? 1.8 : stela.active ? 0.9 + Math.min(streak * 0.08, 0.7) : 0.2;
         return (
           <group key={`stela-${stela.key}`} position={[stela.x, 0, stela.z]}>
             {/* Monumental Stone Plinth */}
@@ -97,6 +133,7 @@ export default function FingerSanctuaryExperience({
           </group>
         );
       })}
+      </group>
 
       {/* ===== 2. LUMINOUS FLOOR CONDUITS ===== */}
       {stage1Passed && (

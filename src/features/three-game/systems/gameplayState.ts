@@ -245,6 +245,159 @@ export function clampMultiStageCharacterPosition(
 }
 
 /**
+ * World 1 geometry-accurate character boundary clamping.
+ * Prevents walking on water in Lesson 2 & 8, floating over chasm in Lesson 3,
+ * falling off sky platforms in Lesson 6, and enforces locked stage progression.
+ */
+export function clampLessonCharacterPosition(
+  x: number,
+  z: number,
+  lessonId?: AdventureNodeId,
+  stageStatuses: GateStatus[] = [],
+): [number, number] {
+  if (lessonId === 'boss') {
+    return [
+      Math.max(-8.0, Math.min(8.0, x)),
+      Math.max(18.0, Math.min(31.0, z)),
+    ];
+  }
+
+  // A passing result starts the visual reveal. Traversal waits until that reveal
+  // finishes and the existing stage controller commits the 'open' status.
+  const s0Open = stageStatuses[0] === 'open';
+  const s1Open = stageStatuses[1] === 'open';
+  const s2Open = stageStatuses[2] === 'open';
+
+  if (lessonId === 1) {
+    const maxZ = s2Open ? 10.0 : s0Open ? 6.5 : 2.5;
+    return [
+      Math.max(-7.0, Math.min(7.0, x)),
+      Math.max(-6.5, Math.min(maxZ, z)),
+    ];
+  }
+
+  if (lessonId === 2) {
+    // Lotus Garden: water pool with stepping lotus pads & solid plinths
+    let maxZ = 2.5;
+    if (s0Open) maxZ = 8.5;
+    if (s1Open) maxZ = 14.0;
+    if (s2Open) maxZ = 16.5;
+
+    const clampedZ = Math.max(-6.0, Math.min(maxZ, z));
+    // When on water area (Z > 0), constrain strictly to lotus stepping corridor
+    const clampedX = clampedZ > 0
+      ? Math.max(-2.5, Math.min(2.5, x))
+      : Math.max(-3.5, Math.min(3.5, x));
+    return [clampedX, clampedZ];
+  }
+
+  if (lessonId === 3) {
+    // Twin Bridges: Left Causeway [-3.8, -1.8], Right Causeway [1.8, 3.8],
+    // and Mid-Chasm Pier Platform at [0, 0, 10.5] (Z in [8.5, 12.5], X in [-2.6, 2.6])
+    let maxZ = 3.0;
+    if (s0Open) maxZ = 12.5;
+    if (s1Open) maxZ = 21.5; // Stage 3 altar is at Z = 20.
+    if (s2Open) maxZ = 22.5;
+
+    let clampedZ = Math.max(-6.5, Math.min(maxZ, z));
+    const clampedX = Math.max(-4.2, Math.min(4.2, x));
+
+    // Over the chasm (Z > 0.5 and Z < 18.5)
+    if (clampedZ > 0.5 && clampedZ < 18.5) {
+      const isOnMidChasmPier = s0Open && clampedZ >= 8.5 && clampedZ <= 12.5;
+      const isArchCrossing = s1Open && clampedZ >= 7.5 && clampedZ <= 13.5;
+      const isKeystoneBridged = s2Open;
+      if (!isOnMidChasmPier && !isArchCrossing && !isKeystoneBridged) {
+        // Keep the player at the last safe edge until they steer onto a causeway.
+        // Snapping X onto a side bridge caused a jarring sideways teleport.
+        if (clampedX > -1.8 && clampedX < 1.8) {
+          clampedZ = clampedZ < 8.5 ? 0.5 : clampedZ < 13.5 ? 12.5 : 13.5;
+        }
+      }
+    }
+    return [clampedX, clampedZ];
+  }
+
+  if (lessonId === 4) {
+    // Jungle Crossroads: West grove trail & East shrine trail
+    let maxZ = 3.0;
+    if (s0Open) maxZ = 12.5;
+    if (s1Open) maxZ = 21.0;
+    if (s2Open) maxZ = 24.5;
+
+    const clampedZ = Math.max(-6.5, Math.min(maxZ, z));
+    let clampedX = Math.max(-5.5, Math.min(5.5, x));
+    if (clampedZ > 3.0 && clampedZ <= 12.0 && !s1Open) {
+      // West branch exploration
+      clampedX = Math.max(-5.5, Math.min(1.0, clampedX));
+    }
+    return [clampedX, clampedZ];
+  }
+
+  if (lessonId === 5) {
+    // Temple Tower Climb: stairs and elevated terraces (Station 2 at Z = 20.0)
+    let maxZ = 4.2;
+    if (s0Open) maxZ = 14.5;
+    if (s1Open) maxZ = 22.0; // Reachable to Crown Terrace Altar at Z = 20.0
+    if (s2Open) maxZ = 25.5;
+
+    const clampedZ = Math.max(-6.5, Math.min(maxZ, z));
+    // Flights of stairs are narrower than terraces
+    let clampedX = Math.max(-5.5, Math.min(5.5, x));
+    if ((clampedZ > 4.0 && clampedZ < 7.0) || (clampedZ > 14.5 && clampedZ < 18.0)) {
+      clampedX = Math.max(-2.5, Math.min(2.5, clampedX));
+    }
+    return [clampedX, clampedZ];
+  }
+
+  if (lessonId === 6) {
+    // Sky Platforms: floating stone platforms corridor (Station 2 at Z = 20.0)
+    let maxZ = 2.5;
+    if (s0Open) maxZ = 11.5;
+    if (s1Open) maxZ = 21.5; // Reachable to Overlook Sanctuary Altar at Z = 20.0
+    if (s2Open) maxZ = 24.5;
+
+    const clampedZ = Math.max(-6.0, Math.min(maxZ, z));
+    const clampedX = clampedZ > 1.0 && clampedZ < 19.0
+      ? Math.max(-2.2, Math.min(2.2, x))
+      : Math.max(-3.0, Math.min(3.0, x));
+    return [clampedX, clampedZ];
+  }
+
+  if (lessonId === 7) {
+    // Crystal Cave: basalt subterranean hall
+    let maxZ = 3.5;
+    if (s0Open) maxZ = 13.5;
+    if (s1Open) maxZ = 21.0;
+    if (s2Open) maxZ = 25.0;
+
+    return [
+      Math.max(-3.8, Math.min(3.8, x)),
+      Math.max(-6.0, Math.min(maxZ, z)),
+    ];
+  }
+
+  if (lessonId === 8) {
+    // Sacred River: Pier 0 -> Dragon Barge Bridge -> Mid Island Pier 1 -> Dragon Barge Bridge -> Pier 2
+    let maxZ = 1.5;
+    if (s0Open) maxZ = 11.5;
+    if (s1Open) maxZ = 21.0;
+    if (s2Open) maxZ = 25.5;
+
+    const clampedZ = Math.max(-6.0, Math.min(maxZ, z));
+    // Continuous central traversable corridor across piers and moored dragon barge deck
+    const clampedX = Math.max(-2.5, Math.min(2.5, x));
+    return [clampedX, clampedZ];
+  }
+
+  // Fallback for default multi-stage scene
+  if (stageStatuses.length > 0) {
+    return clampMultiStageCharacterPosition(x, z, stageStatuses);
+  }
+  return clampCharacterPosition(x, z, stageStatuses[0] ?? 'closed');
+}
+
+/**
  * Computes world movement delta and target facing rotation from player input.
  * In this 3D camera coordinate space (camera at negative Z looking toward positive Z):
  * - movement.forward moves toward +Z (gate direction, rotation = 0)

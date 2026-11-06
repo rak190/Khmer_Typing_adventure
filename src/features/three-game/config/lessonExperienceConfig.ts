@@ -32,6 +32,20 @@ export interface StationConfig {
     | 'shatter-shield';
 }
 
+export interface EnvironmentThemeConfig {
+  hideCauseway?: boolean;
+  isCavern?: boolean;
+  ambientColor?: string;
+  skyColor?: string;
+  horizonColor?: string;
+  fogColor?: string;
+  fogNear?: number;
+  fogFar?: number;
+  sunColor?: string;
+  sunIntensity?: number;
+  waterColor?: string;
+}
+
 export interface LessonExperienceConfig {
   lessonId: number | 'boss' | string;
   experienceType: ExperienceType;
@@ -39,6 +53,10 @@ export interface LessonExperienceConfig {
   titleEn: string;
   themeDescriptionKh: string;
   themeDescriptionEn: string;
+  introMissionKh: string;
+  introMissionEn: string;
+  educationalSkillKh: string;
+  educationalSkillEn: string;
   initialPlayerPosition: [number, number, number];
   courtyardBounds: [number, number, number, number]; // [minX, maxX, minZ, maxZ]
   cameraPreset?: {
@@ -51,6 +69,7 @@ export interface LessonExperienceConfig {
   stations: StationConfig[];
   ambientColor?: string;
   skyTint?: string;
+  environmentTheme?: EnvironmentThemeConfig;
 }
 
 /**
@@ -68,6 +87,10 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
     titleEn: 'Ancient Finger Sanctuary',
     themeDescriptionKh: 'រុករកសិលាស្តម្ភស្នូលទាំង ៤ (F D S A) និងដាស់យន្តការប្រាសាទកណ្តាល',
     themeDescriptionEn: 'Awaken the 4 sacred home-row stelas and unlock the central temple sundial',
+    introMissionKh: 'បេសកកម្ម៖ ដាស់សិលាម្រាមដៃឆ្វេងទាំង ៤ ដោយហាត់គ្រាប់ចុច F D S A។',
+    introMissionEn: 'Mission: Awaken the 4 left-hand home-row stelas with F D S A.',
+    educationalSkillKh: 'ពង្រឹងម្រាមដៃគោលខាងឆ្វេង (F D S A) និងចលនាម្រាមដៃស្ទាត់ជំនាញ',
+    educationalSkillEn: 'Left home-row key fluency (F D S A) and finger independence mastered successfully!',
     initialPlayerPosition: [0, 0, -4.5],
     courtyardBounds: [-10.0, 10.0, -8.0, 12.0],
     cameraPreset: {
@@ -76,6 +99,13 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
       lookUp: 1.8,
       lookAheadZ: 1.8,
       damping: 4.8,
+    },
+    environmentTheme: {
+      hideCauseway: false,
+      ambientColor: '#FFFBF5',
+      skyColor: '#38BDF8',
+      fogColor: '#BAE6FD',
+      sunIntensity: 1.75,
     },
     stations: [
       {
@@ -128,8 +158,27 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
     titleEn: 'Enchanted Lotus Garden',
     themeDescriptionKh: 'បណ្តុះផ្កាឈូកទិព្វ J K L ; ដើម្បីបង្កើតស្ពានឆ្លងកាត់ស្រះមន្តអាគម',
     themeDescriptionEn: 'Cultivate enchanted lotus blooms with right-hand keys to span the sacred pool',
+    introMissionKh: 'បេសកកម្ម៖ ធ្វើឱ្យផ្កាឈូករីក ដើម្បីបង្កើតផ្លូវឆ្លងស្រះទឹក។',
+    introMissionEn: 'Mission: Cultivate blooming lotus pads to forge a path across the sacred pool.',
+    educationalSkillKh: 'អ្នកបានហាត់គ្រាប់ចុចជួរកណ្តាលដៃស្តាំ (J K L ;) ដោយជោគជ័យ!',
+    educationalSkillEn: 'Right-hand home-row keys (J K L ;) mastered successfully!',
     initialPlayerPosition: [0, 0, -5.0],
     courtyardBounds: [-9.0, 9.0, -8.0, 16.0],
+    cameraPreset: {
+      offsetBack: -5.8,
+      offsetUp: 2.5,
+      lookUp: 2.0,
+      lookAheadZ: 2.2,
+      damping: 4.8,
+    },
+    environmentTheme: {
+      hideCauseway: true,
+      ambientColor: '#F0FDFA',
+      skyColor: '#38BDF8',
+      fogColor: '#CCFBF1',
+      waterColor: '#0D9488',
+      sunIntensity: 1.6,
+    },
     stations: [
       {
         stageIndex: 0,
@@ -178,6 +227,10 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
     titleEn: 'Angkor Twin Bridges',
     themeDescriptionKh: 'សម្របសម្រួលដៃទាំងពីរ ដើម្បីភ្ជាប់ស្ពានថ្មភ្លោះឆ្លងកាត់ជ្រលងជ្រៅ',
     themeDescriptionEn: 'Coordinate left and right hands to join twin stone causeways across the chasm',
+    introMissionKh: 'បេសកកម្ម៖ ប្រើដៃទាំងពីរដើម្បីតភ្ជាប់ស្ពានភ្លោះឆ្លងកាត់ជ្រលងជ្រៅ។',
+    introMissionEn: 'Mission: Use bilateral hand coordination to unite the twin bridges across the chasm.',
+    educationalSkillKh: 'អ្នកបានហាត់សម្របសម្រួលដៃទាំងពីរលើជួរកណ្តាលដោយជោគជ័យ!',
+    educationalSkillEn: 'Bilateral two-hand coordination on home row mastered successfully!',
     initialPlayerPosition: [0, 0, -5.5],
     courtyardBounds: [-8.0, 8.0, -8.0, 26.0],
     cameraPreset: {
@@ -186,6 +239,15 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
       lookUp: 2.0,
       lookAheadZ: 2.4,
       damping: 4.5,
+    },
+    environmentTheme: {
+      hideCauseway: true,
+      ambientColor: '#E0F2FE',
+      skyColor: '#0284C7',
+      fogColor: '#0C4A6E',
+      fogNear: 20,
+      fogFar: 90,
+      sunIntensity: 1.5,
     },
     stations: [
       {
@@ -238,8 +300,26 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
     titleEn: 'Jungle Crossroads',
     themeDescriptionKh: 'ឈោងម្រាមចង្អុល G និង H ដើម្បីតភ្ជាប់ផ្លូវបំបែកទាំងសងខាងឆ្ពោះទៅប្រាសាទ',
     themeDescriptionEn: 'Reach index fingers to G and H to illuminate branching paths toward the shrine',
+    introMissionKh: 'បេសកកម្ម៖ ឈោងម្រាមចង្អុល G និង H ដើម្បីតភ្ជាប់ផ្លូវបំបែកព្រៃស្រោង។',
+    introMissionEn: 'Mission: Reach index fingers to G and H to connect the branching jungle paths.',
+    educationalSkillKh: 'អ្នកបានហាត់ឈោងម្រាមចង្អុលទៅគ្រាប់ចុច G និង H ដោយជោគជ័យ!',
+    educationalSkillEn: 'Index finger reaches (G and H) mastered successfully!',
     initialPlayerPosition: [0, 0, -5.0],
     courtyardBounds: [-11.0, 11.0, -8.0, 24.0],
+    cameraPreset: {
+      offsetBack: -6.2,
+      offsetUp: 2.7,
+      lookUp: 2.0,
+      lookAheadZ: 2.4,
+      damping: 4.6,
+    },
+    environmentTheme: {
+      hideCauseway: true,
+      ambientColor: '#FEF3C7',
+      skyColor: '#38BDF8',
+      fogColor: '#FEF08A',
+      sunIntensity: 1.7,
+    },
     stations: [
       {
         stageIndex: 0,
@@ -288,6 +368,10 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
     titleEn: 'Climbing Temple Tower',
     themeDescriptionKh: 'ឈោងម្រាមឡើងជួរលើដៃឆ្វេង ដើម្បីដំឡើងកាំជណ្តើរថ្មឡើងទៅកំពូលបាកាណ',
     themeDescriptionEn: 'Reach up to the upper row to construct stone staircases ascending the sacred tower',
+    introMissionKh: 'បេសកកម្ម៖ ឈោងម្រាមឡើងជួរលើដៃឆ្វេង ដើម្បីដំឡើងកាំជណ្តើរថ្មឡើងទៅកំពូលប្រាសាទ។',
+    introMissionEn: 'Mission: Reach left upper row keys to erect ascending staircases to the temple summit.',
+    educationalSkillKh: 'អ្នកបានហាត់ឈោងម្រាមឡើងជួរលើដៃឆ្វេង (Q W E R T) ដោយជោគជ័យ!',
+    educationalSkillEn: 'Left-hand upper-row reaches mastered successfully!',
     initialPlayerPosition: [0, 0, -5.0],
     courtyardBounds: [-8.0, 8.0, -8.0, 26.0],
     cameraPreset: {
@@ -296,6 +380,13 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
       lookUp: 2.8,
       lookAheadZ: 2.2,
       damping: 4.2,
+    },
+    environmentTheme: {
+      hideCauseway: true,
+      ambientColor: '#FFFBEB',
+      skyColor: '#38BDF8',
+      fogColor: '#BAE6FD',
+      sunIntensity: 1.8,
     },
     stations: [
       {
@@ -347,8 +438,28 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
     titleEn: 'Sky Platforms',
     themeDescriptionKh: 'ដាស់ថ្មអណ្តែតវេហាស៍ដោយប្រើគ្រាប់ចុចជួរលើដៃស្តាំ (Y U I O P)',
     themeDescriptionEn: 'Activate suspended floating platforms with right upper row keys',
+    introMissionKh: 'បេសកកម្ម៖ ដាស់ថ្មអណ្តែតវេហាស៍ដោយប្រើគ្រាប់ចុចជួរលើដៃស្តាំ (Y U I O P)។',
+    introMissionEn: 'Mission: Align suspended sky platforms with right upper row keys.',
+    educationalSkillKh: 'អ្នកបានហាត់ឈោងម្រាមឡើងជួរលើដៃស្តាំ (Y U I O P [) ដោយជោគជ័យ!',
+    educationalSkillEn: 'Right-hand upper-row reaches mastered successfully!',
     initialPlayerPosition: [0, 0, -5.0],
     courtyardBounds: [-8.0, 8.0, -8.0, 26.0],
+    cameraPreset: {
+      offsetBack: -6.4,
+      offsetUp: 2.8,
+      lookUp: 2.0,
+      lookAheadZ: 2.4,
+      damping: 4.5,
+    },
+    environmentTheme: {
+      hideCauseway: true,
+      ambientColor: '#EFF6FF',
+      skyColor: '#0284C7',
+      fogColor: '#DBEAFE',
+      fogNear: 30,
+      fogFar: 120,
+      sunIntensity: 1.7,
+    },
     stations: [
       {
         stageIndex: 0,
@@ -399,8 +510,30 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
     titleEn: 'Crystal Cave',
     themeDescriptionKh: 'រុករករូងថ្មបុរាណ និងបំភ្លឺគ្រីស្តាល់ទិព្វដោយប្រើជួរក្រោមដៃឆ្វេង (Z X C V)',
     themeDescriptionEn: 'Explore the ancient shaded shrine and ignite glowing crystal clusters',
+    introMissionKh: 'បេសកកម្ម៖ រុករករូងថ្មបុរាណ និងបំភ្លឺគ្រីស្តាល់ទិព្វដោយប្រើជួរក្រោមដៃឆ្វេង (Z X C V)។',
+    introMissionEn: 'Mission: Explore the ancient shaded shrine and ignite glowing crystal clusters.',
+    educationalSkillKh: 'អ្នកបានហាត់ឈោងម្រាមចុះជួរក្រោមដៃឆ្វេង (Z X C V B) ដោយជោគជ័យ!',
+    educationalSkillEn: 'Left-hand lower-row reaches mastered successfully!',
     initialPlayerPosition: [0, 0, -5.0],
     courtyardBounds: [-8.0, 8.0, -8.0, 26.0],
+    cameraPreset: {
+      offsetBack: -5.6,
+      offsetUp: 2.2,
+      lookUp: 1.8,
+      lookAheadZ: 2.0,
+      damping: 4.8,
+    },
+    environmentTheme: {
+      hideCauseway: true,
+      isCavern: true,
+      ambientColor: '#1E1B4B',
+      skyColor: '#090D16',
+      fogColor: '#0F172A',
+      fogNear: 6,
+      fogFar: 48,
+      sunIntensity: 0.2,
+      sunColor: '#818CF8',
+    },
     stations: [
       {
         stageIndex: 0,
@@ -451,8 +584,28 @@ export const WORLD1_LESSON_EXPERIENCES: Record<string, LessonExperienceConfig> =
     titleEn: 'Sacred River Crossing',
     themeDescriptionKh: 'ជិះទូកនាគទិព្វឆ្លងកាត់បារាយណ៍ស័ក្តិសិទ្ធិឆ្ពោះទៅប្រាសាទម្ចាស់ការពារ',
     themeDescriptionEn: 'Advance a ceremonial dragon boat across the sacred baray waters',
+    introMissionKh: 'បេសកកម្ម៖ ជិះទូកនាគទិព្វឆ្លងកាត់បារាយណ៍ស័ក្តិសិទ្ធិឆ្ពោះទៅប្រាសាទម្ចាស់ការពារ។',
+    introMissionEn: 'Mission: Pilot the ceremonial dragon barge across the sacred baray waters.',
+    educationalSkillKh: 'អ្នកបានហាត់គ្រាប់ចុចជួរក្រោមដៃស្តាំ និងសញ្ញាខណ្ឌ (N M , . / ។) ដោយជោគជ័យ!',
+    educationalSkillEn: 'Right-hand lower-row keys & Khan sentence punctuation mastered successfully!',
     initialPlayerPosition: [0, 0, -5.5],
     courtyardBounds: [-8.0, 8.0, -8.0, 26.0],
+    cameraPreset: {
+      offsetBack: -6.0,
+      offsetUp: 2.6,
+      lookUp: 2.0,
+      lookAheadZ: 2.4,
+      damping: 4.5,
+    },
+    environmentTheme: {
+      hideCauseway: true,
+      ambientColor: '#CCFBF1',
+      skyColor: '#F59E0B',
+      horizonColor: '#FBBF24',
+      fogColor: '#FEF3C7',
+      waterColor: '#0D9488',
+      sunIntensity: 1.6,
+    },
     stations: [
       {
         stageIndex: 0,
@@ -510,17 +663,47 @@ export function getLessonExperienceConfig(lessonId: number | 'boss' | string): L
     experienceType: isBoss ? 'boss-encounter' : 'finger-sanctuary',
     titleKh: isBoss ? 'ម្ចាស់ប្រាសាទព្រៃ' : `មេរៀនទី ${lessonId}`,
     titleEn: isBoss ? 'Temple Guardian' : `Lesson ${lessonId}`,
-    themeDescriptionKh: 'ផ្លូវប្រាសាទបុរាណអង្គរ',
-    themeDescriptionEn: 'Ancient Angkor temple causeway',
+    themeDescriptionKh: isBoss ? 'សង្វៀនសក្ការៈនៃម្ចាស់ប្រាសាទព្រៃ' : 'ផ្លូវប្រាសាទបុរាណអង្គរ',
+    themeDescriptionEn: isBoss ? 'Sacred inner sanctuary of the Temple Guardian' : 'Ancient Angkor temple causeway',
+    introMissionKh: isBoss
+      ? 'បេសកកម្ម៖ បំបែកខែលមន្តអាគមទាំង ៣ ជុំរបស់ម្ចាស់ប្រាសាទព្រៃ ដោយប្រើក្តារចុចមូលដ្ឋានទាំងអស់។'
+      : `បេសកកម្ម៖ រុករក និងហាត់វាយអក្សរក្នុងមេរៀនទី ${lessonId}។`,
+    introMissionEn: isBoss
+      ? 'Mission: Shatter the 3 concentric magical shields of the Temple Guardian!'
+      : `Mission: Complete typing practice for Lesson ${lessonId}.`,
+    educationalSkillKh: isBoss
+      ? 'អ្នកបានយកឈ្នះលើម្ចាស់ប្រាសាទព្រៃ និងស្ទាត់ជំនាញក្តារចុចមូលដ្ឋានខ្មែរទាំងស្រុង!'
+      : `អ្នកបានបញ្ចប់មេរៀនទី ${lessonId} ដោយជោគជ័យ!`,
+    educationalSkillEn: isBoss
+      ? 'Temple Guardian defeated! Full Khmer base keyboard touch-typing mastered!'
+      : `Lesson ${lessonId} completed successfully!`,
     initialPlayerPosition: [0, 0, isBoss ? 24.0 : -6.0],
     courtyardBounds: isBoss ? [-8.0, 8.0, 18.0, 30.5] : [-13.0, 13.0, -14.0, 30.0],
+    cameraPreset: isBoss
+      ? {
+          offsetBack: -6.8,
+          offsetUp: 2.8,
+          lookUp: 2.2,
+          lookAheadZ: 3.2,
+          damping: 4.0,
+        }
+      : undefined,
+    environmentTheme: isBoss
+      ? {
+          hideCauseway: false,
+          ambientColor: '#FFFBEB',
+          skyColor: '#0284C7',
+          fogColor: '#BAE6FD',
+          sunIntensity: 1.85,
+        }
+      : undefined,
     stations: [
       {
         stageIndex: 0,
         stageId: `w1-l${lessonId}-s1`,
         position: [0, 0, isBoss ? 24.0 : 3.6],
-        stationTitleKh: 'អាសនៈទី ១',
-        stationTitleEn: 'Stage 1 Altar',
+        stationTitleKh: isBoss ? 'ខែលទី ១ ៖ ជួរកណ្តាល និងឈោងចង្អុល' : 'អាសនៈទី ១',
+        stationTitleEn: isBoss ? 'Wave 1: Home & Index Reaches' : 'Stage 1 Altar',
         missionPromptKh: isBoss ? 'ឈានទៅមុខដើម្បីប្រឈមមុខនឹងម្ចាស់ប្រាសាទព្រៃ' : 'ដើរទៅកាន់អាសនៈទី ១ ដើម្បីចាប់ផ្តើម',
         missionPromptEn: isBoss ? 'Advance to face the Temple Guardian' : 'Walk to the first altar to begin',
         interactionRadius: isBoss ? 10.5 : 3.6,
@@ -530,8 +713,8 @@ export function getLessonExperienceConfig(lessonId: number | 'boss' | string): L
         stageIndex: 1,
         stageId: `w1-l${lessonId}-s2`,
         position: [0, 0, isBoss ? 24.0 : 13.6],
-        stationTitleKh: 'អាសនៈទី ២',
-        stationTitleEn: 'Stage 2 Altar',
+        stationTitleKh: isBoss ? 'ខែលទី ២ ៖ ជួរលើ និងជួរក្រោម' : 'អាសនៈទី ២',
+        stationTitleEn: isBoss ? 'Wave 2: Vertical Reaches' : 'Stage 2 Altar',
         missionPromptKh: isBoss ? 'បន្តវាយប្រហារបំបែកខែលជុំទី ២ របស់ម្ចាស់ប្រាសាទ' : 'ដើរទៅកាន់អាសនៈទី ២ នៅវេទិកាកណ្តាល',
         missionPromptEn: isBoss ? 'Strike the guardian’s second concentric shield' : 'Walk forward to the second stage altar',
         interactionRadius: isBoss ? 10.5 : 3.6,
@@ -541,8 +724,8 @@ export function getLessonExperienceConfig(lessonId: number | 'boss' | string): L
         stageIndex: 2,
         stageId: `w1-l${lessonId}-s3`,
         position: [0, 0, isBoss ? 24.0 : 23.6],
-        stationTitleKh: 'អាសនៈទី ៣',
-        stationTitleEn: 'Stage 3 Altar',
+        stationTitleKh: isBoss ? 'ខែលទី ៣ ៖ ក្តារចុចពេញលេញ និងខណ្ឌ' : 'អាសនៈទី ៣',
+        stationTitleEn: isBoss ? 'Wave 3: Full Sentences & Khan' : 'Stage 3 Altar',
         missionPromptKh: isBoss ? 'បញ្ចប់ Wave ទី ៣ ដើម្បីដោះសោពិភពទី ២!' : 'ឈានទៅអាសនៈចុងក្រោយ ដើម្បីបើកទ្វារប្រាសាទធំ',
         missionPromptEn: isBoss ? 'Overcome the final wave to defeat the Guardian!' : 'Step to the final altar to open the temple gate',
         interactionRadius: isBoss ? 10.5 : 3.6,

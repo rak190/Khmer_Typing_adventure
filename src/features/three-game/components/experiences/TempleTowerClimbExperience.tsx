@@ -2,13 +2,16 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useGltfClone } from '../../hooks/useGltfAsset';
-import type { GateStatus } from '../../types';
+import type { GameMode, GateStatus } from '../../types';
+import { gameAudio } from '../../../../lib/audio/gameAudio';
 
 interface TempleTowerClimbExperienceProps {
   activeStageIndex: number;
   stageStatuses: GateStatus[];
   streak?: number;
   completedCount?: number;
+  totalStageUnits?: number;
+  mode?: GameMode;
   isUnlocked?: boolean;
 }
 
@@ -19,6 +22,10 @@ interface TempleTowerClimbExperienceProps {
 export default function TempleTowerClimbExperience({
   activeStageIndex,
   stageStatuses,
+  streak = 0,
+  completedCount = 0,
+  totalStageUnits = 12,
+  mode,
   isUnlocked = false,
 }: TempleTowerClimbExperienceProps) {
   const lotusGlb = useGltfClone('/models/props/khmer_lotus_altar.glb');
@@ -29,23 +36,60 @@ export default function TempleTowerClimbExperience({
   const stairs1Ref = useRef<THREE.Group>(null);
   const stairs2Ref = useRef<THREE.Group>(null);
   const crownSanctuaryRef = useRef<THREE.Group>(null);
+  const lastCompletedRef = useRef(completedCount);
+  const hitPulseTimerRef = useRef(0);
+  const hasTriggeredSummitAudioRef = useRef(false);
 
-  const stage1Passed = stageStatuses[0] === 'open' || isUnlocked;
-  const stage2Passed = stageStatuses[1] === 'open' || isUnlocked;
-  const stage3Passed = stageStatuses[2] === 'open' || isUnlocked;
+  const stage1Passed = (stageStatuses[0] === 'opening' || stageStatuses[0] === 'open') || isUnlocked;
+  const stage2Passed = (stageStatuses[1] === 'opening' || stageStatuses[1] === 'open') || isUnlocked;
+  const stage3Passed = (stageStatuses[2] === 'opening' || stageStatuses[2] === 'open') || isUnlocked;
+
+  const stageProgressRatio = Math.min(1, Math.max(0, completedCount / Math.max(1, totalStageUnits)));
 
   useFrame((_, delta) => {
-    // Raise first monumental flight of steps
-    if (stairs1Ref.current) {
-      const targetY = stage1Passed ? 0 : -2.8;
-      stairs1Ref.current.position.y = THREE.MathUtils.lerp(stairs1Ref.current.position.y, targetY, delta * 2.5);
+    // Detect keystroke hits (Feedback A)
+    if (completedCount > lastCompletedRef.current) {
+      hitPulseTimerRef.current = 0.35;
+      lastCompletedRef.current = completedCount;
     }
-    // Raise second monumental flight of steps
+    if (hitPulseTimerRef.current > 0) {
+      hitPulseTimerRef.current = Math.max(0, hitPulseTimerRef.current - delta);
+    }
+
+    const stairPulse = 1.0 + (hitPulseTimerRef.current > 0 ? (hitPulseTimerRef.current / 0.35) * 0.03 : 0);
+
+    // Raise first monumental flight of steps progressively (Feedback B & C)
+    if (stairs1Ref.current) {
+      const stair1Rise = stage1Passed ? 1.0 : activeStageIndex === 0 && mode === 'typing' ? stageProgressRatio : 0;
+      const targetY = -2.8 + stair1Rise * 2.8;
+      stairs1Ref.current.position.y = THREE.MathUtils.lerp(stairs1Ref.current.position.y, targetY, delta * 3.0);
+      if (activeStageIndex === 0 && mode === 'typing') {
+        stairs1Ref.current.scale.set(stairPulse, stairPulse, stairPulse);
+      } else {
+        stairs1Ref.current.scale.set(1, 1, 1);
+      }
+    }
+    // Raise second monumental flight of steps progressively (Feedback B & C)
     if (stairs2Ref.current) {
-      const targetY = stage2Passed ? 0 : -3.2;
-      stairs2Ref.current.position.y = THREE.MathUtils.lerp(stairs2Ref.current.position.y, targetY, delta * 2.5);
+      const stair2Rise = stage2Passed ? 1.0 : activeStageIndex === 1 && mode === 'typing' ? stageProgressRatio : 0;
+      const targetY = -3.2 + stair2Rise * 3.2;
+      stairs2Ref.current.position.y = THREE.MathUtils.lerp(stairs2Ref.current.position.y, targetY, delta * 3.0);
+      if (activeStageIndex === 1 && mode === 'typing') {
+        stairs2Ref.current.scale.set(stairPulse, stairPulse, stairPulse);
+      } else {
+        stairs2Ref.current.scale.set(1, 1, 1);
+      }
+    }
+    if (crownSanctuaryRef.current && activeStageIndex === 2 && mode === 'typing') {
+      crownSanctuaryRef.current.scale.set(stairPulse, stairPulse, stairPulse);
+    }
+    if (stage3Passed && !hasTriggeredSummitAudioRef.current) {
+      hasTriggeredSummitAudioRef.current = true;
+      gameAudio.playMechanismActivation();
     }
   });
+
+  const streakBonus = Math.min(streak * 0.05, 0.4);
 
   return (
     <group position={[0, 0, 0]}>
@@ -99,23 +143,23 @@ export default function TempleTowerClimbExperience({
       {/* Monumental Crown Temple Colonnade (Towering Prangs) */}
       <group ref={crownSanctuaryRef} position={[0, 4.4, 24.5]}>
         {/* Central Prang Spire */}
-        <mesh position={[0, 4.0, 0]} castShadow>
-          <coneGeometry args={[1.8, 8.0, 8]} />
+        <mesh position={[0, 1.7, 3.0]} castShadow>
+          <coneGeometry args={[0.85, 3.4, 8]} />
           <meshStandardMaterial
             color="#6B543E"
             emissive={stage3Passed ? '#F59E0B' : '#000000'}
-            emissiveIntensity={stage3Passed ? 1.2 : 0}
+            emissiveIntensity={stage3Passed ? 0.18 + streakBonus * 0.1 : 0}
             roughness={0.7}
           />
         </mesh>
         {/* Flanking Corner Spires */}
-        {[-3.2, 3.2].map((sx, idx) => (
-          <mesh key={`spire-${idx}`} position={[sx, 2.8, -1.0]} castShadow>
-            <coneGeometry args={[1.1, 5.5, 6]} />
+        {[-3.8, 3.8].map((sx, idx) => (
+          <mesh key={`spire-${idx}`} position={[sx, 1.55, 2.5]} castShadow>
+            <coneGeometry args={[0.55, 3.1, 6]} />
             <meshStandardMaterial
               color="#5C4D3C"
               emissive={stage3Passed ? '#38BDF8' : '#000000'}
-              emissiveIntensity={stage3Passed ? 1.0 : 0}
+              emissiveIntensity={stage3Passed ? 0.15 + streakBonus * 0.1 : 0}
               roughness={0.75}
             />
           </mesh>

@@ -3,6 +3,7 @@ import { Component, Suspense, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import WebGLFallback from './components/WebGLFallback';
 import { useWebGLSupport } from './hooks/useWebGLSupport';
+import { getGraphicsQuality } from './config/graphicsQuality';
 
 type ThreeGameCanvasProps = {
   children: ReactNode;
@@ -30,6 +31,7 @@ class CanvasErrorBoundary extends Component<
 }
 
 export default function ThreeGameCanvas({ children }: ThreeGameCanvasProps) {
+  const graphicsQuality = getGraphicsQuality();
   const { isSupported, errorMessage } = useWebGLSupport();
   const [contextLostMessage, setContextLostMessage] = useState<string | undefined>(undefined);
 
@@ -41,9 +43,9 @@ export default function ThreeGameCanvas({ children }: ThreeGameCanvasProps) {
     <CanvasErrorBoundary>
       <div className="relative h-full w-full select-none overflow-hidden bg-gradient-to-b from-[#0284C7] via-[#38BDF8] to-[#FDE68A]">
         <Canvas
-          shadows
+          shadows={graphicsQuality !== 'low'}
           camera={{ position: [0, 2.8, -6.5], fov: 56, near: 0.1, far: 160 }}
-          dpr={[1, 1.5]}
+          dpr={[1, graphicsQuality === 'low' ? 1 : graphicsQuality === 'high' ? 1.75 : 1.5]}
           gl={{
             antialias: true,
             powerPreference: 'high-performance',
@@ -56,6 +58,12 @@ export default function ThreeGameCanvas({ children }: ThreeGameCanvasProps) {
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.shadowMap.enabled = true;
             gl.shadowMap.type = THREE.PCFSoftShadowMap;
+            if (import.meta.env.DEV) {
+              const debugWindow = window as typeof window & {
+                __threeRenderStats?: () => { calls: number; triangles: number; points: number; lines: number };
+              };
+              debugWindow.__threeRenderStats = () => ({ ...gl.info.render });
+            }
             const canvas = gl.domElement;
             const handleContextLost = (event: Event) => {
               event.preventDefault();

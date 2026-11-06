@@ -2,12 +2,16 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useGltfClone } from '../../hooks/useGltfAsset';
-import type { GateStatus } from '../../types';
+import type { GameMode, GateStatus } from '../../types';
+import { gameAudio } from '../../../../lib/audio/gameAudio';
 
 interface CrystalCaveExperienceProps {
   activeStageIndex: number;
   stageStatuses: GateStatus[];
   streak?: number;
+  completedCount?: number;
+  totalStageUnits?: number;
+  mode?: GameMode;
   isUnlocked?: boolean;
 }
 
@@ -16,7 +20,12 @@ interface CrystalCaveExperienceProps {
  * Subterranean shaded shrine illuminated by radiant crystal clusters (Z, X, C, V).
  */
 export default function CrystalCaveExperience({
+  activeStageIndex,
   stageStatuses,
+  streak = 0,
+  completedCount = 0,
+  totalStageUnits = 12,
+  mode,
   isUnlocked = false,
 }: CrystalCaveExperienceProps) {
   const lotusGlb = useGltfClone('/models/props/khmer_lotus_altar.glb');
@@ -26,36 +35,59 @@ export default function CrystalCaveExperience({
 
   const crystalsGroupRef = useRef<THREE.Group>(null);
   const caveDoorRef = useRef<THREE.Group>(null);
+  const lastCompletedRef = useRef(completedCount);
+  const hitPulseTimerRef = useRef(0);
+  const hasTriggeredDoorAudioRef = useRef(false);
 
-  const stage1Passed = stageStatuses[0] === 'open' || isUnlocked;
-  const stage2Passed = stageStatuses[1] === 'open' || isUnlocked;
-  const stage3Passed = stageStatuses[2] === 'open' || isUnlocked;
+  const stage1Passed = (stageStatuses[0] === 'opening' || stageStatuses[0] === 'open') || isUnlocked;
+  const stage2Passed = (stageStatuses[1] === 'opening' || stageStatuses[1] === 'open') || isUnlocked;
+  const stage3Passed = (stageStatuses[2] === 'opening' || stageStatuses[2] === 'open') || isUnlocked;
+
+  const stageProgressRatio = Math.min(1, Math.max(0, completedCount / Math.max(1, totalStageUnits)));
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
+
+    // Detect keystroke hits (Feedback A)
+    if (completedCount > lastCompletedRef.current) {
+      hitPulseTimerRef.current = 0.45;
+      lastCompletedRef.current = completedCount;
+    }
+    if (hitPulseTimerRef.current > 0) {
+      hitPulseTimerRef.current = Math.max(0, hitPulseTimerRef.current - delta);
+    }
+
     if (crystalsGroupRef.current) {
+      // Feedback B: Shimmer and sparkles intensify with typing progress and streak
+      const shimmerRate = mode === 'typing' ? 5.0 + stageProgressRatio * 3.0 : 3.0;
+      const pulseAdd = hitPulseTimerRef.current > 0 ? (hitPulseTimerRef.current / 0.45) * 0.9 : 0;
+      const streakBonus = Math.min(streak * 0.05, 0.6);
       crystalsGroupRef.current.children.forEach((crystal, idx) => {
         const mesh = crystal as THREE.Mesh;
         if (mesh.material) {
           const mat = mesh.material as THREE.MeshStandardMaterial;
-          mat.emissiveIntensity = 0.5 + Math.sin(t * 3.0 + idx) * 0.3;
+          mat.emissiveIntensity = 0.5 + Math.sin(t * shimmerRate + idx) * 0.3 + pulseAdd + streakBonus;
         }
       });
     }
     if (caveDoorRef.current) {
       const targetY = stage3Passed ? -4.0 : 0;
       caveDoorRef.current.position.y = THREE.MathUtils.lerp(caveDoorRef.current.position.y, targetY, delta * 2.0);
+      if (stage3Passed && !hasTriggeredDoorAudioRef.current) {
+        hasTriggeredDoorAudioRef.current = true;
+        gameAudio.playMechanismActivation();
+      }
     }
   });
 
   const crystals = useMemo(
     () => [
-      { pos: [-3.2, 0.8, 2.0], color: '#6366F1', scale: 1.2, active: stage1Passed },
-      { pos: [3.2, 0.9, 4.0], color: '#8B5CF6', scale: 1.4, active: stage1Passed },
-      { pos: [-3.4, 0.9, 12.0], color: '#EC4899', scale: 1.3, active: stage2Passed },
-      { pos: [3.4, 1.0, 14.5], color: '#10B981', scale: 1.5, active: stage2Passed },
+      { pos: [-3.2, 0.8, 2.0], color: '#6366F1', scale: 1.2, active: stage1Passed || (activeStageIndex === 0 && mode === 'typing') },
+      { pos: [3.2, 0.9, 4.0], color: '#8B5CF6', scale: 1.4, active: stage1Passed || (activeStageIndex === 0 && mode === 'typing') },
+      { pos: [-3.4, 0.9, 12.0], color: '#EC4899', scale: 1.3, active: stage2Passed || (activeStageIndex === 1 && mode === 'typing') },
+      { pos: [3.4, 1.0, 14.5], color: '#10B981', scale: 1.5, active: stage2Passed || (activeStageIndex === 1 && mode === 'typing') },
     ],
-    [stage1Passed, stage2Passed],
+    [activeStageIndex, mode, stage1Passed, stage2Passed],
   );
 
   return (
