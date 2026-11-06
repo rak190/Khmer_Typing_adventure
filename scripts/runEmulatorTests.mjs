@@ -42,7 +42,7 @@ buildProc.on('close', (code) => {
 
   console.log('Starting Firebase emulators and running integration tests...');
   const testScript = process.argv[2] || 'scripts/firebaseIntegrationTests.mjs';
-  const command = `npx firebase emulators:exec --project demo-khmer-typing --only auth,firestore,functions "node ${testScript}"`;
+  const command = `npx firebase emulators:exec --project demo-khmer-typing --only auth,firestore,functions "node scripts/waitForEmulators.mjs && node ${testScript}"`;
   const emuProc = spawn(command, { stdio: 'inherit', env, shell: true });
 
   emuProc.on('close', (emuCode) => {
