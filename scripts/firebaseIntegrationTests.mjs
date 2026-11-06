@@ -7,6 +7,31 @@ import { connectAuthEmulator, createUserWithEmailAndPassword, getAuth } from 'fi
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 import { build } from 'esbuild';
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function isRetryableAuthError(error) {
+  if (!(error instanceof Error)) return false;
+  const message = `${error.name}: ${error.message}`;
+  return /timeout|ECONNREFUSED|fetch failed|network error|Failed to fetch|ERR_CONNECTION_REFUSED/i.test(message);
+}
+
+async function createUserWithRetry(auth, email, password) {
+  const deadline = Date.now() + 60000;
+  let lastError;
+
+  while (Date.now() < deadline) {
+    try {
+      return await createUserWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableAuthError(error)) throw error;
+      await wait(1500);
+    }
+  }
+
+  throw lastError ?? new Error('Auth emulator did not respond in time');
+}
+
 // Ensure emulator environment variables are explicitly defined
 process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT || 'demo-khmer-typing';
 process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
@@ -63,14 +88,14 @@ try {
   const app = initializeApp({ projectId, apiKey: 'demo-key' }, 'integration');
   const auth = getAuth(app);
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-  const user = await createUserWithEmailAndPassword(auth, `synthetic-${Date.now()}@example.test`, 'synthetic-password');
+  const user = await createUserWithRetry(auth, `synthetic-${Date.now()}@example.test`, 'synthetic-password');
   console.log(`✓ [Step 2/14] Synthetic student registered: ${user.user.uid}`);
 
   const functions = getFunctions(app);
   connectFunctionsEmulator(functions, '127.0.0.1', 5001);
   const callOpts = { timeout: 30000 };
 
-  console.log('[Step 3/14] Testing concurrent submitLessonAttempt for idempotency and rewards...');
+  console.log('[Step 3/14] Testing submitLessonAttempt for idempotency and rewards...');
   const submit = httpsCallable(functions, 'submitLessonAttempt', callOpts);
   const attempt = {
     attemptId: 'integration-attempt-0001',
@@ -83,16 +108,13 @@ try {
     stages: [],
   };
 
-  // Firestore emulator transactions can deadlock under simultaneous duplicate calls;
-  // keep the idempotency check deterministic while still validating the duplicate path.
   const first = await submit(attempt);
   const second = await submit(attempt);
-  const results = [first, second];
-  assert.deepEqual(results[0].data, results[1].data);
-  assert.equal(results[0].data.reward.XP, 80);
-  assert.equal(results[0].data.reward.coins, 80, '30 lesson coins plus one first-steps achievement');
-  assert.equal(results[0].data.reward.gems, 1, 'accuracy achievement claimed once');
-  console.log('✓ [Step 3/14] Concurrent submissions resolved identically (idempotent reward)');
+  assert.deepEqual(first.data, second.data);
+  assert.equal(first.data.reward.XP, 80);
+  assert.equal(first.data.reward.coins, 80, '30 lesson coins plus one first-steps achievement');
+  assert.equal(first.data.reward.gems, 1, 'accuracy achievement claimed once');
+  console.log('✓ [Step 3/14] Duplicate submission resolved identically (idempotent reward)');
 
   console.log('[Step 4/14] Verifying tamper rejection and score modification protections...');
   await assert.rejects(submit({ ...attempt, metrics: { ...attempt.metrics, score: 10000 } }));
@@ -104,7 +126,7 @@ try {
   console.log('✓ [Step 4/14] Tamper attempts rejected, server-computed XP verified in DB');
 
   console.log('  Waiting 3100ms for attempt rate-limiting window...');
-  await new Promise((resolve) => setTimeout(resolve, 3100));
+  await wait(3100);
 
   console.log('[Step 5/14] Testing cross-mode replay (3D) and achievement deduplication...');
   const replay = await submit({
@@ -125,7 +147,7 @@ try {
   console.log('✓ [Step 6/14] Locked lesson attempt correctly rejected');
 
   console.log('  Waiting 3100ms for attempt rate-limiting window...');
-  await new Promise((resolve) => setTimeout(resolve, 3100));
+  await wait(3100);
 
   console.log('[Step 7/14] Testing foundation mode progression and completion...');
   const foundation = await submit({
