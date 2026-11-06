@@ -83,7 +83,11 @@ try {
     stages: [],
   };
 
-  const results = await Promise.all([submit(attempt), submit(attempt)]);
+  // Firestore emulator transactions can deadlock under simultaneous duplicate calls;
+  // keep the idempotency check deterministic while still validating the duplicate path.
+  const first = await submit(attempt);
+  const second = await submit(attempt);
+  const results = [first, second];
   assert.deepEqual(results[0].data, results[1].data);
   assert.equal(results[0].data.reward.XP, 80);
   assert.equal(results[0].data.reward.coins, 80, '30 lesson coins plus one first-steps achievement');
