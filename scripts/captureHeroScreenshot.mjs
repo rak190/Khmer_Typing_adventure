@@ -1,4 +1,3 @@
-/* global window, document */
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import path from 'node:path';
