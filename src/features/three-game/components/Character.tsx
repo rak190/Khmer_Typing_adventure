@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef, type MutableRefObject } from 'react';
 import * as THREE from 'three';
-import { useGltfClone } from '../hooks/useGltfAsset';
+import { usePrioritizedGltfClone } from '../hooks/useGltfAsset';
 import type { MovementInput } from '../hooks/usePlayerControls';
 import {
   clampLessonCharacterPosition,
@@ -116,9 +116,15 @@ export default function Character({
   const successPulseRef = useRef<number>(0);
   const mistakeShakeRef = useRef<number>(0);
 
-  const riggedScene = useGltfClone('/models/characters/Khmer_Student_Hero_Rigged.glb');
-  const fallbackScene = useGltfClone('/models/characters/khmer_student_hero.glb');
-  const glbScene = riggedScene ?? fallbackScene;
+  const HERO_CANDIDATES = useMemo(
+    () => [
+      '/models/characters/khmer_student_hero_mcp_candidate.glb',
+      '/models/characters/Khmer_Student_Hero_Rigged.glb',
+      '/models/characters/khmer_student_hero.glb',
+    ],
+    []
+  );
+  const glbScene = usePrioritizedGltfClone(HERO_CANDIDATES);
 
   // 1. Skinned Mesh Armature object for JSX rendering
   const rigObject = useMemo(() => {
@@ -418,6 +424,8 @@ export default function Character({
           -0.35
         );
         applyRelativeBoneRotation(bones.forearmR, restQuats.get('Forearm_R'), -0.30, 0, 0);
+        applyRelativeBoneRotation(bones.handL, restQuats.get('Hand_L'), 0, 0, cheerWave * 0.2);
+        applyRelativeBoneRotation(bones.handR, restQuats.get('Hand_R'), 0, 0, -cheerWave * 0.2);
 
         applyRelativeBoneRotation(bones.upperLegL, restQuats.get('UpperLeg_L'), -cheerBounce * 0.8, 0, 0);
         applyRelativeBoneRotation(bones.lowerLegL, restQuats.get('LowerLeg_L'), cheerBounce * 0.6, 0, 0);
@@ -462,6 +470,12 @@ export default function Character({
           0.20
         );
         applyRelativeBoneRotation(bones.forearmR, restQuats.get('Forearm_R'), -0.70 + nod * 0.2, 0, 0);
+
+        // Subtle finger / hand tapping cadence
+        const typeTapL = Math.sin(time * 12.0) * 0.08;
+        const typeTapR = Math.cos(time * 12.0 + 1.2) * 0.08;
+        applyRelativeBoneRotation(bones.handL, restQuats.get('Hand_L'), -0.15 + typeTapL, 0, 0);
+        applyRelativeBoneRotation(bones.handR, restQuats.get('Hand_R'), -0.15 + typeTapR, 0, 0);
 
         // Legs stay firmly grounded on the courtyard floor
         applyRelativeBoneRotation(bones.upperLegL, restQuats.get('UpperLeg_L'), 0, 0, 0);

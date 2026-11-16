@@ -61,11 +61,12 @@ export function loadCachedGltf(rawUrl: string): Promise<THREE.Group | null> {
  * Loads a GLB asset with in-memory caching and returns a cloned THREE.Group
  * so multiple instances can be placed in the scene safely without blocking Suspense.
  */
-export function useGltfClone(url: string): THREE.Group | null {
-  const resolvedUrl = useMemo(() => resolveModelUrl(url), [url]);
-  const [template, setTemplate] = useState<THREE.Group | null>(() => gltfCache.get(resolvedUrl) ?? null);
+export function useGltfClone(url: string | null | undefined): THREE.Group | null {
+  const resolvedUrl = useMemo(() => (url ? resolveModelUrl(url) : null), [url]);
+  const [template, setTemplate] = useState<THREE.Group | null>(() => (resolvedUrl ? gltfCache.get(resolvedUrl) ?? null : null));
 
   useEffect(() => {
+    if (!url) return;
     let active = true;
     loadCachedGltf(url).then((scene) => {
       if (active && scene) {
@@ -76,6 +77,48 @@ export function useGltfClone(url: string): THREE.Group | null {
       active = false;
     };
   }, [url]);
+
+  return useMemo(() => {
+    if (!template) return null;
+    const cloned = SkeletonUtils.clone(template) as THREE.Group;
+    enableShadows(cloned);
+    return cloned;
+  }, [template]);
+}
+
+/**
+ * Attempts to load the first available GLB from an ordered list of candidate URLs,
+ * falling back down the list if prior candidates fail to load.
+ */
+export function usePrioritizedGltfClone(urls: readonly string[]): THREE.Group | null {
+  const [template, setTemplate] = useState<THREE.Group | null>(() => {
+    for (const u of urls) {
+      const resolved = resolveModelUrl(u);
+      const cached = gltfCache.get(resolved);
+      if (cached) return cached;
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadFirst() {
+      for (const u of urls) {
+        if (!active) break;
+        const scene = await loadCachedGltf(u);
+        if (scene && active) {
+          setTemplate(scene);
+          return;
+        }
+      }
+    }
+
+    loadFirst();
+    return () => {
+      active = false;
+    };
+  }, [urls]);
 
   return useMemo(() => {
     if (!template) return null;
