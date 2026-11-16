@@ -1,15 +1,22 @@
-/* global window, requestAnimationFrame */
+/* global window, document, requestAnimationFrame */
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
 const port = 5189;
-const base = `http://127.0.0.1:${port}/rak190/Khmer_Typing_adventure/three-game?world=1&level=`;
 const evidence = 'docs/3d/task8b-evidence';
 await mkdir(evidence, { recursive: true });
+
 const server = await createServer({ server: { host: '127.0.0.1', port }, logLevel: 'error' });
 await server.listen();
+const serverBase = server.config.base || '/';
+const normalizedBase = serverBase.endsWith('/') ? serverBase : `${serverBase}/`;
+const address = server.httpServer?.address();
+const resolvedPort = (typeof address === 'object' && address?.port) || port;
+const base = `http://127.0.0.1:${resolvedPort}${normalizedBase}three-game?world=1&level=`;
+console.log(`Vite running at http://127.0.0.1:${resolvedPort}${normalizedBase} (derived base: "${serverBase}")`);
+
 const browser = await chromium.launch({
   headless: true,
   ...(process.platform === 'win32' ? { channel: 'chrome' } : {}),
@@ -27,8 +34,116 @@ try {
     localStorage.setItem('khmer-typing-settings', JSON.stringify({ soundEnabled: false, musicEnabled: false, keyboardHintsEnabled: true, handHintsEnabled: true }));
   });
   const page = await context.newPage();
-  const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  const consoleMessages = [];
+  const consoleErrors = [];
+  const pageErrors = [];
+  const failedRequests = [];
+
+  page.on('console', (msg) => {
+    const text = msg.text();
+    const type = msg.type();
+    consoleMessages.push(`[${type}] ${text}`);
+    if (type === 'error') {
+      consoleErrors.push(text);
+    }
+  });
+
+  page.on('pageerror', (err) => {
+    pageErrors.push(err.message || String(err));
+  });
+
+  page.on('requestfailed', (req) => {
+    failedRequests.push({
+      url: req.url(),
+      method: req.method(),
+      failure: req.failure()?.errorText || 'Unknown failure',
+    });
+  });
+
+  page.on('response', (res) => {
+    if (res.status() >= 400) {
+      failedRequests.push({
+        url: res.url(),
+        status: res.status(),
+        statusText: res.statusText(),
+      });
+    }
+  });
+
+  const captureFailureDiagnostics = async (label = 'world1-task8b-failure') => {
+    const timestamp = Date.now();
+    const failureDir = 'docs/3d/test-failures';
+    await mkdir(failureDir, { recursive: true });
+    const screenshotPath = `${failureDir}/${label}-${timestamp}.png`;
+
+    let currentUrl = 'unknown';
+    let routeInfo = null;
+    let fallbackInfo = null;
+    let canvasInfo = null;
+
+    try {
+      currentUrl = page.url();
+      routeInfo = await page.evaluate(() => ({
+        href: window.location.href,
+        pathname: window.location.pathname,
+        search: window.location.search,
+        hash: window.location.hash,
+        historyState: window.history.state,
+      }));
+    } catch (e) {
+      routeInfo = { error: e.message };
+    }
+
+    try {
+      fallbackInfo = await page.evaluate(() => {
+        const fallback = document.querySelector('[data-testid="three-webgl-fallback"]');
+        if (!fallback) return { present: false };
+        return {
+          present: true,
+          visible: fallback.clientHeight > 0 && fallback.clientWidth > 0,
+          innerText: fallback.innerText,
+        };
+      });
+    } catch (e) {
+      fallbackInfo = { error: e.message };
+    }
+
+    try {
+      canvasInfo = await page.evaluate(() => {
+        const canvas = document.querySelector('canvas');
+        return {
+          present: Boolean(canvas),
+          width: canvas?.width,
+          height: canvas?.height,
+        };
+      });
+    } catch (e) {
+      canvasInfo = { error: e.message };
+    }
+
+    try {
+      await page.screenshot({ path: screenshotPath, fullPage: true });
+    } catch (e) {
+      console.warn(`Could not capture screenshot: ${e.message}`);
+    }
+
+    console.error(`\n❌ [TEST FAILURE DIAGNOSTICS: ${label}]`);
+    console.error(`Page URL: ${currentUrl}`);
+    console.error(`Route Information:`, JSON.stringify(routeInfo, null, 2));
+    console.error(`Canvas State:`, JSON.stringify(canvasInfo, null, 2));
+    console.error(`Fallback State:`, JSON.stringify(fallbackInfo, null, 2));
+    if (failedRequests.length > 0) {
+      console.error(`Failed / Errored Requests (${failedRequests.length}):`, JSON.stringify(failedRequests, null, 2));
+    }
+    if (consoleErrors.length > 0) {
+      console.error(`Browser Console Errors (${consoleErrors.length}):`, consoleErrors);
+    }
+    if (pageErrors.length > 0) {
+      console.error(`Page Errors (${pageErrors.length}):`, pageErrors);
+    }
+    console.error(`Failure screenshot saved to: ${screenshotPath}\n`);
+  };
+
   const debug = () => page.evaluate(() => window.__threeGetLessonDebug?.());
   const position = () => page.evaluate(() => window.__threeGetPlayerPos?.());
   const setPosition = (x, y, z) => page.evaluate(([a, b, c]) => window.__threeSetPlayerPos?.(a, b, c), [x, y, z]);
@@ -51,121 +166,127 @@ try {
   };
 
   const requestedLevels = process.argv.slice(2).map(value => value === 'boss' ? 'boss' : Number(value));
-  for (const level of requestedLevels.length ? requestedLevels : [1, 2, 3, 4, 5, 6, 7, 8, 'boss']) {
-    await page.goto(base + level, { timeout: 45000 });
-    await page.waitForSelector('canvas', { timeout: 30000 });
-    await page.waitForFunction(() => Boolean(window.__threeGetLessonDebug), { timeout: 30000 });
-    await page.locator('[data-testid="three-intro-start-btn"]').click();
-    if (screenshots.has(level)) {
-      await page.screenshot({ path: `${evidence}/level-${level}-before.png` });
-    }
-    const first = await debug();
-    assert.equal(first.stageStates.length, 3, `${level}: three stages`);
-    const browserFps = await page.evaluate(() => new Promise(resolve => {
-      let frames = 0;
-      const start = performance.now();
-      const tick = () => {
-        frames += 1;
-        const elapsed = performance.now() - start;
-        if (elapsed < 1200) requestAnimationFrame(tick);
-        else resolve(Math.round((frames * 1000 / elapsed) * 10) / 10);
-      };
-      requestAnimationFrame(tick);
-    }));
-    console.log(`FPS ${level}: ${browserFps} (headless Chrome software WebGL, 1280x720)`);
-    const renderStats = await page.evaluate(() => window.__threeRenderStats?.());
-    console.log(`RENDER ${level}: ${JSON.stringify(renderStats ?? null)}`);
-
-    // A direct position injection is clamped by the real character controller.
-    // The next station must remain beyond the current stage's locked boundary.
-    if (level !== 'boss') {
-      await setPosition(0, 0, 100);
-      await page.waitForFunction(() => (window.__threeGetPlayerPos?.()[2] ?? 100) < 8, null, { timeout: 15000 });
-      const locked = await position();
-      assert.ok(locked[2] < 8, `${level}: locked route was bypassed at z=${locked[2]}`);
-    }
-
-    for (let stage = 0; stage < 3; stage++) {
-      const stations = {
-        1: [[3.2, 0, -1], [-3.2, 0, -1], [0, 0, 4.5]],
-        2: [[0, 0, -1.5], [0, 0, 5.5], [0, 0, 12]],
-        3: [[0, 0, 0], [0, 0, 10.5], [0, 0, 20]],
-        4: [[0, 0, -0.5], [-3.5, 0, 9], [3.5, 0, 18]],
-        5: [[0, 0, -1], [0, 2.2, 9.5], [0, 4.4, 20]],
-        6: [[0, 0, -1], [0, 0, 10], [0, 0, 20]],
-        7: [[0, 0, -1], [0, 0, 9.5], [0, 0, 19.5]],
-        8: [[0, 0, -1], [0, 0, 9.5], [0, 0, 19.5]],
-        boss: [[0, 0, 24], [0, 0, 24], [0, 0, 24]],
-      }[level];
-      const [sx, sy, sz] = stations[stage];
-      await setPosition(sx, sy, sz - 1);
-      await page.waitForFunction(() => window.__threeGetLessonDebug?.().isNearGate === true, null, { timeout: 10000 });
-      await page.keyboard.press('KeyE');
-      if (!await page.locator('[data-testid="three-typing-overlay"]').isVisible()) {
-        console.log(`E missed on ${level}/${stage}; near=${(await debug()).isNearGate}, pos=${JSON.stringify(await position())}; trying visible Start button`);
-        await page.locator('[data-testid="three-unlock-gate-btn"]').click();
+  try {
+    for (const level of requestedLevels.length ? requestedLevels : [1, 2, 3, 4, 5, 6, 7, 8, 'boss']) {
+      await page.goto(base + level, { timeout: 45000 });
+      await page.waitForSelector('canvas', { timeout: 30000 });
+      await page.waitForFunction(() => Boolean(window.__threeGetLessonDebug), { timeout: 30000 });
+      await page.locator('[data-testid="three-intro-start-btn"]').click();
+      if (screenshots.has(level)) {
+        await page.screenshot({ path: `${evidence}/level-${level}-before.png` });
       }
-      await page.waitForSelector('[data-testid="three-typing-overlay"]', { timeout: 10000 });
+      const first = await debug();
+      assert.equal(first.stageStates.length, 3, `${level}: three stages`);
+      const browserFps = await page.evaluate(() => new Promise(resolve => {
+        let frames = 0;
+        const start = performance.now();
+        const tick = () => {
+          frames += 1;
+          const elapsed = performance.now() - start;
+          if (elapsed < 1200) requestAnimationFrame(tick);
+          else resolve(Math.round((frames * 1000 / elapsed) * 10) / 10);
+        };
+        requestAnimationFrame(tick);
+      }));
+      console.log(`FPS ${level}: ${browserFps} (headless Chrome software WebGL, 1280x720)`);
+      const renderStats = await page.evaluate(() => window.__threeRenderStats?.());
+      console.log(`RENDER ${level}: ${JSON.stringify(renderStats ?? null)}`);
 
-      if (stage === 0) {
-        const beforeWrong = await debug();
-        const wrong = beforeWrong.nextKey.code === 'KeyQ' ? 'KeyA' : 'KeyQ';
-        await page.keyboard.press(wrong);
-        assert.equal((await debug()).completedCount, 0, `${level}: wrong key advanced progress`);
-        // Cancel and restart to verify that the attempt resets.
-        await page.keyboard.press('Escape');
-        await page.waitForSelector('[data-testid="three-typing-overlay"]', { state: 'detached' });
-        await page.locator('[data-testid="three-unlock-gate-btn"]').click();
-        await page.waitForSelector('[data-testid="three-typing-overlay"]');
-        assert.equal((await debug()).completedCount, 0, `${level}: cancel did not reset progress`);
-        for (let wrongCount = 0; wrongCount < 12; wrongCount++) await page.keyboard.press(wrong);
-        assert.equal((await debug()).completedCount, 0, `${level}: wrong-key run advanced progress`);
+      // A direct position injection is clamped by the real character controller.
+      // The next station must remain beyond the current stage's locked boundary.
+      if (level !== 'boss') {
+        await setPosition(0, 0, 100);
+        await page.waitForFunction(() => (window.__threeGetPlayerPos?.()[2] ?? 100) < 8, null, { timeout: 15000 });
+        const locked = await position();
+        assert.ok(locked[2] < 8, `${level}: locked route was bypassed at z=${locked[2]}`);
+      }
+
+      for (let stage = 0; stage < 3; stage++) {
+        const stations = {
+          1: [[3.2, 0, -1], [-3.2, 0, -1], [0, 0, 4.5]],
+          2: [[0, 0, -1.5], [0, 0, 5.5], [0, 0, 12]],
+          3: [[0, 0, 0], [0, 0, 10.5], [0, 0, 20]],
+          4: [[0, 0, -0.5], [-3.5, 0, 9], [3.5, 0, 18]],
+          5: [[0, 0, -1], [0, 2.2, 9.5], [0, 4.4, 20]],
+          6: [[0, 0, -1], [0, 0, 10], [0, 0, 20]],
+          7: [[0, 0, -1], [0, 0, 9.5], [0, 0, 19.5]],
+          8: [[0, 0, -1], [0, 0, 9.5], [0, 0, 19.5]],
+          boss: [[0, 0, 24], [0, 0, 24], [0, 0, 24]],
+        }[level];
+        const [sx, sy, sz] = stations[stage];
+        await setPosition(sx, sy, sz - 1);
+        await page.waitForFunction(() => window.__threeGetLessonDebug?.().isNearGate === true, null, { timeout: 10000 });
+        await page.keyboard.press('KeyE');
+        if (!await page.locator('[data-testid="three-typing-overlay"]').isVisible()) {
+          console.log(`E missed on ${level}/${stage}; near=${(await debug()).isNearGate}, pos=${JSON.stringify(await position())}; trying visible Start button`);
+          await page.locator('[data-testid="three-unlock-gate-btn"]').click();
+        }
+        await page.waitForSelector('[data-testid="three-typing-overlay"]', { timeout: 10000 });
+
+        if (stage === 0) {
+          const beforeWrong = await debug();
+          const wrong = beforeWrong.nextKey.code === 'KeyQ' ? 'KeyA' : 'KeyQ';
+          await page.keyboard.press(wrong);
+          assert.equal((await debug()).completedCount, 0, `${level}: wrong key advanced progress`);
+          // Cancel and restart to verify that the attempt resets.
+          await page.keyboard.press('Escape');
+          await page.waitForSelector('[data-testid="three-typing-overlay"]', { state: 'detached' });
+          await page.locator('[data-testid="three-unlock-gate-btn"]').click();
+          await page.waitForSelector('[data-testid="three-typing-overlay"]');
+          assert.equal((await debug()).completedCount, 0, `${level}: cancel did not reset progress`);
+          for (let wrongCount = 0; wrongCount < 12; wrongCount++) await page.keyboard.press(wrong);
+          assert.equal((await debug()).completedCount, 0, `${level}: wrong-key run advanced progress`);
+          await typeToEnd(level, stage);
+          const failed = await debug();
+          assert.equal(failed.stageStates[stage].passed, false, `${level}: inaccurate attempt passed`);
+          assert.equal(failed.stageStates[stage].status, 'closed', `${level}: failed route opened`);
+          await page.locator('[data-testid="three-retry-btn"]').click();
+          await page.waitForSelector('[data-testid="three-typing-overlay"]');
+        }
+
         await typeToEnd(level, stage);
-        const failed = await debug();
-        assert.equal(failed.stageStates[stage].passed, false, `${level}: inaccurate attempt passed`);
-        assert.equal(failed.stageStates[stage].status, 'closed', `${level}: failed route opened`);
-        await page.locator('[data-testid="three-retry-btn"]').click();
-        await page.waitForSelector('[data-testid="three-typing-overlay"]');
-      }
-
-      await typeToEnd(level, stage);
-      const passed = await debug();
-      assert.equal(passed.stageStates[stage].status, 'open', `${level}/${stage}: stage did not open`);
-      assert.equal(passed.stageStates[stage].passed, true, `${level}/${stage}: stage did not pass`);
-      await page.locator('[data-testid="three-walk-through-btn"]').click();
-      if (stage < 2) {
-        assert.equal((await debug()).activeStageIndex, stage + 1, `${level}: next stage unavailable`);
-        const remained = await position();
-        if (level !== 'boss') {
-          assert.ok(Math.hypot(remained[0] - sx, remained[2] - sz) < 4, `${level}: Continue skipped the opened route`);
-          await page.keyboard.down('KeyW');
-          await page.waitForTimeout(500);
-          await page.keyboard.up('KeyW');
-          const walked = await position();
-          assert.ok(walked[2] > remained[2] + 0.2, `${level}: player cannot walk into opened route`);
+        const passed = await debug();
+        assert.equal(passed.stageStates[stage].status, 'open', `${level}/${stage}: stage did not open`);
+        assert.equal(passed.stageStates[stage].passed, true, `${level}/${stage}: stage did not pass`);
+        await page.locator('[data-testid="three-walk-through-btn"]').click();
+        if (stage < 2) {
+          assert.equal((await debug()).activeStageIndex, stage + 1, `${level}: next stage unavailable`);
+          const remained = await position();
+          if (level !== 'boss') {
+            assert.ok(Math.hypot(remained[0] - sx, remained[2] - sz) < 4, `${level}: Continue skipped the opened route`);
+            await page.keyboard.down('KeyW');
+            await page.waitForTimeout(500);
+            await page.keyboard.up('KeyW');
+            const walked = await position();
+            assert.ok(walked[2] > remained[2] + 0.2, `${level}: player cannot walk into opened route`);
+          }
         }
       }
+      if (screenshots.has(level)) {
+        await page.waitForTimeout(300);
+        await page.screenshot({ path: `${evidence}/level-${level}-after.png` });
+      }
+      const finished = await debug();
+      assert.ok(finished.stageStates.every(s => s.passed && s.status === 'open'), `${level}: incomplete victory`);
+      assert.equal(finished.completionsCount, 1, `${level}: duplicated completion`);
+      await page.locator('[data-testid="three-replay-lesson-btn"]').first().click();
+      const replay = await debug();
+      assert.ok(replay.stageStates.every(s => !s.passed && s.status === 'closed'), `${level}: replay did not reset stages`);
+      console.log(`PASS ${level}: stages 1–3, wrong key, cancel, victory, replay`);
     }
-    if (screenshots.has(level)) {
-      await page.waitForTimeout(300);
-      await page.screenshot({ path: `${evidence}/level-${level}-after.png` });
-    }
-    const finished = await debug();
-    assert.ok(finished.stageStates.every(s => s.passed && s.status === 'open'), `${level}: incomplete victory`);
-    assert.equal(finished.completionsCount, 1, `${level}: duplicated completion`);
-    await page.locator('[data-testid="three-replay-lesson-btn"]').first().click();
-    const replay = await debug();
-    assert.ok(replay.stageStates.every(s => !s.passed && s.status === 'closed'), `${level}: replay did not reset stages`);
-    console.log(`PASS ${level}: stages 1–3, wrong key, cancel, victory, replay`);
-  }
-  assert.deepEqual(errors.filter(error => !error.includes('WebGL')), [], 'unexpected browser page errors');
+    const criticalErrors = pageErrors.filter((error) => !error.includes('WebGL'));
+    assert.deepEqual(criticalErrors, [], 'unexpected browser page errors');
 
-  // Compare the optional low setting on the same route and software renderer.
-  await page.goto(`${base}1&quality=low`, { timeout: 45000 });
-  await page.waitForSelector('canvas', { timeout: 30000 });
-  await page.waitForFunction(() => Boolean(window.__threeRenderStats?.()), null, { timeout: 30000 });
-  await page.waitForTimeout(1500);
-  console.log(`RENDER 1 low: ${JSON.stringify(await page.evaluate(() => window.__threeRenderStats?.()))}`);
+    // Compare the optional low setting on the same route and software renderer.
+    await page.goto(`${base}1&quality=low`, { timeout: 45000 });
+    await page.waitForSelector('canvas', { timeout: 30000 });
+    await page.waitForFunction(() => Boolean(window.__threeRenderStats?.()), null, { timeout: 30000 });
+    await page.waitForTimeout(1500);
+    console.log(`RENDER 1 low: ${JSON.stringify(await page.evaluate(() => window.__threeRenderStats?.()))}`);
+  } catch (error) {
+    await captureFailureDiagnostics('world1-task8b-failure');
+    throw error;
+  }
 } finally {
   await browser.close();
   await server.close();
