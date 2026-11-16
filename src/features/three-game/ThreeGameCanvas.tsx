@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { Component, Suspense, useState, type ReactNode } from 'react';
+import { Component, Suspense, useEffect, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import WebGLFallback from './components/WebGLFallback';
 import { useWebGLSupport } from './hooks/useWebGLSupport';
@@ -34,8 +34,14 @@ export default function ThreeGameCanvas({ children }: ThreeGameCanvasProps) {
   const graphicsQuality = getGraphicsQuality();
   const { isSupported, errorMessage } = useWebGLSupport();
   const [contextLostMessage, setContextLostMessage] = useState<string | undefined>(undefined);
+  const [isBooting, setIsBooting] = useState(true);
 
-  if (!isSupported || contextLostMessage) {
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setIsBooting(false), 250);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  if (contextLostMessage || (!isSupported && !isBooting)) {
     return <WebGLFallback message={contextLostMessage ?? errorMessage} />;
   }
 
@@ -53,23 +59,28 @@ export default function ThreeGameCanvas({ children }: ThreeGameCanvasProps) {
             depth: true,
           }}
           onCreated={({ gl }) => {
-            gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 1.15;
-            gl.outputColorSpace = THREE.SRGBColorSpace;
-            gl.shadowMap.enabled = true;
-            gl.shadowMap.type = THREE.PCFSoftShadowMap;
-            if (import.meta.env.DEV) {
-              const debugWindow = window as typeof window & {
-                __threeRenderStats?: () => { calls: number; triangles: number; points: number; lines: number };
+            try {
+              gl.toneMapping = THREE.ACESFilmicToneMapping;
+              gl.toneMappingExposure = 1.15;
+              gl.outputColorSpace = THREE.SRGBColorSpace;
+              gl.shadowMap.enabled = true;
+              gl.shadowMap.type = THREE.PCFSoftShadowMap;
+              if (import.meta.env.DEV) {
+                const debugWindow = window as typeof window & {
+                  __threeRenderStats?: () => { calls: number; triangles: number; points: number; lines: number };
+                };
+                debugWindow.__threeRenderStats = () => ({ ...gl.info.render });
+              }
+
+              const canvas = gl.domElement;
+              const handleContextLost = (event: Event) => {
+                event.preventDefault();
+                setContextLostMessage('WebGL graphics context was lost.');
               };
-              debugWindow.__threeRenderStats = () => ({ ...gl.info.render });
+              canvas.addEventListener('webglcontextlost', handleContextLost, { once: true });
+            } catch {
+              setContextLostMessage('WebGL graphics context could not be initialized.');
             }
-            const canvas = gl.domElement;
-            const handleContextLost = (event: Event) => {
-              event.preventDefault();
-              setContextLostMessage('WebGL graphics context was lost.');
-            };
-            canvas.addEventListener('webglcontextlost', handleContextLost, { once: true });
           }}
         >
           <Suspense fallback={null}>
