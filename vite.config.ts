@@ -40,6 +40,28 @@ export default defineConfig(({ mode }) => {
       watch: { ignored: ['**/.local/**', '**/functions/lib/**'] },
       host: '127.0.0.1',
       port: 5173,
+      warmup: {
+        clientFiles: [
+          './src/main.tsx',
+          './src/App.tsx',
+          './src/features/three-game/ThreeGameCanvas.tsx',
+        ],
+      },
+    },
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        'lucide-react',
+        'three',
+        '@react-three/fiber',
+        '@react-three/drei',
+        'framer-motion',
+        'firebase/app',
+        'firebase/auth',
+        'firebase/firestore',
+      ],
     },
   };
 });

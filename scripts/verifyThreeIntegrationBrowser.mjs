@@ -171,6 +171,14 @@ try {
 
   try {
     // =========================================================================
+    // WARMUP: INITIALIZE VITE DEV SERVER & PRE-COMPILED BUNDLES
+    // =========================================================================
+    console.log('\n--- Warming up Vite dev server ---');
+    await page.goto(`${BASE_URL}three-game?foundation=1`, { timeout: 60000 });
+    await page.waitForSelector('canvas', { timeout: 30000 });
+    console.log('  ✓ Vite dev server warmed up.');
+
+    // =========================================================================
     // TEST SUITE 1: WORLD 1 NODE ROUTING & SMOKE TEST (L1 - L8, BOSS, FOUNDATION)
     // =========================================================================
     console.log('\n[Suite 1] Verifying World 1 Route & Waypoint Smoke Coverage...');
@@ -192,9 +200,9 @@ try {
       const url = `${BASE_URL}three-game?${node.query}`;
       try {
         await page.goto(url, { timeout: 45000 });
-        await page.waitForSelector('canvas', { timeout: 15000 });
-        await page.waitForSelector('[data-testid="three-exploration-hud"]', { timeout: 10000 });
-        await page.waitForSelector('[data-testid="three-in-world-waypoint"]', { timeout: 10000 });
+        await page.waitForSelector('canvas', { timeout: 30000 });
+        await page.waitForSelector('[data-testid="three-exploration-hud"]', { timeout: 15000 });
+        await page.waitForSelector('[data-testid="three-in-world-waypoint"]', { timeout: 15000 });
         console.log(`  ✓ ${node.name}: Canvas, Exploration HUD, and In-World Waypoint verified.`);
       } catch (err) {
         await captureFailureDiagnostics(`suite1-${node.name.replace(/[^a-zA-Z0-9]/g, '_')}`);
@@ -208,7 +216,7 @@ try {
     console.log('\n[Suite 2] Running Lesson 1 E2E Typing Challenge & Proximity Interaction...');
     try {
       await page.goto(`${BASE_URL}three-game?world=1&level=1`, { timeout: 30000 });
-      await page.waitForSelector('canvas', { timeout: 15000 });
+      await page.waitForSelector('canvas', { timeout: 30000 });
 
       // 1. Check distance waypoint prompt
       const waypoint = await page.waitForSelector('[data-testid="three-in-world-waypoint"]');
