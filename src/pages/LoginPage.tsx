@@ -5,9 +5,11 @@ import GameButton from '../components/game-ui/GameButton';
 import GameIcon from '../components/game-ui/GameIcon';
 import LizardMascot from '../components/characters/LizardMascot';
 import PageTransition from '../components/layout/PageTransition';
-import { backgroundImages, imageAssets } from '../assets/assetManifest';
+import { imageAssets } from '../assets/assetManifest';
 import { createAccountWithEmail, firebaseEnabled, firebaseStatusMessage, signInAsGuest, signInWithEmail, signInWithGoogle } from '../lib/firebase';
 import { demoAuthFallbackEnabled } from '../config/environment';
+import ThreeGameCanvas from '../features/three-game/ThreeGameCanvas';
+import AuthCourtyardScene from '../features/three-game/scenes/AuthCourtyardScene';
 
 type LoginMode = 'login' | 'create';
 
@@ -77,15 +79,13 @@ export default function LoginPage() {
 
   return (
     <PageTransition className="min-h-screen overflow-hidden bg-[#0597D8]">
-      <main
-        className="relative grid min-h-screen place-items-center px-5 py-8"
-        style={{
-          backgroundImage: `linear-gradient(180deg,rgba(3,125,190,.1),rgba(0,54,118,.45)), url(${backgroundImages.home})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,.28),transparent_30%),linear-gradient(180deg,rgba(255,255,255,.12),rgba(0,47,92,.34))]" />
+      <main className="relative grid min-h-screen place-items-center px-5 py-8 overflow-hidden bg-slate-950">
+        <div className="absolute inset-0 z-0 opacity-75">
+          <ThreeGameCanvas>
+            <AuthCourtyardScene />
+          </ThreeGameCanvas>
+        </div>
+        <div className="pointer-events-none absolute inset-0 z-[1] bg-slate-950/40 backdrop-blur-[2px]" />
 
         <section className="relative z-10 grid w-full max-w-[1160px] items-center gap-6 lg:grid-cols-[1fr_450px]">
           <div className="relative min-h-[600px]">

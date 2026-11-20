@@ -652,6 +652,64 @@ export async function handleRefillHearts(uid: string) {
   });
 }
 
+
+export async function handleSaveExplorationRecord(
+  uid: string,
+  data: {
+    version?: number;
+    checkpointIds?: string[];
+    fastTravelPointIds?: string[];
+    collectibleIds?: string[];
+    lastVisitedRegion?: string;
+  },
+) {
+  if (!data || typeof data !== 'object') throw new Error('Invalid exploration data');
+  const now = new Date();
+  const summaryRef = db.doc(`students/${uid}/exploration/summary`);
+
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(summaryRef);
+    const existing = snap.data() ?? {
+      discoveredCheckpoints: [],
+      fastTravelPoints: [],
+      collectiblesFound: [],
+      version: 1,
+    };
+
+    const cleanList = (arr: unknown, maxLen = 200) => {
+      if (!Array.isArray(arr)) return [];
+      return arr
+        .filter((item): item is string => typeof item === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(item))
+        .slice(0, maxLen);
+    };
+
+    const nextCheckpoints = [
+      ...new Set([...(existing.discoveredCheckpoints ?? []), ...cleanList(data.checkpointIds)]),
+    ];
+    const nextFastTravel = [
+      ...new Set([...(existing.fastTravelPoints ?? []), ...cleanList(data.fastTravelPointIds)]),
+    ];
+    const nextCollectibles = [
+      ...new Set([...(existing.collectiblesFound ?? []), ...cleanList(data.collectibleIds)]),
+    ];
+
+    const updatedRecord = {
+      version: typeof data.version === 'number' ? data.version : 1,
+      discoveredCheckpoints: nextCheckpoints,
+      fastTravelPoints: nextFastTravel,
+      collectiblesFound: nextCollectibles,
+      lastVisitedRegion:
+        typeof data.lastVisitedRegion === 'string'
+          ? data.lastVisitedRegion.slice(0, 50)
+          : existing.lastVisitedRegion ?? 'angkor-hub',
+      updatedAt: now.toISOString(),
+    };
+
+    tx.set(summaryRef, updatedRecord, { merge: true });
+    return { success: true, exploration: updatedRecord };
+  });
+}
+
 // -----------------------------------------------------------------------------
 // Cloud Functions v2 Callables
 // -----------------------------------------------------------------------------
@@ -709,4 +767,13 @@ export const refillHearts = onCall({ region: 'us-central1', maxInstances: 2 }, a
   const uid = requireAuthenticatedStudent(request);
   try { return await handleRefillHearts(uid); }
   catch (error) { throw new HttpsError('failed-precondition', error instanceof Error ? error.message : 'Heart refill failed'); }
+});
+
+export const saveExplorationRecord = onCall({ region: 'us-central1', maxInstances: 2 }, async (request) => {
+  const uid = requireAuthenticatedStudent(request);
+  try {
+    return await handleSaveExplorationRecord(uid, request.data);
+  } catch (error) {
+    throw new HttpsError('failed-precondition', error instanceof Error ? error.message : 'Exploration save failed');
+  }
 });

@@ -85,7 +85,10 @@ assert.equal(validateLessonAttempt({ ...validAttempt, lessonId: '1:8', mode: '3d
 const validStagesBoss = resolveLessonIdentity('1:boss').lesson.stages.map(s => ({ id: s.id, accuracy: s.accuracyGoal, completed: true }));
 assert.equal(validateLessonAttempt({ ...validAttempt, lessonId: '1:boss', mode: '3d', stages: validStagesBoss }).id, '1:boss');
 const validStagesW2L1 = resolveLessonIdentity('2:1').lesson.stages.map(s => ({ id: s.id, accuracy: s.accuracyGoal, completed: true }));
-assert.throws(() => validateLessonAttempt({ ...validAttempt, lessonId: '2:1', mode: '3d', stages: validStagesW2L1 }), /Unsupported 3D lesson/);
+assert.equal(validateLessonAttempt({ ...validAttempt, lessonId: '2:1', mode: '3d', stages: validStagesW2L1 }).id, '2:1');
+const validStagesW6Boss = resolveLessonIdentity('6:boss').lesson.stages.map(s => ({ id: s.id, accuracy: s.accuracyGoal, completed: true }));
+assert.equal(validateLessonAttempt({ ...validAttempt, lessonId: '6:boss', mode: '3d', metrics: { ...validAttempt.metrics, accuracy: 98, stars: 3 }, stages: validStagesW6Boss }).id, '6:boss');
+assert.throws(() => validateLessonAttempt({ ...validAttempt, lessonId: '99:1', mode: '3d' }));
 assert.throws(() => validateLessonAttempt({ ...validAttempt, metrics: { ...validAttempt.metrics, cpm: NaN } }));
 assert.throws(() => validateLessonAttempt({ ...validAttempt, lessonId: 'foundation-home-row' }));
 assert.throws(() => validateLessonAttempt({ ...validAttempt, attemptId: '../bad' }));

@@ -8,8 +8,10 @@ import {
 import { lessonCurriculum, type CurriculumLevel } from './lessonCurriculum';
 import { foundationHomeRowLesson } from './touchTypingFoundations';
 
-// Curriculum data alone does not imply a finished 3D environment.
-const supportedThreeLessons = new Set(['1:1', '1:2', '1:3', '1:4', '1:5', '1:6', '1:7', '1:8', '1:boss']);
+// All 54 curriculum lessons across all 6 worlds + Foundation lesson are supported in the continuous 3D world.
+export const supportedThreeLessons = new Set(
+  lessonCurriculum.flatMap((w) => w.levels.map((l) => `${w.id}:${l.id}`)),
+);
 
 export function isThreeLessonSupported(worldId: number, lessonId: AdventureNodeId): boolean {
   const world = lessonCurriculum.find((item) => item.id === worldId);

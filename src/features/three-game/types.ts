@@ -19,6 +19,7 @@ export type MovementInput = {
   left: boolean;
   right: boolean;
   sprint: boolean;
+  jump?: boolean;
 };
 
 export type CharacterState = {
