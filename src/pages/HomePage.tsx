@@ -264,9 +264,9 @@ export default function HomePage() {
               Built to help learners practice Khmer typing with lessons, progress tracking, and typing challenges.
             </p>
             <div className="mt-7 flex items-center gap-5">
-              <Link to="/map" className="pointer-events-auto inline-flex cursor-pointer">
+              <Link to="/game" className="pointer-events-auto inline-flex cursor-pointer">
                 <GameButton size="xl" variant="gold" rightIcon={<Play size={27} />} className="h-[70px] min-w-[330px] rounded-[36px] text-[25px]">
-                  Start Adventure Login
+                  Start 3D Adventure
                 </GameButton>
               </Link>
               <Link to="/typing-practice" className="pointer-events-auto inline-flex cursor-pointer">

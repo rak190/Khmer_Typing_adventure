@@ -5,7 +5,7 @@ import { prepareBossAttempt } from '../lib/economy';
 import { CURRICULUM_VERSION } from '../lib/completionContract';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { buildAdventureWorlds } from '../data/adventureWorlds';
+import { buildAdventureWorlds, getLessonState } from '../data/adventureWorlds';
 import { LESSON_PROGRESS_EVENT, saveMockLessonProgress, type LessonProgressRecord } from '../data/mockData';
 import { getThreeLessonAccess } from '../data/threeLessonAvailability';
 import {
@@ -16,6 +16,7 @@ import ExplorationHud from '../features/three-game/components/ExplorationHud';
 import TypingOverlay from '../features/three-game/components/TypingOverlay';
 import VictoryModal from '../features/three-game/components/VictoryModal';
 import LessonIntroModal from '../features/three-game/components/LessonIntroModal';
+import GamePauseMenu from '../features/three-game/components/GamePauseMenu';
 import { usePlayerControls } from '../features/three-game/hooks/usePlayerControls';
 import AncientGateScene from '../features/three-game/scenes/AncientGateScene';
 import { gameAudio } from '../lib/audio/gameAudio';
@@ -70,8 +71,8 @@ export default function ThreePrototypePage() {
   }, []);
   // Keep the original bare prototype URL only as a development testing entry.
   const params =
-    import.meta.env.DEV && location.pathname === '/3d-prototype' && !location.search
-      ? new URLSearchParams('world=1&level=1')
+    (location.pathname === '/game' || (import.meta.env.DEV && location.pathname === '/3d-prototype')) && !location.search
+      ? new URLSearchParams(`world=1&level=${worlds[0].lessons.find((lesson) => getLessonState(worlds[0], lesson) === 'current')?.id ?? 1}`)
       : searchParams;
   const access = getThreeLessonAccess(params, worlds);
   if (access.status !== 'ready') {
@@ -181,6 +182,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
   );
   const [showModal, setShowModal] = useState(false);
   const [showIntroModal, setShowIntroModal] = useState(true);
+  const [pauseOpen, setPauseOpen] = useState(false);
   const [stageSummary, setStageSummary] = useState<StageCompletionSummary | null>(null);
   const [finalLessonMetrics, setFinalLessonMetrics] = useState<TypingMetricResult | null>(null);
   const [reward, setReward] = useState<PrototypeReward | null>(null);
@@ -241,8 +243,10 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
   const handleEscape = useCallback(() => {
     if (mode === 'typing') {
       handleCancelTyping();
+    } else if (!showModal && !showIntroModal) {
+      setPauseOpen((open) => !open);
     }
-  }, [handleCancelTyping, mode]);
+  }, [handleCancelTyping, mode, showIntroModal, showModal]);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -299,7 +303,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
     };
   }, [activeStageIndex, isNearGate, mode, sessionState.completedCount, stageStates, startStageTypingSession, typingPlan.units]);
 
-  const isAnyModalOpen = showModal || showIntroModal;
+  const isAnyModalOpen = showModal || showIntroModal || pauseOpen;
 
   const movement = usePlayerControls(
     mode,
@@ -798,7 +802,7 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       </ThreeGameCanvas>
 
       {/* HTML Overlays */}
-      {(mode === 'exploration' || mode === 'completed') && !showModal && (
+      {(mode === 'exploration' || mode === 'completed') && !showModal && !pauseOpen && (
         <ExplorationHud
           isNearGate={isNearGate}
           gateStatus={activeStageStatus}
@@ -863,6 +867,12 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           lessonTitleEn={lesson.labelEn}
           stages={stages}
         />
+      )}
+      {(mode === 'exploration' || mode === 'completed') && !showIntroModal && !showModal && (
+        <>
+          {!pauseOpen && <button type="button" data-testid="three-pause-button" onClick={() => setPauseOpen(true)} className="absolute bottom-4 right-4 z-30 rounded-xl border border-amber-300/60 bg-slate-900/90 px-4 py-2 font-bold text-white">☰ Menu</button>}
+          {pauseOpen && <GamePauseMenu onResume={() => setPauseOpen(false)} />}
+        </>
       )}
     </div>
   );

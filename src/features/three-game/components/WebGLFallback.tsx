@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 type WebGLFallbackProps = {
   message?: string;
@@ -7,8 +7,6 @@ type WebGLFallbackProps = {
 
 export default function WebGLFallback({ message }: WebGLFallbackProps) {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const lessonQuery = new URLSearchParams({ world: params.get('world') ?? '1', level: params.get('level') ?? '1' });
 
   return (
     <div
@@ -38,14 +36,11 @@ export default function WebGLFallback({ message }: WebGLFallbackProps) {
         )}
 
         <div className="mt-6 flex flex-col gap-3">
-          <button
-            type="button"
-            data-testid="three-fallback-lesson-btn"
-            onClick={() => navigate(`/lesson?${lessonQuery}`)}
-            className="flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-3 font-bold text-slate-950 transition hover:bg-amber-400 active:scale-95"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            បន្តរៀនវាយអក្សរ 2D (Play 2D Game)
+          <p className="text-sm leading-relaxed text-slate-200">
+            Use a current browser with WebGL2 enabled, turn on hardware acceleration, and update your graphics driver. Then reload the game.
+          </p>
+          <button type="button" onClick={() => window.location.reload()} className="rounded-xl bg-amber-500 px-5 py-3 font-bold text-slate-950 hover:bg-amber-400">
+            Retry 3D
           </button>
           <button
             type="button"
@@ -53,7 +48,7 @@ export default function WebGLFallback({ message }: WebGLFallbackProps) {
             onClick={() => navigate('/map')}
             className="rounded-xl border border-slate-600 bg-slate-800/80 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-700"
           >
-            ត្រឡប់ទៅផែនទី (Back to Map)
+            <ArrowLeft className="inline h-4 w-4" /> Back to Map
           </button>
         </div>
       </div>

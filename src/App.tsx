@@ -150,6 +150,7 @@ export default function App() {
             <Route path="/typing-practice" element={<PublicInfoPage />} />
             <Route path="/3d-prototype" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
             <Route path="/three-game" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
+            <Route path="/game" element={<ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </RouteErrorBoundary>
