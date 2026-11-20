@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef, type MutableRefObject } from 'react';
+import { useMemo, useRef, useEffect, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import { usePrioritizedGltfClone } from '../hooks/useGltfAsset';
 import type { MovementInput } from '../hooks/usePlayerControls';
@@ -12,6 +12,7 @@ import { getLessonExperienceConfig, isCustomExperienceSupported } from '../confi
 import type { AdventureNodeId } from '../../../data/adventureWorlds';
 import type { GameMode, GateStatus, Position3D } from '../types';
 import { gameAudio } from '../../../lib/audio/gameAudio';
+import { getProfileSkin } from '../../../data/profileSkins';
 
 type CharacterProps = {
   positionRef: MutableRefObject<Position3D>;
@@ -25,6 +26,8 @@ type CharacterProps = {
   incorrectCount?: number;
   onNearGateChange: (isNear: boolean) => void;
   lessonId?: AdventureNodeId;
+  skinStyleId?: string;
+  avatarId?: string;
 };
 
 const MOVE_SPEED = 5.8;
@@ -92,7 +95,9 @@ export default function Character({
   incorrectCount = 0,
   onNearGateChange,
   lessonId,
+  skinStyleId,
 }: CharacterProps) {
+  const skin = useMemo(() => getProfileSkin(skinStyleId), [skinStyleId]);
   const groupRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Group>(null);
   const chestRef = useRef<THREE.Group>(null);
@@ -173,6 +178,27 @@ export default function Character({
       rightLeg: preparePart(rightLeg),
     };
   }, [glbScene, rigObject]);
+
+  // Apply cosmetics and skin palette across model materials
+  useEffect(() => {
+    if (!glbScene) return;
+    glbScene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh && (child as THREE.Mesh).material) {
+        const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
+        if (!mat || !mat.color) return;
+        const name = child.name.toLowerCase();
+        if (name.includes('cape') || name.includes('sash')) {
+          mat.color.set(skin.secondaryColor);
+        } else if (name.includes('chest') || name.includes('shirt') || name.includes('tunic')) {
+          mat.color.set(skin.primaryColor);
+        } else if (name.includes('waist') || name.includes('sampot') || name.includes('pants')) {
+          mat.color.set(skin.secondaryColor);
+        } else if (name.includes('gold') || name.includes('accent') || name.includes('ornament')) {
+          mat.color.set(skin.accentColor);
+        }
+      }
+    });
+  }, [glbScene, skin]);
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
@@ -488,6 +514,41 @@ export default function Character({
         return;
       }
 
+      // Airborne jump / fall states
+      const isAirborne = curY > 0.4 || Boolean(movement.jump);
+      if (isAirborne) {
+        const vY = movement.jump ? 5.0 : -3.0;
+        if (vY > 0.3) {
+          // Jump ascent: tuck hips slightly, lift arms, bend knees
+          bones.hips.position.set(baseHipsX, baseHipsY + 0.1, baseHipsZ);
+          applyRelativeBoneRotation(bones.hips, restQuats.get('Hips'), 0.08, 0, 0);
+          applyRelativeBoneRotation(bones.upperArmL, restQuats.get('UpperArm_L'), -1.2, 0, 0.25);
+          applyRelativeBoneRotation(bones.upperArmR, restQuats.get('UpperArm_R'), -1.2, 0, -0.25);
+          applyRelativeBoneRotation(bones.forearmL, restQuats.get('Forearm_L'), -0.4, 0, 0);
+          applyRelativeBoneRotation(bones.forearmR, restQuats.get('Forearm_R'), -0.4, 0, 0);
+          applyRelativeBoneRotation(bones.upperLegL, restQuats.get('UpperLeg_L'), -0.4, 0, 0);
+          applyRelativeBoneRotation(bones.lowerLegL, restQuats.get('LowerLeg_L'), 0.6, 0, 0);
+          applyRelativeBoneRotation(bones.upperLegR, restQuats.get('UpperLeg_R'), -0.3, 0, 0);
+          applyRelativeBoneRotation(bones.lowerLegR, restQuats.get('LowerLeg_R'), 0.5, 0, 0);
+          applyRelativeBoneRotation(bones.cape01, restQuats.get('Cape_01'), 0.45, 0, 0);
+          applyRelativeBoneRotation(bones.cape02, restQuats.get('Cape_02'), 0.75, 0, 0);
+          return;
+        } else if (vY < -0.3) {
+          // Fall descent: spread arms for wind balance, extend legs
+          bones.hips.position.set(baseHipsX, baseHipsY, baseHipsZ);
+          applyRelativeBoneRotation(bones.hips, restQuats.get('Hips'), -0.05, 0, 0);
+          applyRelativeBoneRotation(bones.upperArmL, restQuats.get('UpperArm_L'), -0.4, 0, 0.6);
+          applyRelativeBoneRotation(bones.upperArmR, restQuats.get('UpperArm_R'), -0.4, 0, -0.6);
+          applyRelativeBoneRotation(bones.upperLegL, restQuats.get('UpperLeg_L'), 0.1, 0, 0);
+          applyRelativeBoneRotation(bones.lowerLegL, restQuats.get('LowerLeg_L'), 0.15, 0, 0);
+          applyRelativeBoneRotation(bones.upperLegR, restQuats.get('UpperLeg_R'), 0.1, 0, 0);
+          applyRelativeBoneRotation(bones.lowerLegR, restQuats.get('LowerLeg_R'), 0.15, 0, 0);
+          applyRelativeBoneRotation(bones.cape01, restQuats.get('Cape_01'), 0.35, 0, 0);
+          applyRelativeBoneRotation(bones.cape02, restQuats.get('Cape_02'), 0.55, 0, 0);
+          return;
+        }
+      }
+
       // Idle & Locomotion walk cycle
       const idleBreath = Math.sin(idleTime) * 0.022;
       const idleBob = Math.sin(idleTime * 0.9) * 0.018;
@@ -705,9 +766,9 @@ export default function Character({
       <mesh ref={auraRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.026, 0]}>
         <ringGeometry args={[0.46, 0.56, 28]} />
         <meshBasicMaterial
-          color={mode === 'typing' ? '#38BDF8' : '#FBBF24'}
+          color={mode === 'typing' ? '#38BDF8' : skin.accentColor}
           transparent
-          opacity={mode === 'typing' ? 0.65 : 0.32}
+          opacity={mode === 'typing' ? 0.65 : 0.45}
         />
       </mesh>
       {mode === 'typing' && (
@@ -738,11 +799,11 @@ export default function Character({
               <group position={[0, -0.09, 0]}>
                 <mesh castShadow receiveShadow position={[0, 0.79, 0]}>
                   <cylinderGeometry args={[0.24, 0.27, 0.34, 16]} />
-                  <meshStandardMaterial color="#9A4212" roughness={0.68} />
+                  <meshStandardMaterial color={skin.secondaryColor} roughness={0.68} />
                 </mesh>
                 <mesh castShadow position={[0, 0.91, 0]}>
                   <cylinderGeometry args={[0.25, 0.25, 0.08, 16]} />
-                  <meshStandardMaterial color="#F59E0B" roughness={0.28} metalness={0.65} />
+                  <meshStandardMaterial color={skin.accentColor} roughness={0.28} metalness={0.65} />
                 </mesh>
               </group>
             )}
@@ -756,13 +817,13 @@ export default function Character({
               <group>
                 <mesh castShadow receiveShadow position={[0, 0.04, 0]}>
                   <cylinderGeometry args={[0.21, 0.26, 0.5, 16]} />
-                  <meshStandardMaterial color="#0F766E" roughness={0.58} />
+                  <meshStandardMaterial color={skin.primaryColor} roughness={0.58} />
                 </mesh>
                 <mesh castShadow position={[0, 0.09, 0.22]} rotation={[0, 0, Math.PI / 4]}>
                   <boxGeometry args={[0.12, 0.12, 0.05]} />
                   <meshStandardMaterial
-                    color="#38BDF8"
-                    emissive="#0284C7"
+                    color={skin.accentColor}
+                    emissive={skin.secondaryColor}
                     emissiveIntensity={1.2}
                     roughness={0.15}
                   />
@@ -777,7 +838,7 @@ export default function Character({
               ) : (
                 <mesh castShadow position={[0, -0.26, -0.06]} rotation={[0.18, 0, 0]}>
                   <boxGeometry args={[0.48, 0.58, 0.04]} />
-                  <meshStandardMaterial color="#0B534E" roughness={0.62} />
+                  <meshStandardMaterial color={skin.secondaryColor} roughness={0.62} />
                 </mesh>
               )}
             </group>

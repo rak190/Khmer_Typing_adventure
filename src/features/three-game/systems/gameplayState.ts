@@ -54,6 +54,7 @@ export const EMPTY_MOVEMENT: MovementInput = Object.freeze({
   left: false,
   right: false,
   sprint: false,
+  jump: false,
 });
 
 const MOVEMENT_KEY_CODES = new Set([
@@ -67,6 +68,7 @@ const MOVEMENT_KEY_CODES = new Set([
   'ArrowRight',
   'ShiftLeft',
   'ShiftRight',
+  'Space',
 ]);
 
 export function isMovementKeyCode(code: string): boolean {
@@ -937,7 +939,9 @@ function movementEquals(a: MovementInput, b: MovementInput): boolean {
     a.forward === b.forward &&
     a.backward === b.backward &&
     a.left === b.left &&
-    a.right === b.right && a.sprint === b.sprint
+    a.right === b.right &&
+    a.sprint === b.sprint &&
+    Boolean(a.jump) === Boolean(b.jump)
   );
 }
 
@@ -959,6 +963,7 @@ export function createPlayerControlStore(initialCanMove = true): PlayerControlSt
           left: heldKeys.has('KeyA') || heldKeys.has('ArrowLeft'),
           right: heldKeys.has('KeyD') || heldKeys.has('ArrowRight'),
           sprint: heldKeys.has('ShiftLeft') || heldKeys.has('ShiftRight'),
+          jump: heldKeys.has('Space'),
         };
 
     if (!movementEquals(snapshot, nextSnapshot)) {

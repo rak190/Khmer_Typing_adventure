@@ -1,3 +1,11 @@
+import { USER_PROFILE_EVENT } from '../lib/userProfile';
+import { loadCachedGameProfile } from '../services/profileService';
+import WorldPhysics from '../features/three-game/physics/WorldPhysics';
+import Checkpoints, { WORLD_CHECKPOINTS } from '../features/three-game/physics/Checkpoints';
+import Hazards from '../features/three-game/physics/Hazards';
+import WorldStreamingManager, { getPlayerActiveRegion } from '../features/three-game/world/WorldStreamingManager';
+import InWorldServicesModal, { type ServiceTab } from '../features/three-game/services/InWorldServicesModal';
+import { isCheckpointDiscovered } from '../lib/explorationRecord';
 import CompletionSaveStatus from '../components/lesson/CompletionSaveStatus';
 import { auth } from '../lib/firebase';
 import { submitLessonAttempt, isStudentOnlineSaveAvailable } from '../lib/lessonCompletion';
@@ -5,7 +13,7 @@ import { prepareBossAttempt } from '../lib/economy';
 import { CURRICULUM_VERSION } from '../lib/completionContract';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { buildAdventureWorlds } from '../data/adventureWorlds';
+import { buildAdventureWorlds, getLessonState } from '../data/adventureWorlds';
 import { LESSON_PROGRESS_EVENT, saveMockLessonProgress, type LessonProgressRecord } from '../data/mockData';
 import { getThreeLessonAccess } from '../data/threeLessonAvailability';
 import {
@@ -16,6 +24,7 @@ import ExplorationHud from '../features/three-game/components/ExplorationHud';
 import TypingOverlay from '../features/three-game/components/TypingOverlay';
 import VictoryModal from '../features/three-game/components/VictoryModal';
 import LessonIntroModal from '../features/three-game/components/LessonIntroModal';
+import GamePauseMenu from '../features/three-game/components/GamePauseMenu';
 import { usePlayerControls } from '../features/three-game/hooks/usePlayerControls';
 import AncientGateScene from '../features/three-game/scenes/AncientGateScene';
 import { gameAudio } from '../lib/audio/gameAudio';
@@ -70,8 +79,8 @@ export default function ThreePrototypePage() {
   }, []);
   // Keep the original bare prototype URL only as a development testing entry.
   const params =
-    import.meta.env.DEV && location.pathname === '/3d-prototype' && !location.search
-      ? new URLSearchParams('world=1&level=1')
+    (location.pathname === '/game' || (import.meta.env.DEV && location.pathname === '/3d-prototype')) && !location.search
+      ? new URLSearchParams(`world=1&level=${worlds[0].lessons.find((lesson) => getLessonState(worlds[0], lesson) === 'current')?.id ?? 1}`)
       : searchParams;
   const access = getThreeLessonAccess(params, worlds);
   if (access.status !== 'ready') {
@@ -114,6 +123,7 @@ export default function ThreePrototypePage() {
 }
 
 function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig }) {
+  const [searchParams] = useSearchParams();
   const { worldId, lesson, stages, lessonSpeedTargetCpm, isFoundationLesson } = lessonConfig;
   const isBossEncounter = lesson.id === 'boss';
   const lessonRewardKey = isFoundationLesson ? FOUNDATION_LESSON_ID : lesson.id;
@@ -172,6 +182,13 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
   const persistenceAdapterRef = useRef(createInMemoryLessonPersistenceAdapter());
   const keyPracticeTrackerRef = useRef(createKeyPracticeTracker());
 
+  const [profile, setProfile] = useState(() => loadCachedGameProfile());
+  useEffect(() => {
+    const refreshProfile = () => setProfile(loadCachedGameProfile());
+    window.addEventListener(USER_PROFILE_EVENT, refreshProfile);
+    return () => window.removeEventListener(USER_PROFILE_EVENT, refreshProfile);
+  }, []);
+
   const [typingPlan, setTypingPlan] = useState(() =>
     createStageTypingPlan(stages[0], lesson.focusKeys),
   );
@@ -181,6 +198,30 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
   );
   const [showModal, setShowModal] = useState(false);
   const [showIntroModal, setShowIntroModal] = useState(true);
+  const [pauseOpen, setPauseOpen] = useState(false);
+  const [activeServiceModal, setActiveServiceModal] = useState<ServiceTab | null>(() => {
+    const p = searchParams.get('panel') as ServiceTab | null;
+    return p && ['sanctuary', 'map', 'observatory', 'market', 'wardrobe', 'settings'].includes(p) ? p : null;
+  });
+  const [teleportFade, setTeleportFade] = useState(false);
+  const [activeRegionName, setActiveRegionName] = useState(() =>
+    getPlayerActiveRegion(initialPlayerPos),
+  );
+
+  const handleFastTravel = useCallback((pos: Position3D) => {
+    setTeleportFade(true);
+    playerPositionRef.current = [pos[0], pos[1], pos[2]];
+    setActiveRegionName(getPlayerActiveRegion(pos));
+    setTimeout(() => setTeleportFade(false), 300);
+  }, []);
+
+  const handleHazardTrigger = useCallback(() => {
+    const lastCp = WORLD_CHECKPOINTS.find((cp) => isCheckpointDiscovered(cp.id)) ?? WORLD_CHECKPOINTS[0];
+    setTeleportFade(true);
+    playerPositionRef.current = [...lastCp.position];
+    setTimeout(() => setTeleportFade(false), 250);
+  }, []);
+
   const [stageSummary, setStageSummary] = useState<StageCompletionSummary | null>(null);
   const [finalLessonMetrics, setFinalLessonMetrics] = useState<TypingMetricResult | null>(null);
   const [reward, setReward] = useState<PrototypeReward | null>(null);
@@ -239,10 +280,14 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
   }, [activeStageIndex, startStageTypingSession]);
 
   const handleEscape = useCallback(() => {
-    if (mode === 'typing') {
+    if (activeServiceModal) {
+      setActiveServiceModal(null);
+    } else if (mode === 'typing') {
       handleCancelTyping();
+    } else if (!showModal && !showIntroModal) {
+      setPauseOpen((open) => !open);
     }
-  }, [handleCancelTyping, mode]);
+  }, [activeServiceModal, handleCancelTyping, mode, showIntroModal, showModal]);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -263,7 +308,23 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       };
     };
     win.__threeGetPlayerPos = () => playerPositionRef.current;
-    win.__threeSetPlayerPos = (x: number, y: number, z: number) => { playerPositionRef.current = [x, y, z]; };
+    win.__threeSetPlayerPos = (x: number, y: number, z: number) => {
+      playerPositionRef.current = [x, y, z];
+      let near = false;
+      if (isBossEncounter) {
+        near = true;
+      } else if (isCustomLesson && expConfig) {
+        const station = expConfig.stations[activeStageIndex];
+        if (station) {
+          near =
+            Math.hypot(x - station.position[0], z - station.position[2]) <=
+            (station.interactionRadius ?? 3.5);
+        }
+      } else {
+        near = isPositionNearStage(x, z, activeStageIndex, stages.length);
+      }
+      setIsNearGate(near);
+    };
     win.__threeUnlockAllStages = () => {
       setStageStates((prev) => prev.map((s) => ({ ...s, status: 'open', passed: true })));
       setGateState({ status: 'open', openProgress: 1.0 });
@@ -297,9 +358,21 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       delete win.__threeStartStage;
       delete win.__threeGetLessonDebug;
     };
-  }, [activeStageIndex, isNearGate, mode, sessionState.completedCount, stageStates, startStageTypingSession, typingPlan.units]);
+  }, [
+    activeStageIndex,
+    expConfig,
+    isBossEncounter,
+    isCustomLesson,
+    isNearGate,
+    mode,
+    sessionState.completedCount,
+    stageStates,
+    stages.length,
+    startStageTypingSession,
+    typingPlan.units,
+  ]);
 
-  const isAnyModalOpen = showModal || showIntroModal;
+  const isAnyModalOpen = showModal || showIntroModal || pauseOpen || Boolean(activeServiceModal);
 
   const movement = usePlayerControls(
     mode,
@@ -776,29 +849,68 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       {/* 3D R3F Canvas Viewport */}
       <CompletionSaveStatus message={saveMessage} status={saveStatus} />
       <ThreeGameCanvas>
-        <AncientGateScene
-          mode={mode}
-          playerPositionRef={playerPositionRef}
-          gateState={gateState}
-          stageStatuses={stageStatuses}
-          activeStageIndex={activeStageIndex}
-          movement={movement}
-          isModalOpen={isAnyModalOpen}
-          streak={sessionState.streak}
-          completedCount={sessionState.completedCount}
-          incorrectCount={sessionState.incorrectCount}
-          onNearGateChange={setIsNearGate}
-          onGateOpeningFinished={handleGateOpeningFinished}
-          onStageOpeningFinished={handleStageOpeningFinished}
-          onInteract={handleStartTyping}
-          lessonId={lesson.id}
-          stageId={activeStage?.id}
-          totalStageUnits={typingPlan.units.length}
-        />
+        <WorldPhysics>
+          <WorldStreamingManager
+            playerPositionRef={playerPositionRef}
+            onOpenService={(srv) => setActiveServiceModal(srv)}
+            onEnterLesson={(wId, lId) => {
+              window.location.search = `?world=${wId}&level=${lId}`;
+            }}
+            unlockedLevels={{ 1: 8, 2: 8, 3: 8, 4: 8, 5: 8, 6: 'boss' }}
+          />
+          <Checkpoints
+            playerPositionRef={playerPositionRef}
+            onCheckpointTrigger={() => {
+              gameAudio.playMechanismActivation();
+            }}
+          />
+          <Hazards
+            playerPositionRef={playerPositionRef}
+            onHazardTrigger={handleHazardTrigger}
+          />
+          <AncientGateScene
+            mode={mode}
+            playerPositionRef={playerPositionRef}
+            gateState={gateState}
+            stageStatuses={stageStatuses}
+            activeStageIndex={activeStageIndex}
+            movement={movement}
+            isModalOpen={isAnyModalOpen}
+            streak={sessionState.streak}
+            completedCount={sessionState.completedCount}
+            incorrectCount={sessionState.incorrectCount}
+            onNearGateChange={setIsNearGate}
+            onGateOpeningFinished={handleGateOpeningFinished}
+            onStageOpeningFinished={handleStageOpeningFinished}
+            onInteract={handleStartTyping}
+            lessonId={lesson.id}
+            stageId={activeStage?.id}
+            totalStageUnits={typingPlan.units.length}
+            skinStyleId={profile.equippedSkinId}
+            avatarId={profile.equippedAvatarId}
+            respawnPosition={[0, 0, -8]}
+            onHazardReset={handleHazardTrigger}
+          />
+        </WorldPhysics>
       </ThreeGameCanvas>
 
       {/* HTML Overlays */}
-      {(mode === 'exploration' || mode === 'completed') && !showModal && (
+      {teleportFade && (
+        <div className="absolute inset-0 z-[100] bg-slate-950 pointer-events-none transition-opacity duration-300" />
+      )}
+      {activeServiceModal && (
+        <InWorldServicesModal
+          initialTab={activeServiceModal}
+          onClose={() => setActiveServiceModal(null)}
+          onSelectLesson={(wId, lId) => {
+            setActiveServiceModal(null);
+            window.location.search = `?world=${wId}&level=${lId}`;
+          }}
+          onFastTravel={handleFastTravel}
+          currentRegionName={activeRegionName}
+        />
+      )}
+      {(mode === 'exploration' || mode === 'completed') && !showModal && !pauseOpen && (
         <ExplorationHud
           isNearGate={isNearGate}
           gateStatus={activeStageStatus}
@@ -863,6 +975,30 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
           lessonTitleEn={lesson.labelEn}
           stages={stages}
         />
+      )}
+      {(mode === 'exploration' || mode === 'completed') && !showIntroModal && !showModal && (
+        <>
+          {!pauseOpen && !activeServiceModal && (
+            <button
+              type="button"
+              data-testid="three-pause-button"
+              onClick={() => setPauseOpen(true)}
+              className="absolute bottom-4 right-4 z-30 rounded-xl border border-amber-300/60 bg-slate-900/90 px-4 py-2 font-bold text-white shadow-lg hover:border-amber-300"
+            >
+              ☰ Menu
+            </button>
+          )}
+          {pauseOpen && (
+            <GamePauseMenu
+              onResume={() => setPauseOpen(false)}
+              onOpenService={(srv) => {
+                setPauseOpen(false);
+                setActiveServiceModal(srv);
+              }}
+              onFastTravel={handleFastTravel}
+            />
+          )}
+        </>
       )}
     </div>
   );

@@ -7,13 +7,7 @@ import { ensureUserEconomy, subscribeUserEconomy } from './lib/economy';
 import { subscribeStudentProgressFromFirebase } from './lib/studentProgress';
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
-const HomePage = lazy(() => import('./pages/HomePage'));
 const WorldMapPage = lazy(() => import('./pages/WorldMapPage'));
-const LessonPage = lazy(() => import('./pages/LessonPage'));
-const BattlePage = lazy(() => import('./pages/BattlePage'));
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
-const ShopPage = lazy(() => import('./pages/ShopPage'));
-const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const DesignSystemPage = lazy(() => import('./pages/DesignSystemPage'));
 const PublicInfoPage = lazy(() => import('./pages/PublicInfoPage'));
 const ThreePrototypePage = lazy(() => import('./pages/ThreePrototypePage'));
@@ -38,6 +32,28 @@ function ProtectedRoute({ session, children }: { session: AppSession | null; chi
   }
 
   return children;
+}
+
+function LegacyRedirect({ to = '/game', panel }: { to?: string; panel?: string }) {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  if (panel && !searchParams.has('panel')) {
+    searchParams.set('panel', panel);
+  }
+  const queryString = searchParams.toString();
+  return <Navigate to={queryString ? `${to}?${queryString}` : to} replace />;
+}
+
+function LegacyBattleRedirect() {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  if (!searchParams.has('level')) {
+    searchParams.set('level', 'boss');
+  }
+  if (!searchParams.has('world')) {
+    searchParams.set('world', '1');
+  }
+  return <Navigate to={`/game?${searchParams.toString()}`} replace />;
 }
 
 class RouteErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; message: string }> {
@@ -79,7 +95,13 @@ export default function App() {
   const location = useLocation();
   const [session, setSession] = useState<AppSession | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
-  const isInternalRoute = internalRoutesEnabled && (location.pathname === '/design-system' || location.pathname === '/3d-prototype' || location.pathname === '/three-game');
+  const isInternalRoute = internalRoutesEnabled && (
+    location.pathname === '/design-system' ||
+    location.pathname === '/3d-prototype' ||
+    location.pathname === '/three-game' ||
+    location.pathname === '/game' ||
+    location.pathname === '/map'
+  );
   const isPublicRoute = publicRoutes.has(location.pathname) || isInternalRoute;
 
   useEffect(() => {
@@ -130,13 +152,16 @@ export default function App() {
       >
         <RouteErrorBoundary>
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={session ? <HomePage /> : <LoginPage />} />
+            <Route path="/" element={session ? <Navigate to="/game" replace /> : <LoginPage />} />
+            <Route path="/game" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
+            <Route path="/three-game" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
+            <Route path="/3d-prototype" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
             <Route path="/map" element={internalRoutesEnabled ? <WorldMapPage /> : <ProtectedRoute session={session}><WorldMapPage /></ProtectedRoute>} />
-            <Route path="/lesson" element={<ProtectedRoute session={session}><LessonPage /></ProtectedRoute>} />
-            <Route path="/battle" element={<ProtectedRoute session={session}><BattlePage /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute session={session}><DashboardPage /></ProtectedRoute>} />
-            <Route path="/shop" element={<ProtectedRoute session={session}><ShopPage /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute session={session}><ProfilePage /></ProtectedRoute>} />
+            <Route path="/lesson" element={<ProtectedRoute session={session}><LegacyRedirect to="/game" /></ProtectedRoute>} />
+            <Route path="/battle" element={<ProtectedRoute session={session}><LegacyBattleRedirect /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute session={session}><LegacyRedirect panel="observatory" /></ProtectedRoute>} />
+            <Route path="/shop" element={<ProtectedRoute session={session}><LegacyRedirect panel="market" /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute session={session}><LegacyRedirect panel="wardrobe" /></ProtectedRoute>} />
             {internalRoutesEnabled && <Route path="/design-system" element={<DesignSystemPage />} />}
             <Route path="/about" element={<PublicInfoPage />} />
             <Route path="/contact" element={<PublicInfoPage />} />
@@ -148,8 +173,6 @@ export default function App() {
             <Route path="/lessons" element={<PublicInfoPage />} />
             <Route path="/khmer-keyboard-guide" element={<PublicInfoPage />} />
             <Route path="/typing-practice" element={<PublicInfoPage />} />
-            <Route path="/3d-prototype" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
-            <Route path="/three-game" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </RouteErrorBoundary>

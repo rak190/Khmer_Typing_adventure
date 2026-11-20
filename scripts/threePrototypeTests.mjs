@@ -186,7 +186,7 @@ try {
   controlStore.setCanMove(false);
   assert.deepEqual(
     controlStore.getSnapshot(),
-    { forward: false, backward: false, left: false, right: false, sprint: false },
+    { forward: false, backward: false, left: false, right: false, sprint: false, jump: false },
     'Entering typing mode must immediately clear held movement keys',
   );
 
@@ -195,7 +195,7 @@ try {
   assert.equal(controlStore.handleKeyDown('ArrowUp'), false);
   assert.deepEqual(
     controlStore.getSnapshot(),
-    { forward: false, backward: false, left: false, right: false, sprint: false },
+    { forward: false, backward: false, left: false, right: false, sprint: false, jump: false },
     'Movement keys pressed during typing must be ignored',
   );
 
@@ -203,7 +203,7 @@ try {
   controlStore.setCanMove(true);
   assert.deepEqual(
     controlStore.getSnapshot(),
-    { forward: false, backward: false, left: false, right: false, sprint: false },
+    { forward: false, backward: false, left: false, right: false, sprint: false, jump: false },
     'Previously held keys must remain cleared after returning to exploration',
   );
 
@@ -212,6 +212,12 @@ try {
   assert.equal(controlStore.getSnapshot().sprint, true, 'Holding ShiftLeft activates sprint');
   controlStore.handleKeyUp('ShiftLeft');
   assert.equal(controlStore.getSnapshot().sprint, false, 'Releasing ShiftLeft deactivates sprint');
+
+  // Jump key (Space) handling
+  controlStore.handleKeyDown('Space');
+  assert.equal(controlStore.getSnapshot().jump, true, 'Pressing Space activates jump');
+  controlStore.handleKeyUp('Space');
+  assert.equal(controlStore.getSnapshot().jump, false, 'Releasing Space deactivates jump');
 
   // 4.1 Movement direction mapping, camera projection, diagonal normalization, and rotation
   // Camera stands at negative Z looking along +Z toward the gate.
@@ -508,14 +514,14 @@ try {
     ...[1, 2, 3, 4, 5, 6, 7, 8].map(id => ({ worldId: 1, lessonId: id, score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 100, coinsEarned: 10, bestStreak: 10, passed: true })),
     { worldId: 1, lessonId: 'boss', score: 100, accuracy: 100, wpm: 10, stars: 3, xpEarned: 200, coinsEarned: 30, bestStreak: 10, passed: true },
   ]);
-  // World 2 Lesson 1 is unlocked in 2D, but unsupported in 3D
-  assert.equal(access('world=2&level=1', completedWorld1).status, 'unsupported');
+  // World 2 Lesson 1 is unlocked and supported in continuous 3D world
+  assert.equal(access('world=2&level=1', completedWorld1).status, 'ready');
 
   for (const world of curriculum.lessonCurriculum) {
     for (const lesson of world.levels) {
       assert.equal(
         availability.isThreeLessonSupported(world.id, lesson.id),
-        world.id === 1 && [1, 2, 3, 4, 5, 6, 7, 8, 'boss'].includes(lesson.id)
+        true
       );
     }
   }

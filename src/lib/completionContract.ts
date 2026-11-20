@@ -7,7 +7,10 @@ import type { FoundationPracticeSummary } from '../data/touchTypingFoundations';
 export const CURRICULUM_VERSION = 'khmer-touch-typing-v2';
 export const LEGACY_CURRICULUM_VERSION = 'khmer-first-5.5-v1';
 export const SUPPORTED_CURRICULUM_VERSIONS = [CURRICULUM_VERSION, LEGACY_CURRICULUM_VERSION] as const;
-export const ALLOWED_THREE_LESSONS = ['1:1', '1:2', '1:3', '1:4', '1:5', '1:6', '1:7', '1:8', '1:boss'] as const;
+export const ALLOWED_THREE_LESSONS = Object.freeze(
+  lessonCurriculum.flatMap((w) => w.levels.map((l) => `${w.id}:${l.id}`)),
+) as readonly string[];
+
 export type AttemptMetrics = { accuracy: number; cpm: number; score: number; stars: number; mistakes: number; backspaces: number; elapsedSeconds: number; passed: boolean };
 export type LessonAttempt = {
   attemptId: string;
@@ -20,6 +23,15 @@ export type LessonAttempt = {
   stages: Array<{ id: string; accuracy: number; completed: boolean }>;
   foundation?: FoundationPracticeSummary;
   weakKeys?: Array<{ value: string; mistakes: number; backspaces: number; category: string }>;
+};
+
+export type ExplorationRecordPayload = {
+  version: number;
+  checkpointIds: string[];
+  fastTravelPointIds: string[];
+  collectibleIds: string[];
+  lastVisitedRegion?: string;
+  clientTimestamp?: string;
 };
 
 /** Map aliases explicitly: structured IDs are historical, sometimes many-to-one. */

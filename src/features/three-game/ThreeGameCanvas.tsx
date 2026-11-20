@@ -3,7 +3,7 @@ import { Component, Suspense, useEffect, useState, type ReactNode } from 'react'
 import * as THREE from 'three';
 import WebGLFallback from './components/WebGLFallback';
 import { useWebGLSupport } from './hooks/useWebGLSupport';
-import { getGraphicsQuality } from './config/graphicsQuality';
+import { getActiveGraphicsProfile, type GraphicsProfile } from './config/graphicsQuality';
 
 type ThreeGameCanvasProps = {
   children: ReactNode;
@@ -31,14 +31,22 @@ class CanvasErrorBoundary extends Component<
 }
 
 export default function ThreeGameCanvas({ children }: ThreeGameCanvasProps) {
-  const graphicsQuality = getGraphicsQuality();
   const { isSupported, errorMessage } = useWebGLSupport();
   const [contextLostMessage, setContextLostMessage] = useState<string | undefined>(undefined);
   const [isBooting, setIsBooting] = useState(true);
+  const [profile, setProfile] = useState<GraphicsProfile>(getActiveGraphicsProfile);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setIsBooting(false), 250);
     return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    const handleProfileChange = () => {
+      setProfile(getActiveGraphicsProfile());
+    };
+    window.addEventListener('khmer:graphics-quality-change', handleProfileChange);
+    return () => window.removeEventListener('khmer:graphics-quality-change', handleProfileChange);
   }, []);
 
   if (contextLostMessage || (!isSupported && !isBooting)) {
@@ -49,38 +57,36 @@ export default function ThreeGameCanvas({ children }: ThreeGameCanvasProps) {
     <CanvasErrorBoundary>
       <div className="relative h-full w-full select-none overflow-hidden bg-gradient-to-b from-[#0284C7] via-[#38BDF8] to-[#FDE68A]">
         <Canvas
-          shadows={graphicsQuality !== 'low'}
-          camera={{ position: [0, 2.8, -6.5], fov: 56, near: 0.1, far: 160 }}
-          dpr={[1, graphicsQuality === 'low' ? 1 : graphicsQuality === 'high' ? 1.75 : 1.5]}
+          shadows={profile.shadows}
+          camera={{ position: [0, 3.2, -7.2], fov: 54, near: 0.1, far: profile.maxDrawDistance }}
+          dpr={[profile.dprMin, profile.dprMax]}
           gl={{
-            antialias: true,
+            antialias: profile.quality !== 'low',
             powerPreference: 'high-performance',
             stencil: false,
             depth: true,
           }}
           onCreated={({ gl }) => {
-            try {
-              gl.toneMapping = THREE.ACESFilmicToneMapping;
-              gl.toneMappingExposure = 1.15;
-              gl.outputColorSpace = THREE.SRGBColorSpace;
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMappingExposure = 1.15;
+            gl.outputColorSpace = THREE.SRGBColorSpace;
+            if (profile.shadows) {
               gl.shadowMap.enabled = true;
               gl.shadowMap.type = THREE.PCFSoftShadowMap;
-              if (import.meta.env.DEV) {
-                const debugWindow = window as typeof window & {
-                  __threeRenderStats?: () => { calls: number; triangles: number; points: number; lines: number };
-                };
-                debugWindow.__threeRenderStats = () => ({ ...gl.info.render });
-              }
-
-              const canvas = gl.domElement;
-              const handleContextLost = (event: Event) => {
-                event.preventDefault();
-                setContextLostMessage('WebGL graphics context was lost.');
-              };
-              canvas.addEventListener('webglcontextlost', handleContextLost, { once: true });
-            } catch {
-              setContextLostMessage('WebGL graphics context could not be initialized.');
             }
+            if (import.meta.env.DEV) {
+              const debugWindow = window as typeof window & {
+                __threeRenderStats?: () => { calls: number; triangles: number; points: number; lines: number };
+              };
+              debugWindow.__threeRenderStats = () => ({ ...gl.info.render });
+            }
+
+            const canvas = gl.domElement;
+            const handleContextLost = (event: Event) => {
+              event.preventDefault();
+              setContextLostMessage('WebGL graphics context was lost.');
+            };
+            canvas.addEventListener('webglcontextlost', handleContextLost, { once: true });
           }}
         >
           <Suspense fallback={null}>

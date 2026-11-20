@@ -185,9 +185,17 @@ try {
     // =========================================================================
     // WARMUP: INITIALIZE VITE DEV SERVER & PRE-COMPILED BUNDLES
     // =========================================================================
-    console.log('\n--- Warming up Vite dev server ---');
+    console.log('\n--- Warming up Vite dev server & verifying session ---');
+    await page.goto(BASE_URL, { timeout: 60000 });
+    const guestBtn = page.getByRole('button', { name: /ចូលជា Guest/i });
+    if (await guestBtn.isVisible().catch(() => false)) {
+      console.log('  -> Completing guest login for browser regression tests...');
+      await guestBtn.click();
+      await page.waitForTimeout(1000);
+    }
     await page.goto(`${BASE_URL}three-game?foundation=1`, { timeout: 60000 });
     await page.waitForSelector('canvas', { timeout: 30000 });
+    await page.waitForSelector('[data-testid="three-exploration-hud"]', { timeout: 15000 });
     await page.goto(`${BASE_URL}map`, { timeout: 60000 });
     await page.getByRole('button', { name: 'Level 1', exact: true }).waitFor({ timeout: 30000 });
     console.log('  ✓ Vite dev server warmed up.');
@@ -241,7 +249,10 @@ try {
       await page.evaluate(() => {
         window.__threeSetPlayerPos?.(3.2, 0, -1.0);
       });
-      await page.waitForTimeout(600);
+      await page.waitForFunction(() => {
+        const el = document.querySelector('[data-testid="three-in-world-waypoint"]');
+        return el && (el.textContent.includes('[E]') || el.textContent.includes('ចាប់ផ្តើម'));
+      }, { timeout: 15000 });
       const nearText = await waypoint.innerText();
       assert.ok(nearText.includes('[E]') || nearText.includes('ចាប់ផ្តើម'), 'Proximity interact cue should be active when near altar');
 

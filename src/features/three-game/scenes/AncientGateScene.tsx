@@ -1,6 +1,6 @@
 import { useMemo, type MutableRefObject } from 'react';
 import AncientStoneGate from '../components/AncientStoneGate';
-import Character from '../components/Character';
+import KinematicPlayer from '../physics/KinematicPlayer';
 import Environment from '../components/Environment';
 import InWorldWaypoint from '../components/InWorldWaypoint';
 import SpellProjectileSystem from '../components/SpellProjectileSystem';
@@ -41,6 +41,10 @@ type AncientGateSceneProps = {
   lessonId?: AdventureNodeId;
   stageId?: string;
   totalStageUnits?: number;
+  skinStyleId?: string;
+  avatarId?: string;
+  respawnPosition?: [number, number, number];
+  onHazardReset?: () => void;
 };
 
 export default function AncientGateScene({
@@ -61,6 +65,10 @@ export default function AncientGateScene({
   lessonId,
   stageId,
   totalStageUnits,
+  skinStyleId,
+  avatarId,
+  respawnPosition,
+  onHazardReset,
 }: AncientGateSceneProps) {
   const activeBarrierIndex = getStageBarrierIndex(activeStageIndex, stageStatuses.length);
   const firstBarrierUnlockStageIndex = stageStatuses.length === 5 ? 1 : 0;
@@ -102,8 +110,8 @@ export default function AncientGateScene({
         <World1SceneryAddon quality={graphicsQuality === 'high' ? 'full' : 'lite'} />
       )}
 
-      {/* Playable Hero Character with Cambodian Regalia, Sprint Locomotion & Spell Poses */}
-      <Character
+      {/* Playable Hero Character with Kinematic Controller, Cambodian Regalia, Locomotion & Spell Poses */}
+      <KinematicPlayer
         positionRef={playerPositionRef}
         movement={movement}
         mode={mode}
@@ -115,6 +123,10 @@ export default function AncientGateScene({
         incorrectCount={incorrectCount}
         onNearGateChange={onNearGateChange}
         lessonId={lessonId}
+        skinStyleId={skinStyleId}
+        avatarId={avatarId}
+        respawnPosition={respawnPosition}
+        onHazardReset={onHazardReset}
       />
 
       {/* 3D In-World Dynamic Waypoint & Beacon */}
