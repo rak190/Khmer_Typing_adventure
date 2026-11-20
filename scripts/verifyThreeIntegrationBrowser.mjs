@@ -105,6 +105,7 @@ try {
     let routeInfo = null;
     let fallbackInfo = null;
     let canvasInfo = null;
+    let mapInfo = null;
 
     try {
       currentUrl = page.url();
@@ -147,6 +148,16 @@ try {
     }
 
     try {
+      mapInfo = await page.evaluate(() => ({
+        lessonButtons: [...document.querySelectorAll('button[aria-label^="Level "]')].map((button) => button.getAttribute('aria-label')),
+        play3dPresent: Boolean(document.querySelector('[data-testid="map-play-3d"]')),
+        bodyText: document.body.innerText.slice(0, 500),
+      }));
+    } catch (e) {
+      mapInfo = { error: e.message };
+    }
+
+    try {
       await page.screenshot({ path: screenshotPath, fullPage: true });
     } catch (e) {
       console.warn(`Could not capture screenshot: ${e.message}`);
@@ -157,6 +168,7 @@ try {
     console.error(`Route Information:`, JSON.stringify(routeInfo, null, 2));
     console.error(`Canvas State:`, JSON.stringify(canvasInfo, null, 2));
     console.error(`Fallback State:`, JSON.stringify(fallbackInfo, null, 2));
+    console.error(`Map State:`, JSON.stringify(mapInfo, null, 2));
     if (failedRequests.length > 0) {
       console.error(`Failed / Errored Requests (${failedRequests.length}):`, JSON.stringify(failedRequests, null, 2));
     }
@@ -176,6 +188,8 @@ try {
     console.log('\n--- Warming up Vite dev server ---');
     await page.goto(`${BASE_URL}three-game?foundation=1`, { timeout: 60000 });
     await page.waitForSelector('canvas', { timeout: 30000 });
+    await page.goto(`${BASE_URL}map`, { timeout: 60000 });
+    await page.getByRole('button', { name: 'Level 1', exact: true }).waitFor({ timeout: 30000 });
     console.log('  ✓ Vite dev server warmed up.');
 
     // =========================================================================
@@ -277,8 +291,13 @@ try {
       const backBtn = await page.waitForSelector('[data-testid="three-back-to-map"]', { timeout: 10000 });
       await backBtn.click();
       await page.waitForURL(/\/map/u, { timeout: 10000 });
-      await page.waitForSelector('[data-testid="map-play-3d"]', { timeout: 10000 });
-      console.log('  ✓ Returned to World Map: 3D Play button confirmed active for World 1.');
+      await page.getByRole('button', { name: 'Level 1', exact: true }).click({ timeout: 30000 });
+      const play3d = page.locator('[data-testid="map-play-3d"]');
+      await play3d.waitFor({ timeout: 30000 });
+      await play3d.click();
+      await page.waitForURL(/\/three-game\?world=1&level=1/u, { timeout: 10000 });
+      await page.waitForSelector('[data-testid="three-exploration-hud"]', { timeout: 30000 });
+      console.log('  ✓ Returned to World Map and replayed World 1 Lesson 1 in 3D.');
     } catch (err) {
       await captureFailureDiagnostics('suite3-replay-save');
       throw err;
