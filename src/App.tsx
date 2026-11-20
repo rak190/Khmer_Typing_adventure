@@ -95,7 +95,13 @@ export default function App() {
   const location = useLocation();
   const [session, setSession] = useState<AppSession | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
-  const isInternalRoute = internalRoutesEnabled && (location.pathname === '/design-system' || location.pathname === '/3d-prototype' || location.pathname === '/three-game');
+  const isInternalRoute = internalRoutesEnabled && (
+    location.pathname === '/design-system' ||
+    location.pathname === '/3d-prototype' ||
+    location.pathname === '/three-game' ||
+    location.pathname === '/game' ||
+    location.pathname === '/map'
+  );
   const isPublicRoute = publicRoutes.has(location.pathname) || isInternalRoute;
 
   useEffect(() => {
@@ -147,9 +153,9 @@ export default function App() {
         <RouteErrorBoundary>
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={session ? <Navigate to="/game" replace /> : <LoginPage />} />
-            <Route path="/game" element={<ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
-            <Route path="/three-game" element={<ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
-            <Route path="/3d-prototype" element={<ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
+            <Route path="/game" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
+            <Route path="/three-game" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
+            <Route path="/3d-prototype" element={internalRoutesEnabled ? <ThreePrototypePage /> : <ProtectedRoute session={session}><ThreePrototypePage /></ProtectedRoute>} />
             <Route path="/map" element={internalRoutesEnabled ? <WorldMapPage /> : <ProtectedRoute session={session}><WorldMapPage /></ProtectedRoute>} />
             <Route path="/lesson" element={<ProtectedRoute session={session}><LegacyRedirect to="/game" /></ProtectedRoute>} />
             <Route path="/battle" element={<ProtectedRoute session={session}><LegacyBattleRedirect /></ProtectedRoute>} />

@@ -308,7 +308,23 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       };
     };
     win.__threeGetPlayerPos = () => playerPositionRef.current;
-    win.__threeSetPlayerPos = (x: number, y: number, z: number) => { playerPositionRef.current = [x, y, z]; };
+    win.__threeSetPlayerPos = (x: number, y: number, z: number) => {
+      playerPositionRef.current = [x, y, z];
+      let near = false;
+      if (isBossEncounter) {
+        near = true;
+      } else if (isCustomLesson && expConfig) {
+        const station = expConfig.stations[activeStageIndex];
+        if (station) {
+          near =
+            Math.hypot(x - station.position[0], z - station.position[2]) <=
+            (station.interactionRadius ?? 3.5);
+        }
+      } else {
+        near = isPositionNearStage(x, z, activeStageIndex, stages.length);
+      }
+      setIsNearGate(near);
+    };
     win.__threeUnlockAllStages = () => {
       setStageStates((prev) => prev.map((s) => ({ ...s, status: 'open', passed: true })));
       setGateState({ status: 'open', openProgress: 1.0 });
@@ -342,7 +358,19 @@ function ThreeLessonSession({ lessonConfig }: { lessonConfig: ThreeLessonConfig 
       delete win.__threeStartStage;
       delete win.__threeGetLessonDebug;
     };
-  }, [activeStageIndex, isNearGate, mode, sessionState.completedCount, stageStates, startStageTypingSession, typingPlan.units]);
+  }, [
+    activeStageIndex,
+    expConfig,
+    isBossEncounter,
+    isCustomLesson,
+    isNearGate,
+    mode,
+    sessionState.completedCount,
+    stageStates,
+    stages.length,
+    startStageTypingSession,
+    typingPlan.units,
+  ]);
 
   const isAnyModalOpen = showModal || showIntroModal || pauseOpen || Boolean(activeServiceModal);
 
